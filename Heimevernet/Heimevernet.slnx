@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Heimevernet.AppHost/Heimevernet.AppHost.csproj" />
+  <Project Path="Heimevernet.ServiceDefaults/Heimevernet.ServiceDefaults.csproj" />
+  <Project Path="Heimevernet/Heimevernet.csproj" />
+</Solution>
