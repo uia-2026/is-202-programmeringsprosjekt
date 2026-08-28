@@ -1,3 +1,25 @@
+# Visual Studio
 .vs/
+*.user
+*.suo
+
+# .NET build output
 bin/
 obj/
+
+# IDE
+.idea/s
+.vscode/
+
+# OS
+.DS_Store
+
+# Rider
+*.sln.iml
+
+# Logs
+*.log
+
+# User-specific ASP.NET / .NET files
+*.csproj.user
+*.rsusers
