@@ -1,3 +1,5 @@
+using Heimevernet.Data;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
