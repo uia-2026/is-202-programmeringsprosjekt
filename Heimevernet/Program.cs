@@ -1,10 +1,16 @@
 using Heimevernet.Data;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.AddMySqlDbContext<AppDbContext>("heimevernetdb");
+builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
+{
+    var connectionString = builder.Configuration.GetConnectionString("heimevernetdb")
+        ?? throw new InvalidOperationException("Connection string 'heimevernetdb' not found.");
+    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+});
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
