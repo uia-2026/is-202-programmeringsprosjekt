@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using Heimevernet.Models;
+using Heimevernet.ViewModels;
 
 namespace Heimevernet.Controllers;
 
