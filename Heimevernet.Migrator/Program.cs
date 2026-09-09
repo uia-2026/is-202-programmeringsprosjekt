@@ -26,9 +26,6 @@ using (var scope = host.Services.CreateScope())
     var environment = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
     var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
 
-    if (environment.IsDevelopment() && configuration["SeedData:Enabled"] != "false")
-    {
-        await SeedData.SeedAsync(db, CancellationToken.None);
-        Console.WriteLine("✅ Dev seed data inserted");
-    }
+    await SeedData.SeedAsync(db, CancellationToken.None);
+    Console.WriteLine("✅ Dev seed data inserted");
 }
