@@ -1,8 +1,9 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-var mariadb = builder.AddMySql("mariadb")
+var mariadbPassword = builder.AddParameter("mariadb-password", secret: true);
+
+var mariadb = builder.AddMySql("mariadb", password: mariadbPassword, port: 3307)
     .WithImage("mariadb", "11")
-    .WithDataVolume()
     .AddDatabase("heimevernetdb");
 
 var migrator = builder.AddProject<Projects.Heimevernet_Migrator>("migrator")
