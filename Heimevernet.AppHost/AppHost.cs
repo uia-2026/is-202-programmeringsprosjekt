@@ -5,8 +5,13 @@ var mariadb = builder.AddMySql("mariadb")
     .WithDataVolume()
     .AddDatabase("heimevernetdb");
 
-builder.AddProject<Projects.Heimevernet>("heimevernet")
+var migrator = builder.AddProject<Projects.Heimevernet_Migrator>("migrator")
     .WithReference(mariadb)
     .WaitFor(mariadb);
+
+builder.AddProject<Projects.Heimevernet>("heimevernet")
+    .WithReference(mariadb)
+    .WaitFor(mariadb)
+    .WaitForCompletion(migrator);
 
 builder.Build().Run();

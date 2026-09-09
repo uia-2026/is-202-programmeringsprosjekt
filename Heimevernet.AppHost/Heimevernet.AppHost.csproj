@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Heimevernet\Heimevernet.csproj" />
+    <ProjectReference Include="..\Heimevernet.Migrator\Heimevernet.Migrator.csproj" />
   </ItemGroup>
 
   <ItemGroup>
