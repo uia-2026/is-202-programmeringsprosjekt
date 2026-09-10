@@ -1,4 +1,4 @@
-namespace Heimevernet.Models;
+namespace Heimevernet.ViewModels;
 
 public class ErrorViewModel
 {

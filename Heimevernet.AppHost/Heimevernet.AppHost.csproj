@@ -11,6 +11,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Heimevernet\Heimevernet.csproj" />
+    <ProjectReference Include="..\Heimevernet.Migrator\Heimevernet.Migrator.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.MySql" Version="13.5.3" />
   </ItemGroup>
 
 </Project>
