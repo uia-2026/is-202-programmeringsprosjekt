@@ -1,5 +1,6 @@
 using Heimevernet.ViewModels.Resource;
 
+
 namespace Heimevernet.ViewModels.Home;
 
 public sealed class HomeIndexViewModel

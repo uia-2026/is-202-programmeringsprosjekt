@@ -1,0 +1,145 @@
+@model Heimevernet.Models.Need
+@{
+    ViewData["Title"] = Model.Title;
+
+    var (badgeClass, badgeText) = Model.Priority switch
+    {
+        Heimevernet.Models.NeedPriority.High =>
+            ("bg-danger", "High Priority"),
+
+        Heimevernet.Models.NeedPriority.Medium =>
+            ("bg-warning text-dark", "Medium Priority"),
+
+        _ => ("bg-success", "Low Priority")
+    };
+}
+
+<a asp-action="Index" class="btn btn-link ps-0 mb-3">
+    <i class="bi bi-arrow-left"></i> Back to Overview
+</a>
+
+<div class="row">
+
+    <div class="col-12 col-lg-8">
+
+        <div class="card shadow-sm">
+
+            <div class="card-body">
+
+                <span class="badge @badgeClass mb-2">
+                    @badgeText
+                </span>
+
+                <h2 class="h4">@Model.Title</h2>
+
+                <dl class="row mt-4">
+
+                    <dt class="col-sm-4">Need Type</dt>
+                    <dd class="col-sm-8">@Model.Type</dd>
+
+                    <dt class="col-sm-4">Street</dt>
+                    <dd class="col-sm-8">@Model.Street</dd>
+
+                    <dt class="col-sm-4">City</dt>
+                    <dd class="col-sm-8">@Model.City</dd>
+
+                    <dt class="col-sm-4">Postal Code</dt>
+                    <dd class="col-sm-8">@Model.PostalCode</dd>
+
+                    <dt class="col-sm-4">County</dt>
+                    <dd class="col-sm-8">@Model.County</dd>
+
+                    <dt class="col-sm-4">Country</dt>
+                    <dd class="col-sm-8">@Model.Country</dd>
+
+                    <dt class="col-sm-4">Time / Deadline</dt>
+                    <dd class="col-sm-8">
+                        @Model.Deadline.ToString("dddd dd.MM.yyyy, HH:mm")
+                    </dd>
+
+                    <dt class="col-sm-4">Contact Person</dt>
+
+                    <dd class="col-sm-8">
+
+                        @Model.ContactName
+
+                        @if (!string.IsNullOrWhiteSpace(Model.ContactRole))
+                        {
+                            <text> — @Model.ContactRole</text>
+                        }
+
+                        <br />
+
+                        @if (!string.IsNullOrWhiteSpace(Model.ContactPhone))
+                        {
+                            <span class="text-muted small">
+                                @Model.ContactPhone
+                            </span>
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(Model.ContactPhone)
+                            && !string.IsNullOrWhiteSpace(Model.ContactEmail))
+                        {
+                            <span class="text-muted small"> · </span>
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(Model.ContactEmail))
+                        {
+                            <span class="text-muted small">
+                                @Model.ContactEmail
+                            </span>
+                        }
+
+                    </dd>
+
+                    <dt class="col-sm-4">Status</dt>
+
+                    <dd class="col-sm-8">
+                        <span class="badge bg-secondary">
+                            @Model.Status
+                        </span>
+                    </dd>
+
+                </dl>
+
+                @if (!string.IsNullOrWhiteSpace(Model.Description))
+                {
+                    <hr />
+
+                    <h6>Description</h6>
+
+                    <p class="mb-0">
+                        @Model.Description
+                    </p>
+                }
+
+            </div>
+        </div>
+
+    </div>
+
+    @* Sidebar collapses below the main content on small screens automatically
+       since it's a separate column in the same row *@
+
+    <div class="col-12 col-lg-4 mt-3 mt-lg-0">
+
+        <div class="card shadow-sm">
+
+            <div class="card-body">
+
+                <h6 class="card-title">Actions</h6>
+
+                <button class="btn btn-success w-100 mb-2" type="button">
+                    Find Resources
+                </button>
+
+                <button class="btn btn-outline-secondary w-100" type="button">
+                    Mark as Resolved
+                </button>
+
+            </div>
+        </div>
+
+    </div>
+
+</div>

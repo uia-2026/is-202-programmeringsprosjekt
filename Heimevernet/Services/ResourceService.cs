@@ -21,4 +21,10 @@ public sealed class ResourceService : IResourceService
             .OrderBy(r => r.Id)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task AddAsync(Resource resource, CancellationToken cancellationToken)
+    {
+        _db.Resources.Add(resource);
+        await _db.SaveChangesAsync(cancellationToken);
+    }
 }
