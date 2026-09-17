@@ -15,7 +15,7 @@ builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
 });
 
 builder.Services.AddScoped<IResourceService, ResourceService>();
-
+builder.Services.AddSingleton<INeedRepository, InMemoryNeedRepository>();
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
