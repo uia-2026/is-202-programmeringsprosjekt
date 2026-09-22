@@ -1,5 +1,6 @@
 using Heimevernet.Data;
 using Heimevernet.Services;
+using Heimevernet.Repositories;
 using Heimevernet.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,11 +23,7 @@ builder.Services.AddControllersWithViews();
 var app = builder.Build();
 
 //seed the database with example needs on startup. 
-using (var scope = app.Services.CreateScope())
-{
-    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    DbSeeder.SeedNeeds(context);
-}
+
 
 app.MapDefaultEndpoints();
 

@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using Heimevernet.Models;
-using Heimevernet.Services;
+using Heimevernet.Repositories;
 using Heimevernet.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,9 +15,9 @@ public class HomeController : Controller
         _repository = repository;
     }
 
-    public IActionResult Index()
+    public async Task <IActionResult> Index()
     {
-        return View(_repository.GetAll());
+        return View(await _repository.GetAllAsync());
     }
 
     public IActionResult Privacy()

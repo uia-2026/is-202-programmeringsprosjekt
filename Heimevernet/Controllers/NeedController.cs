@@ -1,5 +1,6 @@
 using Heimevernet.Models;
-using Heimevernet.Services;
+using Heimevernet.Repositories;
+using Heimevernet.ViewModels.Need;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Heimevernet.Controllers
@@ -13,21 +14,19 @@ namespace Heimevernet.Controllers
             _repository = repository;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            var allNeeds = _repository.GetAll();
+            var allNeeds = await _repository.GetAllAsync();
             return View(allNeeds);
         }
 
-        public IActionResult Details(int id)
+        public async Task<IActionResult> Details(int id)
         {
-            var need = _repository.GetById(id);
-
+            var need = await _repository.GetByIdAsync(id);
             if (need == null)
             {
                 return NotFound();
             }
-
             return View(need);
         }
 
@@ -38,29 +37,48 @@ namespace Heimevernet.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Create(Need need)
+        public async Task<IActionResult> Create(NeedViewModel model)
         {
-            if (need.Type == NeedTypes.Other)
+            if (model.Type == NeedTypes.Other)
             {
-                if (string.IsNullOrWhiteSpace(need.OtherType))
+                if (string.IsNullOrWhiteSpace(model.OtherType))
                 {
                     ModelState.AddModelError(
-                        nameof(need.OtherType),
+                        nameof(model.OtherType),
                         "Please specify what type of need this is."
                     );
                 }
                 else
                 {
-                    need.Type = need.OtherType.Trim();
+                    model.Type = model.OtherType.Trim();
                 }
             }
 
             if (!ModelState.IsValid)
             {
-                return View(need);
+                return View(model);
             }
 
-            _repository.Add(need);
+            var need = new Need
+            {
+                Title = model.Title,
+                Type = model.Type,
+                OtherType = model.OtherType,
+                Street = model.Street,
+                City = model.City,
+                PostalCode = model.PostalCode,
+                County = model.County,
+                Country = model.Country,
+                Deadline = model.Deadline,
+                Priority = model.Priority,
+                ContactName = model.ContactName,
+                ContactRole = model.ContactRole,
+                ContactPhone = model.ContactPhone,
+                ContactEmail = model.ContactEmail,
+                Description = model.Description
+            };
+
+            await _repository.AddAsync(need);
 
             TempData["Success"] = $"The need \"{need.Title}\" has been registered.";
 
