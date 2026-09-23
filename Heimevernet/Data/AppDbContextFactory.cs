@@ -3,8 +3,12 @@ using Microsoft.EntityFrameworkCore.Design;
 
 namespace Heimevernet.Data;
 
+/// <summary>
+/// Design-time factory used by EF tools to create <see cref="AppDbContext"/> instances.
+/// </summary>
 public class AppDesignTimeDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
 {
+    /// <summary>Creates a new AppDbContext instance for design-time operations (migrations).</summary>
     public AppDbContext CreateDbContext(string[] args)
     {
         var connection = Environment.GetEnvironmentVariable("DATABASE_CONNECTION")
