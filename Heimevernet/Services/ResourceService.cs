@@ -1,30 +1,62 @@
-using Heimevernet.Data;
-using Heimevernet.Models;
+using Heimevernet.Mappers;
+using Heimevernet.Repositories.Interfaces;
 using Heimevernet.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
+using Heimevernet.ViewModels.Resource;
 
 namespace Heimevernet.Services;
 
-public sealed class ResourceService : IResourceService
+public class ResourceService : IResourceService
 {
-    private readonly AppDbContext _db;
+    private readonly IResourceRepository _resourceRepository;
+    private readonly ResourceMapper _resourceMapper;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public ResourceService(AppDbContext db)
+    public ResourceService(
+        IResourceRepository resourceRepository,
+        ResourceMapper resourceMapper,
+        IUnitOfWork unitOfWork)
     {
-        _db = db;
+        _resourceRepository = resourceRepository;
+        _resourceMapper = resourceMapper;
+        _unitOfWork = unitOfWork;
     }
 
-    public async Task<IReadOnlyList<Resource>> GetAllAsync(CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<ResourceViewModel>> GetAllAsync(
+        CancellationToken cancellationToken)
     {
-        return await _db.Resources
-            .AsNoTracking()
-            .OrderBy(r => r.Id)
-            .ToListAsync(cancellationToken);
+        var resources =
+            await _resourceRepository.GetAllAsync(cancellationToken);
+
+        return resources
+            .Select(_resourceMapper.ToViewModel)
+            .ToList();
     }
 
-    public async Task AddAsync(Resource resource, CancellationToken cancellationToken)
+    public async Task<ResourceViewModel?> GetByIdAsync(
+        int id,
+        CancellationToken cancellationToken)
     {
-        _db.Resources.Add(resource);
-        await _db.SaveChangesAsync(cancellationToken);
+        var resource =
+            await _resourceRepository.GetByIdAsync(
+                id,
+                cancellationToken);
+
+        return resource == null
+            ? null
+            : _resourceMapper.ToViewModel(resource);
+    }
+
+    public async Task AddAsync(
+        ResourceCreateViewModel model,
+        int userId,
+        CancellationToken cancellationToken)
+    {
+        var resource =
+            _resourceMapper.ToEntity(model, userId);
+
+        await _resourceRepository.AddAsync(
+            resource,
+            cancellationToken);
+        await _unitOfWork.CommitAsync();
     }
 }

@@ -1,33 +1,34 @@
-using System.Diagnostics;
-using Heimevernet.Models;
-using Heimevernet.Repositories;
-using Heimevernet.ViewModels;
+using Heimevernet.Services.Interfaces;
+using Heimevernet.ViewModels.Home;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Heimevernet.Controllers;
 
 public class HomeController : Controller
 {
-    private readonly INeedRepository _repository;
+    private readonly INeedService _needService;
 
-    public HomeController(INeedRepository repository)
+    public HomeController(INeedService needService)
     {
-        _repository = repository;
+        _needService = needService;
     }
 
-    public async Task <IActionResult> Index()
+    [HttpGet]
+    public async Task<IActionResult> Index()
     {
-        return View(await _repository.GetAllAsync());
+        var needs = await _needService.GetSummariesAsync();
+
+        var viewModel = new HomeIndexViewModel
+        {
+            Needs = needs
+        };
+
+        return View(viewModel);
     }
+
 
     public IActionResult Privacy()
     {
         return View();
-    }
-
-    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-    public IActionResult Error()
-    {
-        return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
     }
 }
