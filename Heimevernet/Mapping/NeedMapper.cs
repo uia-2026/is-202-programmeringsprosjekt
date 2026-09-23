@@ -42,6 +42,25 @@ public class NeedMapper
         };
     }
 
+    public NeedSummaryViewModel ToSummaryViewModel(Need need)
+    {
+        return new NeedSummaryViewModel
+        {
+            Id = need.Id,
+            Title = need.Title,
+            CategoryName = need.Category.Name,
+            Region = need.Region,
+            Priority = need.Priority,
+            Status = need.Status
+        };
+    }
+
+    public IEnumerable<NeedSummaryViewModel> ToSummaryViewModels(
+        IEnumerable<Need> needs)
+    {
+        return needs.Select(ToSummaryViewModel);
+    }
+
     public IEnumerable<NeedViewModel> ToViewModels(
         IEnumerable<Need> needs)
     {

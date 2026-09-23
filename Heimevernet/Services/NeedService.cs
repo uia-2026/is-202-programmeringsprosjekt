@@ -34,6 +34,13 @@ public class NeedService : INeedService
         return _needMapper.ToViewModels(needs);
     }
 
+    public async Task<IEnumerable<NeedSummaryViewModel>> GetSummariesAsync()
+    {
+        var needs = await _needRepository.GetAllAsync();
+
+        return _needMapper.ToSummaryViewModels(needs);
+    }
+
     public async Task<NeedViewModel?> GetByIdAsync(int id)
     {
         var need = await _needRepository.GetByIdAsync(id);

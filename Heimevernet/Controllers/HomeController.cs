@@ -1,4 +1,5 @@
 using Heimevernet.Services.Interfaces;
+using Heimevernet.ViewModels.Home;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Heimevernet.Controllers;
@@ -15,8 +16,19 @@ public class HomeController : Controller
     [HttpGet]
     public async Task<IActionResult> Index()
     {
-        var needs = await _needService.GetAllAsync();
+        var needs = await _needService.GetSummariesAsync();
 
-        return View(needs);
+        var viewModel = new HomeIndexViewModel
+        {
+            Needs = needs
+        };
+
+        return View(viewModel);
+    }
+
+
+    public IActionResult Privacy()
+    {
+        return View();
     }
 }

@@ -3,155 +3,90 @@
 @using Heimevernet.Models
 
 @{
-    ViewData["Title"] = "Heimevernet";
+    ViewData["Title"] = "Registered Needs";
 }
 
-<div class="text-center mb-5">
-    <h1 class="display-4">Heimevernet</h1>
-    <p class="lead">
-        Resource and need overview for the Heimevernet.
-    </p>
-</div>
-
-<div class="row g-4">
-
-    <div class="col-md-6">
-        <div class="card h-100 p-4">
-
-            <h2>Public Authority</h2>
-
-            <p>
-                Register a need for assistance and get an overview of
-                available resources in your area.
-            </p>
-
-            <a asp-controller="Need" asp-action="Create" class="btn btn-primary">
-                Register Need
-            </a>
-
-            <a asp-controller="Need" asp-action="Index" class="btn btn-outline-secondary mt-2">
-                View Registered Needs
-            </a>
-
-        </div>
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+    <div>
+        <h1>Registered Needs</h1>
+        <p class="text-muted mb-0">
+            Overview of registered needs.
+        </p>
     </div>
 
-    <div class="col-md-6">
-        <div class="card h-100 p-4">
-
-            <h2>Resource Provider</h2>
-
-            <p>
-                Register resources you can offer during a crisis situation,
-                and see which needs exist near you.
-            </p>
-
-            <a asp-controller="Resource" asp-action="Create" class="btn btn-primary">
-                Register Resources
-            </a>
-
-            <a asp-controller="Resource" asp-action="Index" class="btn btn-outline-secondary mt-2">
-                View My Resources
-            </a>
-
-        </div>
-    </div>
-
-</div>
-
-<div class="mt-5">
-
-    <h2>Map</h2>
-
-    <p>
-        View registered needs and resources visualized on a map.
-    </p>
-
-    <a href="#" class="btn btn-success disabled" aria-disabled="true">
-        Open Map
+    <a asp-controller="Need" asp-action="Create" class="btn btn-primary">
+        Register Need
     </a>
-
 </div>
 
-<div class="mt-5">
+@if (Model.Any())
+{
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
 
-    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+        @foreach (var need in Model)
+        {
+            <div class="col">
+                <div class="card h-100 shadow-sm">
 
-        <h2 class="mb-0">
-            Registered Needs
-        </h2>
+                    <div class="card-body">
 
-        <a asp-controller="Need" asp-action="Index" class="btn btn-outline-secondary">
-            View all needs
-        </a>
+                        <div class="d-flex justify-content-between align-items-start mb-2">
 
-    </div>
+                            @{
+                                var badgeClass = need.Priority switch
+                                {
+                                    NeedPriority.Urgent => "bg-danger",
+                                    NeedPriority.Planned => "bg-primary",
+                                    _ => "bg-secondary"
+                                };
+                            }
 
-    @if (Model.Any())
-    {
-        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+                            <span class="badge @badgeClass">
+                                @need.Priority
+                            </span>
 
-            @foreach (var need in Model)
-            {
-                <div class="col">
-
-                    <div class="card h-100 shadow-sm">
-
-                        <div class="card-body">
-
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-
-                                @{
-                                    var badgeClass = need.Priority switch
-                                    {
-                                        NeedPriority.Urgent => "bg-danger",
-                                        NeedPriority.Planned => "bg-primary",
-                                        _ => "bg-secondary"
-                                    };
-                                }
-
-                                <span class="badge @badgeClass">
-                                    @need.Priority
-                                </span>
-
-                                <span class="badge bg-secondary">
-                                    @need.Status
-                                </span>
-
-                            </div>
-
-                            <h5 class="card-title">
-                                @need.Title
-                            </h5>
-
-                            <p class="card-text text-muted small mb-1">
-                                @need.CategoryName
-                            </p>
-
-                            <p class="card-text text-muted small mb-3">
-                                <i class="bi bi-geo-alt"></i>
-                                @need.FullAddress
-                            </p>
-
-                            <a asp-controller="Need" asp-action="Details" asp-route-id="@need.Id"
-                               class="btn btn-outline-primary btn-sm w-100">
-                                View details
-                            </a>
+                            <span class="badge bg-secondary">
+                                @need.Status
+                            </span>
 
                         </div>
+
+                        <h5 class="card-title">
+                            @need.Title
+                        </h5>
+
+                        <p class="card-text text-muted small mb-1">
+                            @need.CategoryName
+                        </p>
+
+                        <p class="card-text text-muted small mb-3">
+                            <i class="bi bi-geo-alt"></i>
+                            @need.FullAddress
+                        </p>
+
+                        @if (!string.IsNullOrWhiteSpace(need.Description))
+                        {
+                            <p class="card-text">
+                                @need.Description
+                            </p>
+                        }
+
+                        <a asp-controller="Need" asp-action="Details" asp-route-id="@need.Id"
+                           class="btn btn-outline-primary btn-sm w-100">
+                            View details
+                        </a>
 
                     </div>
 
                 </div>
-            }
+            </div>
+        }
 
-        </div>
-    }
-    else
-    {
-        <p class="text-muted">
-            No needs have been registered yet.
-        </p>
-    }
-
-</div>
+    </div>
+}
+else
+{
+    <div class="alert alert-light border">
+        No needs have been registered yet.
+    </div>
+}

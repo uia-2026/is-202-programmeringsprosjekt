@@ -1,4 +1,4 @@
-﻿@model IEnumerable<Heimevernet.ViewModels.Need.NeedViewModel>
+﻿@model Heimevernet.ViewModels.Home.HomeIndexViewModel
 
 @using Heimevernet.Models
 
@@ -87,11 +87,11 @@
 
     </div>
 
-    @if (Model.Any())
+    @if (Model.Needs.Any())
     {
         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
 
-            @foreach (var need in Model)
+            @foreach (var need in Model.Needs)
             {
                 <div class="col">
 
@@ -130,7 +130,7 @@
 
                             <p class="card-text text-muted small mb-3">
                                 <i class="bi bi-geo-alt"></i>
-                                @need.FullAddress
+                                @need.Region
                             </p>
 
                             <a asp-controller="Need" asp-action="Details" asp-route-id="@need.Id"

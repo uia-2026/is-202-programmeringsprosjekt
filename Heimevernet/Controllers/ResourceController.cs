@@ -68,4 +68,22 @@ public class ResourceController : Controller
 
         return RedirectToAction(nameof(Index));
     }
+
+    [HttpGet]
+    public async Task<IActionResult> Details(
+    int id,
+    CancellationToken cancellationToken)
+    {
+        var resource =
+            await _resourceService.GetByIdAsync(
+                id,
+                cancellationToken);
+
+        if (resource == null)
+        {
+            return NotFound();
+        }
+
+        return View(resource);
+    }
 }

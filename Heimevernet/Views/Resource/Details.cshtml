@@ -1,0 +1,125 @@
+@model Heimevernet.ViewModels.Resource.ResourceViewModel
+
+@using Heimevernet.Models
+
+@{
+    ViewData["Title"] = Model.Title;
+
+    var badgeClass = Model.Status switch
+    {
+        ResourceStatus.Available => "bg-success",
+        ResourceStatus.Busy => "bg-warning text-dark",
+        _ => "bg-secondary"
+    };
+}
+
+<a asp-action="Index" class="btn btn-link ps-0 mb-3">
+    <i class="bi bi-arrow-left"></i> Back to Overview
+</a>
+
+<div class="row">
+
+    <div class="col-12 col-lg-8">
+
+        <div class="card shadow-sm">
+
+            <div class="card-body">
+
+                <span class="badge @badgeClass mb-2">
+                    @Model.Status
+                </span>
+
+                <h2 class="h4">@Model.Title</h2>
+
+                <dl class="row mt-4">
+
+                    <dt class="col-sm-4">Category</dt>
+                    <dd class="col-sm-8">
+                        @Model.CategoryName
+                    </dd>
+
+                    <dt class="col-sm-4">Region</dt>
+                    <dd class="col-sm-8">
+                        @Model.Region
+                    </dd>
+
+                    <dt class="col-sm-4">Coordinates</dt>
+                    <dd class="col-sm-8">
+                        @Model.Latitude, @Model.Longitude
+                    </dd>
+
+                    <dt class="col-sm-4">Available from</dt>
+                    <dd class="col-sm-8">
+                        @Model.AvailableFrom.ToString(
+                            "dddd dd.MM.yyyy, HH:mm")
+                    </dd>
+
+                    <dt class="col-sm-4">Available until</dt>
+                    <dd class="col-sm-8">
+                        @if (Model.AvailableTo.HasValue)
+                        {
+                            @Model.AvailableTo.Value.ToString(
+                                "dddd dd.MM.yyyy, HH:mm")
+                        }
+                        else
+                        {
+                            <span class="text-muted">
+                                No end date
+                            </span>
+                        }
+                    </dd>
+
+                    <dt class="col-sm-4">Contact</dt>
+                    <dd class="col-sm-8">
+                        @Model.ContactPoint
+                    </dd>
+
+                    <dt class="col-sm-4">Status</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge @badgeClass">
+                            @Model.Status
+                        </span>
+                    </dd>
+
+                </dl>
+
+                @if (!string.IsNullOrWhiteSpace(Model.Description))
+                {
+                    <hr />
+
+                    <h6>Description</h6>
+
+                    <p class="mb-0">
+                        @Model.Description
+                    </p>
+                }
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-12 col-lg-4 mt-3 mt-lg-0">
+
+        <div class="card shadow-sm">
+
+            <div class="card-body">
+
+                <h6 class="card-title">Actions</h6>
+
+                <button class="btn btn-primary w-100 mb-2" type="button">
+                    Use Resource
+                </button>
+
+                <button class="btn btn-outline-secondary w-100" type="button">
+                    Mark as Busy
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
