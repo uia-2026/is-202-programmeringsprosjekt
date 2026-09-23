@@ -1,6 +1,6 @@
 using Heimevernet.Models;
 
-namespace Heimevernet.Services
+namespace Heimevernet.Repositories
 {
     public class InMemoryNeedRepository : INeedRepository
     {
@@ -65,12 +65,19 @@ namespace Heimevernet.Services
         };
 
         private int _nextId = 4;
-        public IEnumerable<Need> GetAll() => _needs.OrderByDescending(n => n.Priority).ThenBy(n => n.Deadline);
-        public Need? GetById(int id) => _needs.FirstOrDefault(n => n.Id == id);
-        public void Add(Need need)
+        public Task<IEnumerable<Need>> GetAllAsync() =>
+            Task.FromResult(_needs.OrderByDescending(n => n.Priority).ThenBy(n => n.Deadline) as
+                IEnumerable<Need>);
+
+        public Task<Need?> GetByIdAsync(int id) =>
+            Task.FromResult(_needs.FirstOrDefault(n => n.Id == id));
+
+        public Task AddAsync (Need need)
         {
             need.Id = _nextId++;
             _needs.Add(need);
+            return Task.CompletedTask;
         }
+
     }
 }

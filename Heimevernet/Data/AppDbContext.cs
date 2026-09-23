@@ -8,6 +8,7 @@ public class AppDbContext : DbContext
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
     public DbSet<Resource> Resources => Set<Resource>();
+    public DbSet<Need> Needs => Set<Need>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -15,6 +16,14 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Resource>()
             .Property(r => r.Status)
+            .HasConversion<string>();
+
+        modelBuilder.Entity<Need>()
+            .Property(n => n.Status)
+            .HasConversion<string>();
+
+        modelBuilder.Entity <Need>()
+            .Property(n => n.Priority)
             .HasConversion<string>();
     }
 }

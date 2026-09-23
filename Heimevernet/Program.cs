@@ -1,5 +1,6 @@
 using Heimevernet.Data;
 using Heimevernet.Services;
+using Heimevernet.Repositories;
 using Heimevernet.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,13 +14,16 @@ builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
         ?? throw new InvalidOperationException("Connection string 'heimevernetdb' not found.");
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
 });
-
-builder.Services.AddScoped<IResourceService, ResourceService>();
-builder.Services.AddSingleton<INeedRepository, InMemoryNeedRepository>();
 // Add services to the container.
+builder.Services.AddScoped<IResourceService, ResourceService>();
+builder.Services.AddScoped<INeedRepository, EfNeedRepository>();
+
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
+
+//seed the database with example needs on startup. 
+
 
 app.MapDefaultEndpoints();
 
