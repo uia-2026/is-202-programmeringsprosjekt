@@ -71,9 +71,9 @@ public class ResourceController : Controller
 
     [HttpGet]
     public async Task<IActionResult> Details(
-    int id,
     CancellationToken cancellationToken)
     {
+        int id = int.Parse(Request.Query["id"]);
         var resource =
             await _resourceService.GetByIdAsync(
                 id,
