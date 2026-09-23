@@ -1,74 +1,35 @@
-using System.ComponentModel.DataAnnotations;
+namespace Heimevernet.Models;
 
-namespace Heimevernet.Models
 
+public class Need
 {
-    public enum NeedPriority
-    {
-        [Display(Name = "Low")]
-        Low,
-        [Display(Name = "Midium")]
-        Medium,
-        [Display(Name = "High")]
-        High
-    }
+    public int Id { get; set; }
 
-    public enum NeedStatus
-    {
-        [Display(Name = "New")]
-        New,
-        [Display(Name = "Under Review")]
-        UnderReview,
-        [Display(Name = "In Progress")]
-        InProgress,
-        [Display(Name = "Completed")]
-        Completed
-    }
+    public int UserId { get; set; }
+    public User User { get; set; } = null!;
 
-    public static class NeedTypes
-    {
-        public const string Other = "Other";
+    public int CategoryId { get; set; }
+    public Category Category { get; set; } = null!;
 
-        public static readonly List<string> All = new()
-        {
-            "Transport",
-            "Drone Observation",
-            "Power/Generator",
-            "Snow Removal",
-            "Sand/Gravel",
-            "Machinery",
-            "Evacuation",
-            "Communications",
-            "Personnel",
-            "Facilities",
-            Other
-        };
-    }
-    public class Need
-    {
-        public int Id { get; set; }
-        public string Title { get; set; } = string.Empty;
-        public string Type { get; set; } = string.Empty;
-        public string? OtherType { get; set;}
-        public string Street { get; set; } = string.Empty;
-        public string City { get; set; } = string.Empty;
-        public string PostalCode { get; set; } = string.Empty;
-        public string County { get; set; } = string.Empty;
-        public string Country { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
 
-        public string FullAddress =>
-            $"{Street}, {PostalCode}, {City}, {County}, {Country}";
+    public string? Description { get; set; }
 
-        public DateTime Deadline { get; set; }
-        public NeedPriority Priority { get; set; } = NeedPriority.Medium;
-        public string ContactName { get; set; } = string.Empty;
-        public string? ContactRole { get; set; }
-        public string?ContactPhone { get; set; }
-        public string? ContactEmail { get; set; }
-        public string? Description { get; set; }
-        public NeedStatus Status { get; set; } = NeedStatus.New;
-    }
-    
+    public double Latitude { get; set; }
+
+    public double Longitude { get; set; }
+
+    public string Region { get; set; } = string.Empty;
+
+    public NeedPriority Priority { get; set; }
+
+    public DateTime? Deadline { get; set; }
+
+    public string ContactPoint { get; set; } = string.Empty;
+
+    public NeedStatus Status { get; set; } = NeedStatus.New;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public ICollection<Match> Matches { get; set; } = new List<Match>();
 }
-
-    
