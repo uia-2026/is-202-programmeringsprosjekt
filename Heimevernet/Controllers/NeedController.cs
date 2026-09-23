@@ -1,88 +1,76 @@
-using Heimevernet.Models;
-using Heimevernet.Repositories;
+using Heimevernet.Repositories.Interfaces;
+using Heimevernet.Services.Interfaces;
 using Heimevernet.ViewModels.Need;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Heimevernet.Controllers
+namespace Heimevernet.Controllers;
+
+public class NeedController : Controller
 {
-    public class NeedController : Controller
+    private readonly INeedService _needService;
+    private readonly ICategoryRepository _categoryRepository;
+
+    public NeedController(
+        INeedService needService,
+        ICategoryRepository categoryRepository)
     {
-        private readonly INeedRepository _repository;
+        _needService = needService;
+        _categoryRepository = categoryRepository;
+    }
 
-        public NeedController(INeedRepository repository)
+    [HttpGet]
+    public async Task<IActionResult> Index()
+    {
+        var needs = await _needService.GetAllAsync();
+
+        return View(needs);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Create()
+    {
+        var model = new NeedCreateViewModel
         {
-            _repository = repository;
+            AvailableCategories =
+                await _categoryRepository.GetAllAsync()
+        };
+
+        return View(model);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(
+        NeedCreateViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            model.AvailableCategories =
+                await _categoryRepository.GetAllAsync();
+
+            return View(model);
         }
 
-        public async Task<IActionResult> Index()
+        var userId = 1; // Replace with authenticated user's ID.
+
+        await _needService.CreateAsync(model, userId);
+
+        TempData["Success"] =
+            $"The need \"{model.Title}\" has been registered.";
+
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Details(int id)
+    {
+        var need = await _needService.GetByIdAsync(id);
+
+        if (need == null)
         {
-            var allNeeds = await _repository.GetAllAsync();
-            return View(allNeeds);
+            return NotFound();
         }
 
-        public async Task<IActionResult> Details(int id)
-        {
-            var need = await _repository.GetByIdAsync(id);
-            if (need == null)
-            {
-                return NotFound();
-            }
-            return View(need);
-        }
-
-        public IActionResult Create()
-        {
-            return View();
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(NeedViewModel model)
-        {
-            if (model.Type == NeedTypes.Other)
-            {
-                if (string.IsNullOrWhiteSpace(model.OtherType))
-                {
-                    ModelState.AddModelError(
-                        nameof(model.OtherType),
-                        "Please specify what type of need this is."
-                    );
-                }
-                else
-                {
-                    model.Type = model.OtherType.Trim();
-                }
-            }
-
-            if (!ModelState.IsValid)
-            {
-                return View(model);
-            }
-
-            var need = new Need
-            {
-                Title = model.Title,
-                Type = model.Type,
-                OtherType = model.OtherType,
-                Street = model.Street,
-                City = model.City,
-                PostalCode = model.PostalCode,
-                County = model.County,
-                Country = model.Country,
-                Deadline = model.Deadline,
-                Priority = model.Priority,
-                ContactName = model.ContactName,
-                ContactRole = model.ContactRole,
-                ContactPhone = model.ContactPhone,
-                ContactEmail = model.ContactEmail,
-                Description = model.Description
-            };
-
-            await _repository.AddAsync(need);
-
-            TempData["Success"] = $"The need \"{need.Title}\" has been registered.";
-
-            return RedirectToAction(nameof(Index));
-        }
+        return View(need);
     }
 }

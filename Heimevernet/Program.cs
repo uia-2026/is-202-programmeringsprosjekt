@@ -3,6 +3,8 @@ using Heimevernet.Services;
 using Heimevernet.Repositories;
 using Heimevernet.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Heimevernet.Mappers;
+using Heimevernet.Repositories.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,7 +18,15 @@ builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
 });
 // Add services to the container.
 builder.Services.AddScoped<IResourceService, ResourceService>();
-builder.Services.AddScoped<INeedRepository, EfNeedRepository>();
+builder.Services.AddScoped<INeedService, NeedService>();
+
+builder.Services.AddScoped<IResourceRepository, ResourceRepository>();
+builder.Services.AddScoped<INeedRepository, NeedRepository>();
+
+
+builder.Services.AddSingleton<NeedMapper>();
+builder.Services.AddSingleton<ResourceMapper>();
+
 
 builder.Services.AddControllersWithViews();
 

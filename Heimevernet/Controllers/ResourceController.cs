@@ -1,5 +1,8 @@
+using Heimevernet.Mappers;
 using Heimevernet.Models;
+using Heimevernet.Repositories.Interfaces;
 using Heimevernet.Services.Interfaces;
+using Heimevernet.ViewModels.Resource;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Heimevernet.Controllers;
@@ -7,37 +10,72 @@ namespace Heimevernet.Controllers;
 public class ResourceController : Controller
 {
     private readonly IResourceService _resourceService;
+    private readonly ICategoryRepository _categoryRepository;
+    private readonly ResourceMapper _resourceMapper;
 
-    public ResourceController(IResourceService resourceService)
+    public ResourceController(
+        IResourceService resourceService,
+        ICategoryRepository categoryRepository,
+        ResourceMapper resourceMapper)
     {
         _resourceService = resourceService;
+        _categoryRepository = categoryRepository;
+        _resourceMapper = resourceMapper;
     }
 
-    public async Task<IActionResult> Index(CancellationToken cancellationToken)
+    [HttpGet]
+    public async Task<IActionResult> Index(
+        CancellationToken cancellationToken)
     {
-        var resources = await _resourceService.GetAllAsync(cancellationToken);
+        var resources =
+            await _resourceService.GetAllAsync(cancellationToken);
+
         return View(resources);
     }
 
     [HttpGet]
-    public IActionResult Create()
+    public async Task<IActionResult> Create(
+        CancellationToken cancellationToken)
     {
-        return View(new Resource { AvailableFrom = DateTime.Now });
+        var model = new ResourceCreateViewModel
+        {
+            AvailableFrom = DateTime.Now,
+            AvailableCategories =
+                await _categoryRepository.GetAllAsync()
+        };
+
+        return View(model);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(Resource resource, CancellationToken cancellationToken)
+    public async Task<IActionResult> Create(
+        ResourceCreateViewModel model,
+        CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid)
         {
-            return View(resource);
+            model.AvailableCategories =
+                await _categoryRepository.GetAllAsync();
+
+            return View(model);
         }
 
-        resource.Status = ResourceStatus.New;
-        await _resourceService.AddAsync(resource, cancellationToken);
+        var userId = 1; // Replace with authenticated user's ID.
 
-        TempData["Success"] = $"The resource \"{resource.Type}\" has been registered.";
+        var resource =
+            _resourceMapper.ToEntity(model, userId);
+
+        resource.Status = ResourceStatus.Available;
+
+        await _resourceService.AddAsync(
+            model,
+            userId,
+            cancellationToken);
+
+        TempData["Success"] =
+            $"The resource \"{resource.Title}\" has been registered.";
+
         return RedirectToAction(nameof(Index));
     }
 }

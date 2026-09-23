@@ -1,16 +1,18 @@
-@model Heimevernet.Models.Need
+@model Heimevernet.ViewModels.Need.NeedViewModel
+
 @{
     ViewData["Title"] = Model.Title;
 
     var (badgeClass, badgeText) = Model.Priority switch
     {
-        Heimevernet.Models.NeedPriority.High =>
-            ("bg-danger", "High Priority"),
+        Heimevernet.Models.NeedPriority.Urgent =>
+            ("bg-danger", "Urgent"),
 
-        Heimevernet.Models.NeedPriority.Medium =>
-            ("bg-warning text-dark", "Medium Priority"),
+        Heimevernet.Models.NeedPriority.Planned =>
+            ("bg-warning text-dark", "Planned"),
 
-        _ => ("bg-success", "Low Priority")
+        _ =>
+            ("bg-success", "Low Priority")
     };
 }
 
@@ -34,66 +36,40 @@
 
                 <dl class="row mt-4">
 
-                    <dt class="col-sm-4">Need Type</dt>
-                    <dd class="col-sm-8">@Model.Type</dd>
-
-                    <dt class="col-sm-4">Street</dt>
-                    <dd class="col-sm-8">@Model.Street</dd>
-
-                    <dt class="col-sm-4">City</dt>
-                    <dd class="col-sm-8">@Model.City</dd>
-
-                    <dt class="col-sm-4">Postal Code</dt>
-                    <dd class="col-sm-8">@Model.PostalCode</dd>
-
-                    <dt class="col-sm-4">County</dt>
-                    <dd class="col-sm-8">@Model.County</dd>
-
-                    <dt class="col-sm-4">Country</dt>
-                    <dd class="col-sm-8">@Model.Country</dd>
-
-                    <dt class="col-sm-4">Time / Deadline</dt>
+                    <dt class="col-sm-4">Category</dt>
                     <dd class="col-sm-8">
-                        @Model.Deadline.ToString("dddd dd.MM.yyyy, HH:mm")
+                        @Model.CategoryName
                     </dd>
 
-                    <dt class="col-sm-4">Contact Person</dt>
-
+                    <dt class="col-sm-4">Region</dt>
                     <dd class="col-sm-8">
+                        @Model.Region
+                    </dd>
 
-                        @Model.ContactName
+                    <dt class="col-sm-4">Coordinates</dt>
+                    <dd class="col-sm-8">
+                        @Model.Latitude, @Model.Longitude
+                    </dd>
 
-                        @if (!string.IsNullOrWhiteSpace(Model.ContactRole))
+                    <dt class="col-sm-4">Deadline</dt>
+                    <dd class="col-sm-8">
+                        @if (Model.Deadline.HasValue)
                         {
-                            <text> — @Model.ContactRole</text>
+                            @Model.Deadline.Value.ToString(
+                                "dddd dd.MM.yyyy, HH:mm")
                         }
-
-                        <br />
-
-                        @if (!string.IsNullOrWhiteSpace(Model.ContactPhone))
+                        else
                         {
-                            <span class="text-muted small">
-                                @Model.ContactPhone
-                            </span>
+                            <span class="text-muted">No deadline</span>
                         }
+                    </dd>
 
-                        @if (!string.IsNullOrWhiteSpace(Model.ContactPhone)
-                            && !string.IsNullOrWhiteSpace(Model.ContactEmail))
-                        {
-                            <span class="text-muted small"> · </span>
-                        }
-
-                        @if (!string.IsNullOrWhiteSpace(Model.ContactEmail))
-                        {
-                            <span class="text-muted small">
-                                @Model.ContactEmail
-                            </span>
-                        }
-
+                    <dt class="col-sm-4">Contact</dt>
+                    <dd class="col-sm-8">
+                        @Model.ContactPoint
                     </dd>
 
                     <dt class="col-sm-4">Status</dt>
-
                     <dd class="col-sm-8">
                         <span class="badge bg-secondary">
                             @Model.Status
@@ -118,9 +94,6 @@
 
     </div>
 
-    @* Sidebar collapses below the main content on small screens automatically
-       since it's a separate column in the same row *@
-
     <div class="col-12 col-lg-4 mt-3 mt-lg-0">
 
         <div class="card shadow-sm">
@@ -138,6 +111,7 @@
                 </button>
 
             </div>
+
         </div>
 
     </div>

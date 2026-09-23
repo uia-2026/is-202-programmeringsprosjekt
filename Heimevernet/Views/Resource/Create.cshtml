@@ -1,66 +1,187 @@
-@model Heimevernet.Models.Resource
+@model Heimevernet.ViewModels.Resource.ResourceCreateViewModel
 
 @{
     ViewData["Title"] = "Register Resource";
 }
 
-<a asp-action="Index" class="btn btn-link ps-0 mb-3">Back to Resources</a>
+<a asp-action="Index" class="btn btn-link ps-0 mb-3">
+    <i class="bi bi-arrow-left"></i> Back to Overview
+</a>
 
 <div class="row justify-content-center">
+
     <div class="col-12 col-lg-8 col-xl-6">
+
         <div class="card shadow-sm" style="color-scheme: light;">
+
             <div class="card-body">
-                <h1 class="h4 mb-4">Register Resource</h1>
+
+                <h2 class="h4 mb-4">Register Resource</h2>
 
                 <form asp-action="Create" method="post">
-                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger">
+                    </div>
 
                     <div class="mb-3">
-                        <label asp-for="Type" class="form-label">Resource type</label>
-                        <input asp-for="Type" class="form-control" placeholder="E.g. Tractor, drone or ambulance" />
-                        <span asp-validation-for="Type" class="text-danger small"></span>
+
+                        <label asp-for="Title" class="form-label">
+                        </label>
+
+                        <input asp-for="Title" class="form-control" placeholder="E.g. Snow plow" />
+
+                        <span asp-validation-for="Title" class="text-danger small">
+                        </span>
+
                     </div>
+
+                    <div class="mb-3">
+
+                        <label asp-for="CategoryId" class="form-label">
+                            Category
+                        </label>
+
+                        <select asp-for="CategoryId" class="form-select">
+
+                            <option value="">
+                                Select category...
+                            </option>
+
+                            @foreach (var category in Model.AvailableCategories)
+                            {
+                                <option value="@category.Id">
+                                    @category.Name
+                                </option>
+                            }
+
+                        </select>
+
+                        <span asp-validation-for="CategoryId" class="text-danger small">
+                        </span>
+
+                    </div>
+
+                    <div class="mb-3">
+
+                        <label asp-for="Description" class="form-label">
+                        </label>
+
+                        <textarea asp-for="Description" class="form-control" rows="4"
+                                  placeholder="Describe the resource (optional)">
+                        </textarea>
+
+                        <span asp-validation-for="Description" class="text-danger small">
+                        </span>
+
+                    </div>
+
+                    <h6 class="mb-3 mt-4">Location</h6>
 
                     <div class="row">
+
                         <div class="col-12 col-sm-6 mb-3">
-                            <label asp-for="Latitude" class="form-label"></label>
-                            <input asp-for="Latitude" class="form-control" type="number" step="any" />
-                            <span asp-validation-for="Latitude" class="text-danger small"></span>
+
+                            <label asp-for="Latitude" class="form-label">
+                            </label>
+
+                            <input asp-for="Latitude" class="form-control" type="number" step="any"
+                                   placeholder="Latitude" />
+
+                            <span asp-validation-for="Latitude" class="text-danger small">
+                            </span>
+
                         </div>
 
                         <div class="col-12 col-sm-6 mb-3">
-                            <label asp-for="Longitude" class="form-label"></label>
-                            <input asp-for="Longitude" class="form-control" type="number" step="any" />
-                            <span asp-validation-for="Longitude" class="text-danger small"></span>
+
+                            <label asp-for="Longitude" class="form-label">
+                            </label>
+
+                            <input asp-for="Longitude" class="form-control" type="number" step="any"
+                                   placeholder="Longitude" />
+
+                            <span asp-validation-for="Longitude" class="text-danger small">
+                            </span>
+
                         </div>
+
+                        <div class="col-12 mb-3">
+
+                            <label asp-for="Region" class="form-label">
+                            </label>
+
+                            <input asp-for="Region" class="form-control" placeholder="Region" />
+
+                            <span asp-validation-for="Region" class="text-danger small">
+                            </span>
+
+                        </div>
+
                     </div>
 
-                    <div class="mb-3">
-                        <label asp-for="AvailableFrom" class="form-label"></label>
-                        <input asp-for="AvailableFrom" class="form-control" type="datetime-local" />
-                        <span asp-validation-for="AvailableFrom" class="text-danger small"></span>
-                    </div>
+                    <h6 class="mb-3 mt-4">Availability</h6>
 
-                    <div class="mb-3">
-                        <label asp-for="ContactName" class="form-label"></label>
-                        <input asp-for="ContactName" class="form-control" placeholder="Contact person" />
-                        <span asp-validation-for="ContactName" class="text-danger small"></span>
+                    <div class="row">
+
+                        <div class="col-12 col-sm-6 mb-3">
+
+                            <label asp-for="AvailableFrom" class="form-label">
+                            </label>
+
+                            <input asp-for="AvailableFrom" class="form-control" type="datetime-local" />
+
+                            <span asp-validation-for="AvailableFrom" class="text-danger small">
+                            </span>
+
+                        </div>
+
+                        <div class="col-12 col-sm-6 mb-3">
+
+                            <label asp-for="AvailableTo" class="form-label">
+                            </label>
+
+                            <input asp-for="AvailableTo" class="form-control" type="datetime-local" />
+
+                            <span asp-validation-for="AvailableTo" class="text-danger small">
+                            </span>
+
+                        </div>
+
                     </div>
 
                     <div class="mb-4">
-                        <label asp-for="ContactInfo" class="form-label">Contact information</label>
-                        <input asp-for="ContactInfo" class="form-control" placeholder="Phone or email" />
-                        <span asp-validation-for="ContactInfo" class="text-danger small"></span>
+
+                        <label asp-for="ContactPoint" class="form-label">
+                        </label>
+
+                        <input asp-for="ContactPoint" class="form-control"
+                               placeholder="Phone, email, or other contact information" />
+
+                        <span asp-validation-for="ContactPoint" class="text-danger small">
+                        </span>
+
                     </div>
 
                     <div class="d-flex flex-column flex-sm-row gap-2">
-                        <button type="submit" class="btn btn-primary">Register Resource</button>
-                        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+
+                        <button type="submit" class="btn btn-primary">
+                            Register Resource
+                        </button>
+
+                        <a asp-action="Index" class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+
                     </div>
+
                 </form>
+
             </div>
+
         </div>
+
     </div>
+
 </div>
 
 @section Scripts {

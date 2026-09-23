@@ -1,13 +1,14 @@
 using Heimevernet.Data;
 using Heimevernet.Models;
+using Heimevernet.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace Heimevernet.Repositories
 {
-   public class EfNeedRepository : INeedRepository
+    public class NeedRepository : INeedRepository
     {
         private readonly AppDbContext _context;
-        public EfNeedRepository(AppDbContext context)
+        public NeedRepository(AppDbContext context)
         {
             _context = context;
         }
@@ -20,7 +21,7 @@ namespace Heimevernet.Repositories
         public async Task<Need?> GetByIdAsync(int id) =>
             await _context.Needs.FirstOrDefaultAsync(n => n.Id == id);
 
-        public async Task AddAsync (Need need)
+        public async Task AddAsync(Need need)
         {
             _context.Needs.Add(need);
             await _context.SaveChangesAsync();
