@@ -9,13 +9,16 @@ public class ResourceService : IResourceService
 {
     private readonly IResourceRepository _resourceRepository;
     private readonly ResourceMapper _resourceMapper;
+    private readonly IUnitOfWork _unitOfWork;
 
     public ResourceService(
         IResourceRepository resourceRepository,
-        ResourceMapper resourceMapper)
+        ResourceMapper resourceMapper,
+        IUnitOfWork unitOfWork)
     {
         _resourceRepository = resourceRepository;
         _resourceMapper = resourceMapper;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<IReadOnlyList<ResourceViewModel>> GetAllAsync(
@@ -54,5 +57,6 @@ public class ResourceService : IResourceService
         await _resourceRepository.AddAsync(
             resource,
             cancellationToken);
+        await _unitOfWork.CommitAsync();
     }
 }

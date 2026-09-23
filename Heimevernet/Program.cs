@@ -20,6 +20,7 @@ builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
 builder.Services.AddScoped<IResourceService, ResourceService>();
 builder.Services.AddScoped<INeedService, NeedService>();
 
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IResourceRepository, ResourceRepository>();
 builder.Services.AddScoped<INeedRepository, NeedRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();

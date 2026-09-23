@@ -41,7 +41,5 @@ public class ResourceRepository : IResourceRepository
         await _context.Resources.AddAsync(
             resource,
             cancellationToken);
-
-        await _context.SaveChangesAsync(cancellationToken);
     }
 }

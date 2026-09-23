@@ -27,7 +27,6 @@ namespace Heimevernet.Repositories
         public async Task AddAsync(Need need)
         {
             _context.Needs.Add(need);
-            await _context.SaveChangesAsync();
         }
     }
 }

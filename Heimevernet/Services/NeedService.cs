@@ -9,13 +9,16 @@ public class NeedService : INeedService
 {
     private readonly INeedRepository _needRepository;
     private readonly NeedMapper _needMapper;
+    private readonly IUnitOfWork _unitOfWork;
 
     public NeedService(
         INeedRepository repository,
-        NeedMapper mapper)
+        NeedMapper mapper,
+        IUnitOfWork unitOfWork)
     {
         _needRepository = repository;
         _needMapper = mapper;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task CreateAsync(
@@ -25,6 +28,7 @@ public class NeedService : INeedService
         var need = _needMapper.ToEntity(model, userId);
 
         await _needRepository.AddAsync(need);
+        await _unitOfWork.CommitAsync();
     }
 
     public async Task<IEnumerable<NeedViewModel>> GetAllAsync()
