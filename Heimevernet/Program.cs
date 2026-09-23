@@ -22,7 +22,7 @@ builder.Services.AddScoped<INeedService, NeedService>();
 
 builder.Services.AddScoped<IResourceRepository, ResourceRepository>();
 builder.Services.AddScoped<INeedRepository, NeedRepository>();
-
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 
 builder.Services.AddSingleton<NeedMapper>();
 builder.Services.AddSingleton<ResourceMapper>();

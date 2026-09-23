@@ -14,12 +14,15 @@ namespace Heimevernet.Repositories
         }
         public async Task<IEnumerable<Need>> GetAllAsync() =>
             await _context.Needs
+                .Include(n => n.Category)
                 .OrderByDescending(n => n.Priority)
                 .ThenBy(n => n.Deadline)
                 .ToListAsync();
 
         public async Task<Need?> GetByIdAsync(int id) =>
-            await _context.Needs.FirstOrDefaultAsync(n => n.Id == id);
+            await _context.Needs
+                .Include(n => n.Category)
+                .FirstOrDefaultAsync(n => n.Id == id);
 
         public async Task AddAsync(Need need)
         {

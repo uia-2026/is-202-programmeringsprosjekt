@@ -1,5 +1,3 @@
-using Heimevernet.Mappers;
-using Heimevernet.Models;
 using Heimevernet.Repositories.Interfaces;
 using Heimevernet.Services.Interfaces;
 using Heimevernet.ViewModels.Resource;
@@ -11,16 +9,13 @@ public class ResourceController : Controller
 {
     private readonly IResourceService _resourceService;
     private readonly ICategoryRepository _categoryRepository;
-    private readonly ResourceMapper _resourceMapper;
 
     public ResourceController(
         IResourceService resourceService,
-        ICategoryRepository categoryRepository,
-        ResourceMapper resourceMapper)
+        ICategoryRepository categoryRepository)
     {
         _resourceService = resourceService;
         _categoryRepository = categoryRepository;
-        _resourceMapper = resourceMapper;
     }
 
     [HttpGet]
@@ -63,18 +58,13 @@ public class ResourceController : Controller
 
         var userId = 1; // Replace with authenticated user's ID.
 
-        var resource =
-            _resourceMapper.ToEntity(model, userId);
-
-        resource.Status = ResourceStatus.Available;
-
         await _resourceService.AddAsync(
             model,
             userId,
             cancellationToken);
 
         TempData["Success"] =
-            $"The resource \"{resource.Title}\" has been registered.";
+            $"The resource \"{model.Title}\" has been registered.";
 
         return RedirectToAction(nameof(Index));
     }
