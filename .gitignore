@@ -23,3 +23,9 @@ obj/
 # User-specific ASP.NET / .NET files
 *.csproj.user
 *.rsusers
+
+# Test & coverage artifacts
+TestResults/
+**/coverage.cobertura.xml
+**/coverage*.xml
+**/*cobertura*
