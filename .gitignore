@@ -29,3 +29,4 @@ TestResults/
 **/coverage.cobertura.xml
 **/coverage*.xml
 **/*cobertura*
+*.trx
