@@ -28,9 +28,10 @@ jobs:
         run: dotnet build Heimevernet.slnx --no-restore --configuration Release
 
       - name: Test
-        run: dotnet test Heimevernet.UnitTests/Heimevernet.UnitTests.csproj \
-          --no-build \
-          --configuration Release \
+        run: >
+          dotnet test Heimevernet.UnitTests/Heimevernet.UnitTests.csproj
+          --no-build
+          --configuration Release
           --logger "trx;LogFileName=test-results.trx"
 
       - name: Publish test results
