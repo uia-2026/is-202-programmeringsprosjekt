@@ -4,8 +4,8 @@ namespace Heimevernet.Repositories.Interfaces;
 
 public interface INeedRepository
 {
-    Task<IEnumerable<Need>> GetAllAsync();
-    Task<Need?> GetByIdAsync(int id);
-    Task AddAsync(Need need);
+    Task<IEnumerable<Need>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<Need?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
+    Task AddAsync(Need need, CancellationToken cancellationToken = default);
 }
 

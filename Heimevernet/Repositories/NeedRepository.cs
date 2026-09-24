@@ -12,21 +12,21 @@ namespace Heimevernet.Repositories
         {
             _context = context;
         }
-        public async Task<IEnumerable<Need>> GetAllAsync() =>
+        public async Task<IEnumerable<Need>> GetAllAsync(CancellationToken cancellationToken = default) =>
             await _context.Needs
                 .Include(n => n.Category)
                 .OrderByDescending(n => n.Priority)
                 .ThenBy(n => n.Deadline)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
-        public async Task<Need?> GetByIdAsync(int id) =>
+        public async Task<Need?> GetByIdAsync(int id, CancellationToken cancellationToken = default) =>
             await _context.Needs
                 .Include(n => n.Category)
-                .FirstOrDefaultAsync(n => n.Id == id);
+                .FirstOrDefaultAsync(n => n.Id == id, cancellationToken);
 
-        public async Task AddAsync(Need need)
+        public async Task AddAsync(Need need, CancellationToken cancellationToken = default)
         {
-            _context.Needs.Add(need);
+            await _context.Needs.AddAsync(need, cancellationToken);
         }
     }
 }

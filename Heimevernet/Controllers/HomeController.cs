@@ -20,7 +20,7 @@ public class HomeController : Controller
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {           
-        var needs = await _needService.GetSummariesAsync();
+        var needs = await _needService.GetSummariesAsync(cancellationToken);
         var resources = await _resourceService.GetAllAsync(cancellationToken);
 
         var viewModel = new HomeIndexViewModel

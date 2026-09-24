@@ -5,14 +5,14 @@ namespace Heimevernet.Services.Interfaces;
 public interface IResourceService
 {
     Task<IReadOnlyList<ResourceViewModel>> GetAllAsync(
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken = default);
 
     Task<ResourceViewModel?> GetByIdAsync(
         int id,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken = default);
 
-    Task AddAsync(
+    Task CreateAsync(
         ResourceCreateViewModel model,
         int userId,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken = default);
 }

@@ -19,9 +19,9 @@ public class NeedController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
-        var needs = await _needService.GetAllAsync();
+        var needs = await _needService.GetAllAsync(cancellationToken);
 
         return View(needs);
     }
@@ -41,7 +41,8 @@ public class NeedController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(
-        NeedCreateViewModel model)
+        NeedCreateViewModel model,
+        CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid)
         {
@@ -53,7 +54,7 @@ public class NeedController : Controller
 
         var userId = 1; // Replace with authenticated user's ID.
 
-        await _needService.CreateAsync(model, userId);
+        await _needService.CreateAsync(model, userId, cancellationToken);
 
         TempData["Success"] =
             $"The need \"{model.Title}\" has been registered.";
@@ -62,9 +63,9 @@ public class NeedController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Details(int id)
+    public async Task<IActionResult> Details(int id, CancellationToken cancellationToken)
     {
-        var need = await _needService.GetByIdAsync(id);
+        var need = await _needService.GetByIdAsync(id, cancellationToken);
 
         if (need == null)
         {
