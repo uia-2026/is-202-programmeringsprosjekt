@@ -25,8 +25,8 @@ builder.Services.AddScoped<IResourceRepository, ResourceRepository>();
 builder.Services.AddScoped<INeedRepository, NeedRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 
-builder.Services.AddSingleton<NeedMapper>();
-builder.Services.AddSingleton<ResourceMapper>();
+builder.Services.AddSingleton<INeedMapper, NeedMapper>();
+builder.Services.AddSingleton<IResourceMapper, ResourceMapper>();
 
 
 builder.Services.AddControllersWithViews();
