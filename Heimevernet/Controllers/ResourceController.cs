@@ -70,14 +70,14 @@ public class ResourceController : Controller
     }
 
     [HttpGet]
+    [HttpGet]
     public async Task<IActionResult> Details(
-    int id,
-    CancellationToken cancellationToken)
+        int id,
+        CancellationToken cancellationToken)
     {
-        var resource =
-            await _resourceService.GetByIdAsync(
-                id,
-                cancellationToken);
+        var resource = await _resourceService.GetByIdAsync(
+            id,
+            cancellationToken);
 
         if (resource == null)
         {
