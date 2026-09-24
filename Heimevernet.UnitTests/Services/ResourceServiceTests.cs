@@ -10,20 +10,20 @@ namespace Heimevernet.UnitTests.Services;
 public class ResourceServiceTests
 {
     private readonly Mock<IResourceRepository> _repoMock;
+    private readonly Mock<IResourceMapper> _mapperMock;
     private readonly Mock<IUnitOfWork> _uowMock;
-    private readonly ResourceMapper _realMapper;
     private readonly ResourceService _sut;
 
     public ResourceServiceTests()
     {
         _repoMock = new Mock<IResourceRepository>();
+        _mapperMock = new Mock<IResourceMapper>();
         _uowMock = new Mock<IUnitOfWork>();
-        _realMapper = new ResourceMapper();
-        _sut = new ResourceService(_repoMock.Object, _realMapper, _uowMock.Object);
+        _sut = new ResourceService(_repoMock.Object, _mapperMock.Object, _uowMock.Object);
     }
 
     [Fact]
-    public async Task AddAsync_Saves_Entity_And_Commits()
+    public async Task CreateAsync_Saves_Entity_And_Commits()
     {
         var model = new ResourceCreateViewModel
         {
@@ -33,55 +33,46 @@ public class ResourceServiceTests
             ContactPoint = "contact",
             AvailableFrom = new DateTime(2026, 05, 01)
         };
+        var mapped = new Resource { Id = 1, Title = "Shelter" };
+        _mapperMock.Setup(m => m.ToEntity(model, 42)).Returns(mapped);
 
-        await _sut.AddAsync(model, 42, CancellationToken.None);
+        await _sut.CreateAsync(model, 42, CancellationToken.None);
 
-        _repoMock.Verify(r => r.AddAsync(It.IsAny<Resource>(), It.IsAny<CancellationToken>()), Times.Once);
+        _repoMock.Verify(r => r.AddAsync(mapped, It.IsAny<CancellationToken>()), Times.Once);
         _uowMock.Verify(u => u.CommitAsync(), Times.Once);
     }
 
     [Fact]
-    public async Task AddAsync_Does_Not_Commit_When_Repository_Throws()
+    public async Task CreateAsync_Does_Not_Commit_When_Repository_Throws()
     {
         var model = new ResourceCreateViewModel { CategoryId = 1, Title = "Title", Region = "R", ContactPoint = "C", AvailableFrom = DateTime.UtcNow };
+        var mapped = new Resource { Id = 1, Title = "Title" };
+        _mapperMock.Setup(m => m.ToEntity(model, 1)).Returns(mapped);
         _repoMock.Setup(r => r.AddAsync(It.IsAny<Resource>(), It.IsAny<CancellationToken>())).ThrowsAsync(new InvalidOperationException("db"));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.AddAsync(model, 1, CancellationToken.None));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.CreateAsync(model, 1, CancellationToken.None));
 
         _uowMock.Verify(u => u.CommitAsync(), Times.Never);
     }
 
     [Fact]
-    public async Task AddAsync_Maps_Trimmed_Values_Before_Saving()
+    public async Task CreateAsync_Calls_Mapper_And_Forwards_Result_To_Repository()
     {
-        var from = new DateTime(2026, 06, 01, 08, 00, 00, DateTimeKind.Utc);
-        var to = new DateTime(2026, 06, 10, 18, 00, 00, DateTimeKind.Utc);
         var model = new ResourceCreateViewModel
         {
             CategoryId = 5,
-            Title = "  Truck  ",
-            Description = "  desc  ",
-            Latitude = 10,
-            Longitude = 20,
-            Region = "  Region  ",
-            AvailableFrom = from,
-            AvailableTo = to,
-            ContactPoint = "  cp  "
+            Title = "Truck",
+            Region = "Region",
+            ContactPoint = "cp",
+            AvailableFrom = new DateTime(2026, 06, 01)
         };
-        Resource? captured = null;
-        _repoMock.Setup(r => r.AddAsync(It.IsAny<Resource>(), It.IsAny<CancellationToken>()))
-            .Callback<Resource, CancellationToken>((res, _) => captured = res)
-            .Returns(Task.CompletedTask);
+        var mapped = new Resource { Id = 99, Title = "Mapped" };
+        _mapperMock.Setup(m => m.ToEntity(model, 99)).Returns(mapped);
 
-        await _sut.AddAsync(model, 99, CancellationToken.None);
+        await _sut.CreateAsync(model, 99, CancellationToken.None);
 
-        Assert.NotNull(captured);
-        Assert.Equal(99, captured!.UserId);
-        Assert.Equal(5, captured.CategoryId);
-        Assert.Equal("Truck", captured.Title);
-        Assert.Equal("desc", captured.Description);
-        Assert.Equal("Region", captured.Region);
-        Assert.Equal("cp", captured.ContactPoint);
+        _mapperMock.Verify(m => m.ToEntity(model, 99), Times.Once);
+        _repoMock.Verify(r => r.AddAsync(mapped, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -89,10 +80,17 @@ public class ResourceServiceTests
     {
         var resources = new List<Resource>
         {
-            new Resource { Id = 1, Title = "Truck", Category = new Category { Name = "Logistics" }, Region = "Oslo", ContactPoint = "cp1", AvailableFrom = new DateTime(2026, 01, 01), Status = ResourceStatus.Available, CreatedAt = DateTime.UtcNow },
-            new Resource { Id = 2, Title = "Medkit", Category = new Category { Name = "Medical" }, Region = "Bergen", ContactPoint = "cp2", AvailableFrom = new DateTime(2026, 02, 01), Status = ResourceStatus.Busy, CreatedAt = DateTime.UtcNow }
+            new Resource { Id = 1, Title = "Truck", Category = new Category { Name = "Logistics" }, Region = "Oslo" },
+            new Resource { Id = 2, Title = "Medkit", Category = new Category { Name = "Medical" }, Region = "Bergen" }
+        };
+        var expected = new List<ResourceViewModel>
+        {
+            new ResourceViewModel { Id = 1, Title = "Truck", CategoryName = "Logistics" },
+            new ResourceViewModel { Id = 2, Title = "Medkit", CategoryName = "Medical" }
         };
         _repoMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(resources);
+        _mapperMock.Setup(m => m.ToViewModel(resources[0])).Returns(expected[0]);
+        _mapperMock.Setup(m => m.ToViewModel(resources[1])).Returns(expected[1]);
 
         var result = await _sut.GetAllAsync(CancellationToken.None);
 
@@ -106,11 +104,13 @@ public class ResourceServiceTests
     [Fact]
     public async Task GetAllAsync_Returns_Empty_When_No_Resources()
     {
-        _repoMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<Resource>());
+        var emptyResources = new List<Resource>();
+        _repoMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(emptyResources);
 
         var result = await _sut.GetAllAsync(CancellationToken.None);
 
         Assert.Empty(result);
+        _mapperMock.Verify(m => m.ToViewModel(It.IsAny<Resource>()), Times.Never);
     }
 
     [Fact]
@@ -123,11 +123,11 @@ public class ResourceServiceTests
             Category = new Category { Name = "Cat" },
             Region = "R",
             ContactPoint = "CP",
-            AvailableFrom = DateTime.UtcNow,
-            Status = ResourceStatus.Available,
-            CreatedAt = DateTime.UtcNow
+            AvailableFrom = DateTime.UtcNow
         };
+        var expected = new ResourceViewModel { Id = 5, Title = "Found", CategoryName = "Cat" };
         _repoMock.Setup(r => r.GetByIdAsync(5, It.IsAny<CancellationToken>())).ReturnsAsync(resource);
+        _mapperMock.Setup(m => m.ToViewModel(resource)).Returns(expected);
 
         var result = await _sut.GetByIdAsync(5, CancellationToken.None);
 
@@ -145,6 +145,20 @@ public class ResourceServiceTests
         var result = await _sut.GetByIdAsync(999, CancellationToken.None);
 
         Assert.Null(result);
+        _mapperMock.Verify(m => m.ToViewModel(It.IsAny<Resource>()), Times.Never);
     }
 
+    [Fact]
+    public async Task GetAllAsync_Forwards_CancellationToken_To_Repository()
+    {
+        using var cts = new CancellationTokenSource();
+        var expectedToken = cts.Token;
+        var resources = new List<Resource>();
+        _repoMock.Setup(r => r.GetAllAsync(It.Is<CancellationToken>(t => t == expectedToken))).ReturnsAsync(resources);
+
+        var result = await _sut.GetAllAsync(expectedToken);
+
+        Assert.Empty(result);
+        _repoMock.Verify(r => r.GetAllAsync(It.Is<CancellationToken>(t => t == expectedToken)), Times.Once);
+    }
 }

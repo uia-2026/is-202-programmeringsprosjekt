@@ -10,16 +10,16 @@ namespace Heimevernet.UnitTests.Services;
 public class NeedServiceTests
 {
     private readonly Mock<INeedRepository> _needRepoMock;
+    private readonly Mock<INeedMapper> _mapperMock;
     private readonly Mock<IUnitOfWork> _uowMock;
-    private readonly NeedMapper _realMapper;
     private readonly NeedService _sut;
 
     public NeedServiceTests()
     {
         _needRepoMock = new Mock<INeedRepository>();
+        _mapperMock = new Mock<INeedMapper>();
         _uowMock = new Mock<IUnitOfWork>();
-        _realMapper = new NeedMapper();
-        _sut = new NeedService(_needRepoMock.Object, _realMapper, _uowMock.Object);
+        _sut = new NeedService(_needRepoMock.Object, _mapperMock.Object, _uowMock.Object);
     }
 
     [Fact]
@@ -33,10 +33,12 @@ public class NeedServiceTests
             ContactPoint = "contact",
             Priority = NeedPriority.Urgent
         };
+        var mappedNeed = new Need { Id = 1, Title = "Water" };
+        _mapperMock.Setup(m => m.ToEntity(model, 42)).Returns(mappedNeed);
 
         await _sut.CreateAsync(model, 42);
 
-        _needRepoMock.Verify(r => r.AddAsync(It.IsAny<Need>()), Times.Once);
+        _needRepoMock.Verify(r => r.AddAsync(mappedNeed, It.IsAny<CancellationToken>()), Times.Once);
         _uowMock.Verify(u => u.CommitAsync(), Times.Once);
     }
 
@@ -50,7 +52,9 @@ public class NeedServiceTests
             Region = "R",
             ContactPoint = "C"
         };
-        _needRepoMock.Setup(r => r.AddAsync(It.IsAny<Need>()))
+        var mappedNeed = new Need { Id = 1, Title = "Title" };
+        _mapperMock.Setup(m => m.ToEntity(model, 1)).Returns(mappedNeed);
+        _needRepoMock.Setup(r => r.AddAsync(It.IsAny<Need>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("db failure"));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.CreateAsync(model, 1));
@@ -59,35 +63,22 @@ public class NeedServiceTests
     }
 
     [Fact]
-    public async Task CreateAsync_Maps_Trimmed_Values_Before_Saving()
+    public async Task CreateAsync_Calls_Mapper_And_Forwards_Result_To_Repository()
     {
         var model = new NeedCreateViewModel
         {
             CategoryId = 5,
-            Title = "  Food  ",
-            Description = "  desc  ",
-            Latitude = 10,
-            Longitude = 20,
-            Region = "  Region  ",
-            Priority = NeedPriority.Planned,
-            Deadline = new DateTime(2026, 12, 31),
-            ContactPoint = "  cp  "
+            Title = "Food",
+            Region = "Region",
+            ContactPoint = "cp"
         };
-
-        Need? captured = null;
-        _needRepoMock.Setup(r => r.AddAsync(It.IsAny<Need>()))
-            .Callback<Need>(n => captured = n)
-            .Returns(Task.CompletedTask);
+        var mappedNeed = new Need { Id = 99, Title = "Mapped" };
+        _mapperMock.Setup(m => m.ToEntity(model, 99)).Returns(mappedNeed);
 
         await _sut.CreateAsync(model, 99);
 
-        Assert.NotNull(captured);
-        Assert.Equal(99, captured!.UserId);
-        Assert.Equal(5, captured.CategoryId);
-        Assert.Equal("Food", captured.Title);
-        Assert.Equal("desc", captured.Description);
-        Assert.Equal("Region", captured.Region);
-        Assert.Equal("cp", captured.ContactPoint);
+        _mapperMock.Verify(m => m.ToEntity(model, 99), Times.Once);
+        _needRepoMock.Verify(r => r.AddAsync(mappedNeed, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -95,24 +86,32 @@ public class NeedServiceTests
     {
         var needs = new List<Need>
         {
-            new Need { Id = 1, Title = "A", Category = new Category { Name = "C1" }, Region = "R1", ContactPoint = "CP1", Priority = NeedPriority.Planned, Status = NeedStatus.New, CreatedAt = DateTime.UtcNow },
-            new Need { Id = 2, Title = "B", Category = new Category { Name = "C2" }, Region = "R2", ContactPoint = "CP2", Priority = NeedPriority.Urgent, Status = NeedStatus.Assigned, CreatedAt = DateTime.UtcNow }
+            new Need { Id = 1, Title = "A", Category = new Category { Name = "C1" }, Region = "R1", ContactPoint = "CP1" },
+            new Need { Id = 2, Title = "B", Category = new Category { Name = "C2" }, Region = "R2", ContactPoint = "CP2" }
         };
-        _needRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(needs);
+        var expected = new List<NeedViewModel>
+        {
+            new NeedViewModel { Id = 1, Title = "A", CategoryName = "C1" },
+            new NeedViewModel { Id = 2, Title = "B", CategoryName = "C2" }
+        };
+        _needRepoMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(needs);
+        _mapperMock.Setup(m => m.ToViewModels(needs)).Returns(expected);
 
         var result = (await _sut.GetAllAsync()).ToList();
 
         Assert.Equal(2, result.Count);
         Assert.Equal("A", result[0].Title);
         Assert.Equal("C1", result[0].CategoryName);
-        Assert.Equal("B", result[1].Title);
-        Assert.Equal("C2", result[1].CategoryName);
+        _mapperMock.Verify(m => m.ToViewModels(needs), Times.Once);
     }
 
     [Fact]
     public async Task GetAllAsync_Returns_Empty_When_No_Needs()
     {
-        _needRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(Array.Empty<Need>());
+        var emptyNeeds = Array.Empty<Need>();
+        var emptyViewModels = Array.Empty<NeedViewModel>();
+        _needRepoMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(emptyNeeds);
+        _mapperMock.Setup(m => m.ToViewModels(It.IsAny<IEnumerable<Need>>())).Returns(emptyViewModels);
 
         var result = await _sut.GetAllAsync();
 
@@ -127,7 +126,13 @@ public class NeedServiceTests
             new Need { Id = 1, Title = "A", Category = new Category { Name = "C1" }, Region = "R1", Priority = NeedPriority.Planned, Status = NeedStatus.New },
             new Need { Id = 2, Title = "B", Category = new Category { Name = "C2" }, Region = "R2", Priority = NeedPriority.Urgent, Status = NeedStatus.Resolved }
         };
-        _needRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(needs);
+        var expected = new List<NeedSummaryViewModel>
+        {
+            new NeedSummaryViewModel { Id = 1, Title = "A", CategoryName = "C1", Priority = NeedPriority.Planned, Status = NeedStatus.New },
+            new NeedSummaryViewModel { Id = 2, Title = "B", CategoryName = "C2", Priority = NeedPriority.Urgent, Status = NeedStatus.Resolved }
+        };
+        _needRepoMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(needs);
+        _mapperMock.Setup(m => m.ToSummaryViewModels(needs)).Returns(expected);
 
         var result = (await _sut.GetSummariesAsync()).ToList();
 
@@ -135,7 +140,7 @@ public class NeedServiceTests
         Assert.Equal("A", result[0].Title);
         Assert.Equal("C1", result[0].CategoryName);
         Assert.Equal(NeedPriority.Urgent, result[1].Priority);
-        Assert.Equal(NeedStatus.Resolved, result[1].Status);
+        _mapperMock.Verify(m => m.ToSummaryViewModels(needs), Times.Once);
     }
 
     [Fact]
@@ -147,12 +152,11 @@ public class NeedServiceTests
             Title = "Found",
             Category = new Category { Name = "Cat" },
             Region = "R",
-            ContactPoint = "CP",
-            Priority = NeedPriority.Planned,
-            Status = NeedStatus.New,
-            CreatedAt = DateTime.UtcNow
+            ContactPoint = "CP"
         };
-        _needRepoMock.Setup(r => r.GetByIdAsync(5)).ReturnsAsync(need);
+        var expected = new NeedViewModel { Id = 5, Title = "Found", CategoryName = "Cat" };
+        _needRepoMock.Setup(r => r.GetByIdAsync(5, It.IsAny<CancellationToken>())).ReturnsAsync(need);
+        _mapperMock.Setup(m => m.ToViewModel(need)).Returns(expected);
 
         var result = await _sut.GetByIdAsync(5);
 
@@ -160,15 +164,33 @@ public class NeedServiceTests
         Assert.Equal(5, result!.Id);
         Assert.Equal("Found", result.Title);
         Assert.Equal("Cat", result.CategoryName);
+        _mapperMock.Verify(m => m.ToViewModel(need), Times.Once);
     }
 
     [Fact]
     public async Task GetByIdAsync_Returns_Null_When_NotFound()
     {
-        _needRepoMock.Setup(r => r.GetByIdAsync(999)).ReturnsAsync((Need?)null);
+        _needRepoMock.Setup(r => r.GetByIdAsync(999, It.IsAny<CancellationToken>())).ReturnsAsync((Need?)null);
 
         var result = await _sut.GetByIdAsync(999);
 
         Assert.Null(result);
+        _mapperMock.Verify(m => m.ToViewModel(It.IsAny<Need>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_Forwards_CancellationToken_To_Repository()
+    {
+        using var cts = new CancellationTokenSource();
+        var expectedToken = cts.Token;
+        var needs = new List<Need>();
+        var viewModels = new List<NeedViewModel>();
+        _needRepoMock.Setup(r => r.GetAllAsync(It.Is<CancellationToken>(t => t == expectedToken))).ReturnsAsync(needs);
+        _mapperMock.Setup(m => m.ToViewModels(needs)).Returns(viewModels);
+
+        var result = await _sut.GetAllAsync(expectedToken);
+
+        Assert.Empty(result);
+        _needRepoMock.Verify(r => r.GetAllAsync(It.Is<CancellationToken>(t => t == expectedToken)), Times.Once);
     }
 }
