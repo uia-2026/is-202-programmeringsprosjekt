@@ -15,7 +15,7 @@ public class ResourceRepository : IResourceRepository
     }
 
     public async Task<IReadOnlyList<Resource>> GetAllAsync(
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken = default)
     {
         return await _context.Resources
             .Include(r => r.Category)
@@ -25,7 +25,7 @@ public class ResourceRepository : IResourceRepository
 
     public async Task<Resource?> GetByIdAsync(
         int id,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken = default)
     {
         return await _context.Resources
             .Include(r => r.Category)
@@ -36,7 +36,7 @@ public class ResourceRepository : IResourceRepository
 
     public async Task AddAsync(
         Resource resource,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken = default)
     {
         await _context.Resources.AddAsync(
             resource,

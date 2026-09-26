@@ -9,7 +9,7 @@ on:
       - main
 
 jobs:
-  build:
+  ci:
     runs-on: ubuntu-latest
 
     steps:
@@ -26,3 +26,18 @@ jobs:
 
       - name: Build
         run: dotnet build Heimevernet.slnx --no-restore --configuration Release
+
+      - name: Test
+        run: >
+          dotnet test Heimevernet.UnitTests/Heimevernet.UnitTests.csproj
+          --no-build
+          --configuration Release
+          --logger "trx;LogFileName=test-results.trx"
+
+      - name: Publish test results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Test Results
+          path: "**/test-results.trx"
+          reporter: dotnet-trx

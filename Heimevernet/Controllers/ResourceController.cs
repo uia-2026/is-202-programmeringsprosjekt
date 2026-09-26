@@ -58,7 +58,7 @@ public class ResourceController : Controller
 
         var userId = 1; // Replace with authenticated user's ID.
 
-        await _resourceService.AddAsync(
+        await _resourceService.CreateAsync(
             model,
             userId,
             cancellationToken);

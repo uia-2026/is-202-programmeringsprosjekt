@@ -8,12 +8,12 @@ namespace Heimevernet.Services;
 public class ResourceService : IResourceService
 {
     private readonly IResourceRepository _resourceRepository;
-    private readonly ResourceMapper _resourceMapper;
+    private readonly IResourceMapper _resourceMapper;
     private readonly IUnitOfWork _unitOfWork;
 
     public ResourceService(
         IResourceRepository resourceRepository,
-        ResourceMapper resourceMapper,
+        IResourceMapper resourceMapper,
         IUnitOfWork unitOfWork)
     {
         _resourceRepository = resourceRepository;
@@ -22,7 +22,7 @@ public class ResourceService : IResourceService
     }
 
     public async Task<IReadOnlyList<ResourceViewModel>> GetAllAsync(
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken = default)
     {
         var resources =
             await _resourceRepository.GetAllAsync(cancellationToken);
@@ -34,7 +34,7 @@ public class ResourceService : IResourceService
 
     public async Task<ResourceViewModel?> GetByIdAsync(
         int id,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken = default)
     {
         var resource =
             await _resourceRepository.GetByIdAsync(
@@ -46,10 +46,10 @@ public class ResourceService : IResourceService
             : _resourceMapper.ToViewModel(resource);
     }
 
-    public async Task AddAsync(
+    public async Task CreateAsync(
         ResourceCreateViewModel model,
         int userId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken = default)
     {
         var resource =
             _resourceMapper.ToEntity(model, userId);

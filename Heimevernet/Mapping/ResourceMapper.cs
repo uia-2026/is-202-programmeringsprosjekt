@@ -3,7 +3,7 @@ using Heimevernet.ViewModels.Resource;
 
 namespace Heimevernet.Mappers;
 
-public class ResourceMapper
+public class ResourceMapper : IResourceMapper
 {
     public Resource ToEntity(
         ResourceCreateViewModel model,

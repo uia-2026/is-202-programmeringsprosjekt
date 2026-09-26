@@ -5,5 +5,6 @@
   <Project Path="Heimevernet.AppHost/Heimevernet.AppHost.csproj" />
   <Project Path="Heimevernet.Migrator/Heimevernet.Migrator.csproj" />
   <Project Path="Heimevernet.ServiceDefaults/Heimevernet.ServiceDefaults.csproj" />
+  <Project Path="Heimevernet.UnitTests/Heimevernet.UnitTests.csproj" />
   <Project Path="Heimevernet/Heimevernet.csproj" />
 </Solution>

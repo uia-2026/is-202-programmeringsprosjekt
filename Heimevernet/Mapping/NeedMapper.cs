@@ -4,7 +4,7 @@ using Heimevernet.ViewModels.Need;
 
 namespace Heimevernet.Mappers;
 
-public class NeedMapper
+public class NeedMapper : INeedMapper
 {
     public Need ToEntity(NeedCreateViewModel model, int userId)
     {

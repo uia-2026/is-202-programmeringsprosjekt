@@ -8,12 +8,12 @@ namespace Heimevernet.Services;
 public class NeedService : INeedService
 {
     private readonly INeedRepository _needRepository;
-    private readonly NeedMapper _needMapper;
+    private readonly INeedMapper _needMapper;
     private readonly IUnitOfWork _unitOfWork;
 
     public NeedService(
         INeedRepository repository,
-        NeedMapper mapper,
+        INeedMapper mapper,
         IUnitOfWork unitOfWork)
     {
         _needRepository = repository;
@@ -23,31 +23,32 @@ public class NeedService : INeedService
 
     public async Task CreateAsync(
         NeedCreateViewModel model,
-        int userId)
+        int userId,
+        CancellationToken cancellationToken = default)
     {
         var need = _needMapper.ToEntity(model, userId);
 
-        await _needRepository.AddAsync(need);
+        await _needRepository.AddAsync(need, cancellationToken);
         await _unitOfWork.CommitAsync();
     }
 
-    public async Task<IEnumerable<NeedViewModel>> GetAllAsync()
+    public async Task<IEnumerable<NeedViewModel>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        var needs = await _needRepository.GetAllAsync();
+        var needs = await _needRepository.GetAllAsync(cancellationToken);
 
         return _needMapper.ToViewModels(needs);
     }
 
-    public async Task<IEnumerable<NeedSummaryViewModel>> GetSummariesAsync()
+    public async Task<IEnumerable<NeedSummaryViewModel>> GetSummariesAsync(CancellationToken cancellationToken = default)
     {
-        var needs = await _needRepository.GetAllAsync();
+        var needs = await _needRepository.GetAllAsync(cancellationToken);
 
         return _needMapper.ToSummaryViewModels(needs);
     }
 
-    public async Task<NeedViewModel?> GetByIdAsync(int id)
+    public async Task<NeedViewModel?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        var need = await _needRepository.GetByIdAsync(id);
+        var need = await _needRepository.GetByIdAsync(id, cancellationToken);
 
         return need == null
             ? null
