@@ -1,86 +1,73 @@
-using Heimevernet.Models;
-using Heimevernet.Services;
+using Heimevernet.Repositories.Interfaces;
+using Heimevernet.Services.Interfaces;
+using Heimevernet.ViewModels.Need;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Heimevernet.Controllers
+namespace Heimevernet.Controllers;
+
+public class NeedController : Controller
 {
+    private readonly INeedService _needService;
+    private readonly ICategoryRepository _categoryRepository;
+
     /// <summary>
     /// Controller responsible for CRUD operations for <see cref="Heimevernet.Models.Need"/> entities.
     /// </summary>
-    public class NeedController : Controller
+    public NeedController(
+        INeedService needService,
+        ICategoryRepository categoryRepository)
     {
-        private readonly INeedRepository _repository;
+        _needService = needService;
+        _categoryRepository = categoryRepository;
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="NeedController"/> class.
-        /// </summary>
-        /// <param name="repository">Repository used to store and retrieve needs.</param>
-        public NeedController(INeedRepository repository)
+    /// <summary>Displays a list of all reported needs.</summary>
+    /// <returns>A view containing the list of needs.</returns>
+    [HttpGet]
+    public async Task<IActionResult> Index(CancellationToken cancellationToken)
+    {
+        var needs = await _needService.GetAllAsync(cancellationToken);
+
+        return View(needs);
+    }
+
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(
+        NeedCreateViewModel model,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
         {
-            _repository = repository;
+            model.AvailableCategories =
+                await _categoryRepository.GetAllAsync();
+
+            return View(model);
         }
 
-        /// <summary>Displays a list of all reported needs.</summary>
-        /// <returns>A view containing the list of needs.</returns>
-        public IActionResult Index()
+        var userId = 1; // Replace with authenticated user's ID.
+
+        await _needService.CreateAsync(model, userId, cancellationToken);
+
+        TempData["Success"] =
+            $"The need \"{model.Title}\" has been registered.";
+
+        return RedirectToAction(nameof(Index));
+    }
+    /// <summary>Shows the details for a single need.</summary>
+    /// <param name="id">Identifier of the need to display.</param>
+    /// <returns>Details view when found or NotFound result.</returns>
+    [HttpGet]
+    public async Task<IActionResult> Details(int id, CancellationToken cancellationToken)
+    {
+        var need = await _needService.GetByIdAsync(id, cancellationToken);
+
+        if (need == null)
         {
-            var allNeeds = _repository.GetAll();
-            return View(allNeeds);
+            return NotFound();
         }
 
-        /// <summary>Shows the details for a single need.</summary>
-        /// <param name="id">Identifier of the need to display.</param>
-        /// <returns>Details view when found or NotFound result.</returns>
-        public IActionResult Details(int id)
-        {
-            var need = _repository.GetById(id);
-
-            if (need == null)
-            {
-                return NotFound();
-            }
-
-            return View(need);
-        }
-
-        /// <summary>Displays the form to create a new need.</summary>
-        public IActionResult Create()
-        {
-            return View();
-        }
-
-        /// <summary>Handles POST of a new need. Validates input and stores the entity in the repository.</summary>
-        /// <param name="need">Bound need instance from the form.</param>
-        /// <returns>Redirects to Index on success, otherwise redisplays the Create view.</returns>
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult Create(Need need)
-        {
-            if (need.Type == NeedTypes.Other)
-            {
-                if (string.IsNullOrWhiteSpace(need.OtherType))
-                {
-                    ModelState.AddModelError(
-                        nameof(need.OtherType),
-                        "Please specify what type of need this is."
-                    );
-                }
-                else
-                {
-                    need.Type = need.OtherType.Trim();
-                }
-            }
-
-            if (!ModelState.IsValid)
-            {
-                return View(need);
-            }
-
-            _repository.Add(need);
-
-            TempData["Success"] = $"The need \"{need.Title}\" has been registered.";
-
-            return RedirectToAction(nameof(Index));
-        }
+        return View(need);
     }
 }

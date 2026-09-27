@@ -1,18 +1,15 @@
-@model Heimevernet.ViewModels.Need.NeedViewModel
+@model Heimevernet.ViewModels.Resource.ResourceViewModel
+
+@using Heimevernet.Models
 
 @{
     ViewData["Title"] = Model.Title;
 
-    var (badgeClass, badgeText) = Model.Priority switch
+    var badgeClass = Model.Status switch
     {
-        Heimevernet.Models.NeedPriority.Urgent =>
-            ("bg-danger", "Urgent"),
-
-        Heimevernet.Models.NeedPriority.Planned =>
-            ("bg-warning text-dark", "Planned"),
-
-        _ =>
-            ("bg-success", "Low Priority")
+        ResourceStatus.Available => "bg-success",
+        ResourceStatus.Busy => "bg-warning text-dark",
+        _ => "bg-secondary"
     };
 }
 
@@ -29,7 +26,7 @@
             <div class="card-body">
 
                 <span class="badge @badgeClass mb-2">
-                    @badgeText
+                    @Model.Status
                 </span>
 
                 <h2 class="h4">@Model.Title</h2>
@@ -51,16 +48,24 @@
                         @Model.Latitude, @Model.Longitude
                     </dd>
 
-                    <dt class="col-sm-4">Deadline</dt>
+                    <dt class="col-sm-4">Available from</dt>
                     <dd class="col-sm-8">
-                        @if (Model.Deadline.HasValue)
+                        @Model.AvailableFrom.ToString(
+                            "dddd dd.MM.yyyy, HH:mm")
+                    </dd>
+
+                    <dt class="col-sm-4">Available until</dt>
+                    <dd class="col-sm-8">
+                        @if (Model.AvailableTo.HasValue)
                         {
-                            @Model.Deadline.Value.ToString(
+                            @Model.AvailableTo.Value.ToString(
                                 "dddd dd.MM.yyyy, HH:mm")
                         }
                         else
                         {
-                            <span class="text-muted">No deadline</span>
+                            <span class="text-muted">
+                                No end date
+                            </span>
                         }
                     </dd>
 
@@ -71,7 +76,7 @@
 
                     <dt class="col-sm-4">Status</dt>
                     <dd class="col-sm-8">
-                        <span class="badge bg-secondary">
+                        <span class="badge @badgeClass">
                             @Model.Status
                         </span>
                     </dd>
@@ -90,6 +95,7 @@
                 }
 
             </div>
+
         </div>
 
     </div>
@@ -102,12 +108,12 @@
 
                 <h6 class="card-title">Actions</h6>
 
-                <button class="btn btn-success w-100 mb-2" type="button">
-                    Find Resources
+                <button class="btn btn-primary w-100 mb-2" type="button">
+                    Use Resource
                 </button>
 
                 <button class="btn btn-outline-secondary w-100" type="button">
-                    Mark as Resolved
+                    Mark as Busy
                 </button>
 
             </div>

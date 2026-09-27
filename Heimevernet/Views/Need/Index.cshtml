@@ -1,99 +1,92 @@
-@model IEnumerable<Heimevernet.Models.Need>
+@model IEnumerable<Heimevernet.ViewModels.Need.NeedViewModel>
+
+@using Heimevernet.Models
+
 @{
-    ViewData["Title"] = "Active Needs";
-}
-
-@if (TempData["Success"] != null)
-{
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        @TempData["Success"]
-
-        <button type="button"
-                class="btn-close"
-                data-bs-dismiss="alert"
-                aria-label="Close">
-        </button>
-    </div>
+    ViewData["Title"] = "Registered Needs";
 }
 
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+    <div>
+        <h1>Registered Needs</h1>
+        <p class="text-muted mb-0">
+            Overview of registered needs.
+        </p>
+    </div>
 
-    <h1 class="h3 mb-0">Active Needs</h1>
-
-    <a asp-action="Create" class="btn btn-primary">
-        <i class="bi bi-plus-lg"></i> Register Need
+    <a asp-controller="Need" asp-action="Create" class="btn btn-primary">
+        Register Need
     </a>
-
 </div>
 
-@* row/col-* makes this stack to 1 column on mobile,
-   2 on tablet, and 3 on desktop *@
+@if (Model.Any())
+{
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
 
-<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
-
-    @foreach (var need in Model)
-    {
-        var (badgeClass, badgeText) = need.Priority switch
+        @foreach (var need in Model)
         {
-            Heimevernet.Models.NeedPriority.High =>
-                ("bg-danger", "High Priority"),
+            <div class="col">
+                <div class="card h-100 shadow-sm">
 
-            Heimevernet.Models.NeedPriority.Medium =>
-                ("bg-warning text-dark", "Medium Priority"),
+                    <div class="card-body">
 
-            _ =>
-                ("bg-success", "Low Priority")
-        };
+                        <div class="d-flex justify-content-between align-items-start mb-2">
 
-        <div class="col">
+                            @{
+                                var badgeClass = need.Priority switch
+                                {
+                                    NeedPriority.Urgent => "bg-danger",
+                                    NeedPriority.Planned => "bg-primary",
+                                    _ => "bg-secondary"
+                                };
+                            }
 
-            <div class="card h-100 shadow-sm">
+                            <span class="badge @badgeClass">
+                                @need.Priority
+                            </span>
 
-                <div class="card-body">
+                            <span class="badge bg-secondary">
+                                @need.Status
+                            </span>
 
-                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        </div>
 
-                        <span class="badge @badgeClass">
-                            @badgeText
-                        </span>
+                        <h5 class="card-title">
+                            @need.Title
+                        </h5>
 
-                        <span class="badge bg-secondary">
-                            @need.Status
-                        </span>
+                        <p class="card-text text-muted small mb-1">
+                            @need.CategoryName
+                        </p>
+
+                        <p class="card-text text-muted small mb-3">
+                            <i class="bi bi-geo-alt"></i>
+                            @need.FullAddress
+                        </p>
+
+                        @if (!string.IsNullOrWhiteSpace(need.Description))
+                        {
+                            <p class="card-text">
+                                @need.Description
+                            </p>
+                        }
+
+                        <a asp-controller="Need" asp-action="Details" asp-route-id="@need.Id"
+                           class="btn btn-outline-primary btn-sm w-100">
+                            View details
+                        </a>
 
                     </div>
 
-                    <h5 class="card-title mb-1">
-                        @need.Title
-                    </h5>
-
-                    <p class="card-text text-muted small mb-1">
-                        <i class="bi bi-geo-alt"></i>                         @need.FullAddress
-                    </p>
-
-                    <p class="card-text text-muted small mb-3">
-                        <i class="bi bi-clock"></i>
-                        @need.Deadline.ToString("dd.MM.yyyy HH:mm")
-                    </p>
-
-                    <a asp-action="Details"
-                       asp-route-id="@need.Id"
-                       class="btn btn-outline-primary btn-sm w-100">
-                        View Details
-                    </a>
-
                 </div>
-
             </div>
+        }
 
-        </div>
-    }
-
-</div>
-
-@if (!Model.Any())
+    </div>
+}
+else
 {
-    <p class="text-muted mt-4">
-        No active needs have been registered yet.
-    </p>
+    <div class="alert alert-light border">
+        No needs have been registered yet.
+    </div>
 }

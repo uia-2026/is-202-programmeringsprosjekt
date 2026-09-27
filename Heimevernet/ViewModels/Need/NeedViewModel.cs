@@ -1,9 +1,8 @@
 using Heimevernet.Models;
 
-namespace Heimevernet.ViewModels.Resource;
+namespace Heimevernet.ViewModels.Need;
 
-
-public class ResourceViewModel
+public class NeedViewModel
 {
     public int Id { get; set; }
 
@@ -19,13 +18,15 @@ public class ResourceViewModel
 
     public string Region { get; set; } = string.Empty;
 
-    public DateTime AvailableFrom { get; set; }
+    public NeedPriority Priority { get; set; }
 
-    public DateTime? AvailableTo { get; set; }
+    public DateTime? Deadline { get; set; }
 
     public string ContactPoint { get; set; } = string.Empty;
 
-    public ResourceStatus Status { get; set; }
+    public NeedStatus Status { get; set; }
 
     public DateTime CreatedAt { get; set; }
+
+    public string FullAddress => Region;
 }

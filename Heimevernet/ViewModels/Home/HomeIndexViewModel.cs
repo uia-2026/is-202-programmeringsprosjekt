@@ -1,5 +1,5 @@
+using Heimevernet.ViewModels.Need;
 using Heimevernet.ViewModels.Resource;
-
 
 namespace Heimevernet.ViewModels.Home;
 
@@ -8,12 +8,6 @@ namespace Heimevernet.ViewModels.Home;
 /// </summary>
 public sealed class HomeIndexViewModel
 {
-    /// <summary>Collection of resources to display.</summary>
-    public IReadOnlyList<ResourceViewModel> Resources { get; init; } = [];
-
-    /// <summary>True when there are no resources.</summary>
-    public bool IsEmpty => Resources.Count == 0;
-
-    /// <summary>Number of resources in the collection.</summary>
-    public int Count => Resources.Count;
+    public IEnumerable<NeedSummaryViewModel> Needs { get; set; } = Enumerable.Empty<NeedSummaryViewModel>();
+    public IEnumerable<ResourceViewModel> Resources { get; set; } = Enumerable.Empty<ResourceViewModel>();
 }

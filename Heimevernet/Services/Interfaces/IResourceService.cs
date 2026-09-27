@@ -1,4 +1,4 @@
-using Heimevernet.Models;
+using Heimevernet.ViewModels.Resource;
 
 namespace Heimevernet.Services.Interfaces;
 
@@ -8,12 +8,18 @@ namespace Heimevernet.Services.Interfaces;
 /// </summary>
 public interface IResourceService
 {
+
     /// <summary>Returns all resources as a read-only list.</summary>
     /// <param name="cancellationToken">Token used to cancel the operation.</param>
-    Task<IReadOnlyList<Resource>> GetAllAsync(CancellationToken cancellationToken);
+    Task<IReadOnlyList<ResourceViewModel>> GetAllAsync(
+        CancellationToken cancellationToken = default);
 
-    /// <summary>Adds a resource to the underlying store.</summary>
-    /// <param name="resource">Resource to add.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    Task AddAsync(Resource resource, CancellationToken cancellationToken);
+    Task<ResourceViewModel?> GetByIdAsync(
+        int id,
+        CancellationToken cancellationToken = default);
+
+    Task CreateAsync(
+        ResourceCreateViewModel model,
+        int userId,
+        CancellationToken cancellationToken = default);
 }
