@@ -9,12 +9,6 @@ namespace Heimevernet.Mappers;
 /// </summary>
 public class ResourceMapper : IResourceMapper
 {
-    /// <summary>
-    /// Maps a <see cref="ResourceCreateViewModel"/> to a <see cref="Resource"/> entity.
-    /// </summary>
-    /// <param name="model">Create view model to map from.</param>
-    /// <param name="userId">Id of the user creating the resource.</param>
-    /// <returns>A populated <see cref="Resource"/> entity.</returns>
     public Resource ToEntity(
         ResourceCreateViewModel model,
         int userId)
@@ -35,10 +29,12 @@ public class ResourceMapper : IResourceMapper
     }
 
     /// <summary>
-    /// Maps a <see cref="Resource"/> entity to a <see cref="ResourceViewModel"/>.
+    /// Maps a <see cref="ResourceCreateViewModel"/> to a <see cref="Resource"/> entity.
     /// </summary>
-    /// <param name="resource">Entity to map.</param>
-    /// <returns>A <see cref="ResourceViewModel"/>.</returns>
+    /// <param name="model">Create view model to map from.</param>
+    /// <param name="userId">Id of the user creating the resource.</param>
+    /// <returns>A populated <see cref="Resource"/> entity.</returns>
+
     public ResourceViewModel ToViewModel(Resource resource)
     {
         return new ResourceViewModel
@@ -59,14 +55,20 @@ public class ResourceMapper : IResourceMapper
     }
 
     /// <summary>
-    /// Maps a sequence of <see cref="Resource"/> entities to view models.
+    /// Maps a <see cref="Resource"/> entity to a <see cref="ResourceViewModel"/>.
     /// </summary>
-    /// <param name="resources">Sequence of resources to map.</param>
-    /// <returns>Sequence of <see cref="ResourceViewModel"/>.</returns>
+    /// <param name="resource">Entity to map.</param>
+    /// <returns>A <see cref="ResourceViewModel"/>.</returns>
+
     public IEnumerable<ResourceViewModel> ToViewModels(
         IEnumerable<Resource> resources)
     {
         return resources.Select(ToViewModel);
     }
 
+    /// <summary>
+    /// Maps a sequence of <see cref="Resource"/> entities to view models.
+    /// </summary>
+    /// <param name="resources">Sequence of resources to map.</param>
+    /// <returns>Sequence of <see cref="ResourceViewModel"/>.</returns>
 }

@@ -22,6 +22,7 @@ public class NeedController : Controller
         _categoryRepository = categoryRepository;
     }
 
+    [HttpGet]
     /// <summary>
     /// Displays the list of needs.
     /// </summary>
@@ -35,6 +36,7 @@ public class NeedController : Controller
         return View(needs);
     }
 
+    [HttpGet]
     /// <summary>
     /// Shows the create need form populated with available categories.
     /// </summary>
@@ -51,14 +53,14 @@ public class NeedController : Controller
         return View(model);
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
     /// <summary>
     /// Handles posted create need form. Validates and persists the new need.
     /// </summary>
     /// <param name="model">The create view model submitted by the user.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>Redirects to Index on success or returns the view with validation errors.</returns>
-    [HttpPost]
-    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(
         NeedCreateViewModel model,
         CancellationToken cancellationToken)

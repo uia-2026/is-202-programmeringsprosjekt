@@ -16,12 +16,12 @@ public class UnitOfWork : IUnitOfWork
         _context = context;
     }
 
-    /// <summary>
-    /// Commits any pending changes in the DbContext.
-    /// </summary>
-    /// <returns>A task that completes when changes are saved.</returns>
     public async Task CommitAsync()
     {
+        /// <summary>
+        /// Commits any pending changes in the DbContext.
+        /// </summary>
+        /// <returns>A task that completes when changes are saved.</returns>
         await _context.SaveChangesAsync();
     }
 }

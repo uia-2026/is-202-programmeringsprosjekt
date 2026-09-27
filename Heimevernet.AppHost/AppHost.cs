@@ -1,5 +1,7 @@
-// Lightweight application host that composes the distributed application used for local development.
-// It configures dependent services such as MariaDB and the migrator project and then runs the composed app.
+/// <summary>
+/// Lightweight application host that composes the distributed application used for local development.
+/// It configures dependent services such as MariaDB and the migrator project and then runs the composed app.
+/// </summary>
 var builder = DistributedApplication.CreateBuilder(args);
 
 var mariadbPassword = builder.AddParameter("mariadb-password", secret: true);
