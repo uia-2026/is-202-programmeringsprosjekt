@@ -26,8 +26,6 @@ public class Resource
 
     public string Region { get; set; } = string.Empty;
 
-    public string Region { get; set; } = string.Empty;
-
     /// <summary>Timestamp when the resource becomes available.</summary>
     public DateTime AvailableFrom { get; set; }
 
