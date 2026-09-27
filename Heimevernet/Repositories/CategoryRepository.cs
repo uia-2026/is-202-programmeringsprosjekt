@@ -18,12 +18,12 @@ public class CategoryRepository : ICategoryRepository
         _context = context;
     }
 
+    /// <summary>
+    /// Returns all categories ordered by name.
+    /// </summary>
+    /// <returns>A sequence of <see cref="Category"/> entities.</returns>
     public async Task<IEnumerable<Category>> GetAllAsync()
     {
-        /// <summary>
-        /// Returns all categories ordered by name.
-        /// </summary>
-        /// <returns>A sequence of <see cref="Category"/> entities.</returns>
         return await _context.Categories
             .OrderBy(c => c.Name)
             .ToListAsync();

@@ -11,11 +11,11 @@ namespace Heimevernet.Mappers;
 public class NeedMapper : INeedMapper
 {
     /// <summary>
-    /// Maps a creation view model to a domain entity.
+    /// Maps a <see cref="NeedCreateViewModel"/> to a <see cref="Need"/> entity.
     /// </summary>
-    /// <remarks>
-    /// Method documentation placeholder; parameter and return tags to be completed.
-    /// </remarks>
+    /// <param name="model">Create view model to map from.</param>
+    /// <param name="userId">Id of the user creating the need.</param>
+    /// <returns>A populated <see cref="Need"/> entity.</returns>
     public Need ToEntity(NeedCreateViewModel model, int userId)
     {
         return new Need
@@ -34,18 +34,10 @@ public class NeedMapper : INeedMapper
     }
 
     /// <summary>
-    /// Maps a <see cref="NeedCreateViewModel"/> to a <see cref="Need"/> entity.
+    /// Maps a <see cref="Need"/> entity to a detailed <see cref="NeedViewModel"/>.
     /// </summary>
-    /// <param name="model">Create view model to map from.</param>
-    /// <param name="userId">Id of the user creating the need.</param>
-    /// <returns>A populated <see cref="Need"/> entity.</returns>
-
-    /// <summary>
-    /// Maps a domain entity to a detailed view model.
-    /// </summary>
-    /// <remarks>
-    /// Method documentation placeholder; parameter and return tags to be completed.
-    /// </remarks>
+    /// <param name="need">Entity to map.</param>
+    /// <returns>A <see cref="NeedViewModel"/>.</returns>
     public NeedViewModel ToViewModel(Need need)
     {
         return new NeedViewModel
@@ -66,17 +58,10 @@ public class NeedMapper : INeedMapper
     }
 
     /// <summary>
-    /// Maps a <see cref="Need"/> entity to a detailed <see cref="NeedViewModel"/>.
+    /// Maps a <see cref="Need"/> entity to a <see cref="NeedSummaryViewModel"/>.
     /// </summary>
     /// <param name="need">Entity to map.</param>
-    /// <returns>A <see cref="NeedViewModel"/>.</returns>
-
-    /// <summary>
-    /// Maps a domain entity to a summary view model.
-    /// </summary>
-    /// <remarks>
-    /// Method documentation placeholder; parameter and return tags to be completed.
-    /// </remarks>
+    /// <returns>A <see cref="NeedSummaryViewModel"/>.</returns>
     public NeedSummaryViewModel ToSummaryViewModel(Need need)
     {
         return new NeedSummaryViewModel
@@ -91,17 +76,10 @@ public class NeedMapper : INeedMapper
     }
 
     /// <summary>
-    /// Maps a <see cref="Need"/> entity to a <see cref="NeedSummaryViewModel"/>.
+    /// Maps a sequence of <see cref="Need"/> entities to summary view models.
     /// </summary>
-    /// <param name="need">Entity to map.</param>
-    /// <returns>A <see cref="NeedSummaryViewModel"/>.</returns>
-
-    /// <summary>
-    /// Maps a sequence of domain entities to summary view models.
-    /// </summary>
-    /// <remarks>
-    /// Method documentation placeholder; parameter and return tags to be completed.
-    /// </remarks>
+    /// <param name="needs">Sequence of needs to map.</param>
+    /// <returns>Sequence of <see cref="NeedSummaryViewModel"/>.</returns>
     public IEnumerable<NeedSummaryViewModel> ToSummaryViewModels(
         IEnumerable<Need> needs)
     {
@@ -109,26 +87,14 @@ public class NeedMapper : INeedMapper
     }
 
     /// <summary>
-    /// Maps a sequence of <see cref="Need"/> entities to summary view models.
+    /// Maps a sequence of <see cref="Need"/> entities to detailed view models.
     /// </summary>
     /// <param name="needs">Sequence of needs to map.</param>
-    /// <returns>Sequence of <see cref="NeedSummaryViewModel"/>.</returns>
-
-    /// <summary>
-    /// Maps a sequence of domain entities to detailed view models.
-    /// </summary>
-    /// <remarks>
-    /// Method documentation placeholder; parameter and return tags to be completed.
-    /// </remarks>
+    /// <returns>Sequence of <see cref="NeedViewModel"/>.</returns>
     public IEnumerable<NeedViewModel> ToViewModels(
         IEnumerable<Need> needs)
     {
         return needs.Select(ToViewModel);
     }
 
-    /// <summary>
-    /// Maps a sequence of <see cref="Need"/> entities to detailed view models.
-    /// </summary>
-    /// <param name="needs">Sequence of needs to map.</param>
-    /// <returns>Sequence of <see cref="NeedViewModel"/>.</returns>
 }
