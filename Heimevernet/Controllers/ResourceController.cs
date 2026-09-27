@@ -46,14 +46,14 @@ public class ResourceController : Controller
         return View(model);
     }
 
-    [HttpPost]
-    [ValidateAntiForgeryToken]
     /// <summary>
     /// Handles posted create resource form. Validates and persists the new resource.
     /// </summary>
     /// <param name="model">The create view model submitted by the user.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>Redirects to Index on success or returns the view with validation errors.</returns>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(
         ResourceCreateViewModel model,
         CancellationToken cancellationToken)
