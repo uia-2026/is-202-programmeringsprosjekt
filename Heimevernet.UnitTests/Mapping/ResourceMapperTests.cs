@@ -4,10 +4,17 @@ using Heimevernet.ViewModels.Resource;
 
 namespace Heimevernet.UnitTests.Mapping;
 
+/// <summary>
+/// Unit tests for <see cref="Heimevernet.Mappers.ResourceMapper"/>.
+/// Each test verifies mapping behavior between view models and domain entities.
+/// </summary>
 public class ResourceMapperTests
 {
     private readonly ResourceMapper _sut = new();
 
+    /// <summary>
+    /// Verifies that ToEntity trims string values and maps fields from ResourceCreateViewModel.
+    /// </summary>
     [Fact]
     public void ToEntity_Maps_CreateViewModel_And_Trims_Strings()
     {
@@ -40,6 +47,9 @@ public class ResourceMapperTests
         Assert.Equal("provider@example.com", result.ContactPoint);
     }
 
+    /// <summary>
+    /// Verifies that AvailableTo is preserved when null.
+    /// </summary>
     [Fact]
     public void ToEntity_Preserves_Null_AvailableTo()
     {
@@ -58,6 +68,9 @@ public class ResourceMapperTests
         Assert.Null(result.AvailableTo);
     }
 
+    /// <summary>
+    /// Verifies mapping from entity to detailed view model.
+    /// </summary>
     [Fact]
     public void ToViewModel_Maps_Entity_To_ViewModel()
     {
@@ -96,6 +109,9 @@ public class ResourceMapperTests
         Assert.Equal(createdAt, result.CreatedAt);
     }
 
+    /// <summary>
+    /// Verifies AvailableTo remains null in the view model when the entity has no AvailableTo.
+    /// </summary>
     [Fact]
     public void ToViewModel_Preserves_Null_AvailableTo()
     {
@@ -115,6 +131,9 @@ public class ResourceMapperTests
         Assert.Null(result.AvailableTo);
     }
 
+    /// <summary>
+    /// Verifies mapping a collection of resources to view models.
+    /// </summary>
     [Fact]
     public void ToViewModels_Maps_Collection()
     {
@@ -133,6 +152,9 @@ public class ResourceMapperTests
         Assert.Equal("C2", results[1].CategoryName);
     }
 
+    /// <summary>
+    /// Ensures ToViewModels returns an empty sequence when given an empty input.
+    /// </summary>
     [Fact]
     public void ToViewModels_Empty_Returns_Empty()
     {

@@ -7,6 +7,10 @@ using Moq;
 
 namespace Heimevernet.UnitTests.Services;
 
+/// <summary>
+/// Unit tests for <see cref="Heimevernet.Services.NeedService"/>.
+/// These tests verify orchestration between the repository, mapper and unit of work.
+/// </summary>
 public class NeedServiceTests
 {
     private readonly Mock<INeedRepository> _needRepoMock;
@@ -22,6 +26,9 @@ public class NeedServiceTests
         _sut = new NeedService(_needRepoMock.Object, _mapperMock.Object, _uowMock.Object);
     }
 
+    /// <summary>
+    /// Ensures CreateAsync maps the create model, saves the entity and commits the unit of work.
+    /// </summary>
     [Fact]
     public async Task CreateAsync_Saves_Entity_And_Commits()
     {
@@ -42,6 +49,9 @@ public class NeedServiceTests
         _uowMock.Verify(u => u.CommitAsync(), Times.Once);
     }
 
+    /// <summary>
+    /// Verifies that when the repository throws, the unit of work is not committed.
+    /// </summary>
     [Fact]
     public async Task CreateAsync_Does_Not_Commit_When_Repository_Throws()
     {
@@ -62,6 +72,9 @@ public class NeedServiceTests
         _uowMock.Verify(u => u.CommitAsync(), Times.Never);
     }
 
+    /// <summary>
+    /// Ensures CreateAsync calls the mapper and forwards the mapped entity to the repository.
+    /// </summary>
     [Fact]
     public async Task CreateAsync_Calls_Mapper_And_Forwards_Result_To_Repository()
     {
@@ -81,6 +94,9 @@ public class NeedServiceTests
         _needRepoMock.Verify(r => r.AddAsync(mappedNeed, It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    /// <summary>
+    /// Verifies GetAllAsync returns mapped view models for all needs.
+    /// </summary>
     [Fact]
     public async Task GetAllAsync_Returns_Mapped_ViewModels()
     {
@@ -105,6 +121,9 @@ public class NeedServiceTests
         _mapperMock.Verify(m => m.ToViewModels(needs), Times.Once);
     }
 
+    /// <summary>
+    /// Verifies GetAllAsync returns an empty collection when no needs exist.
+    /// </summary>
     [Fact]
     public async Task GetAllAsync_Returns_Empty_When_No_Needs()
     {
@@ -118,6 +137,9 @@ public class NeedServiceTests
         Assert.Empty(result);
     }
 
+    /// <summary>
+    /// Verifies GetSummariesAsync returns mapped summary view models.
+    /// </summary>
     [Fact]
     public async Task GetSummariesAsync_Returns_Mapped_Summaries()
     {
@@ -143,6 +165,9 @@ public class NeedServiceTests
         _mapperMock.Verify(m => m.ToSummaryViewModels(needs), Times.Once);
     }
 
+    /// <summary>
+    /// Verifies GetByIdAsync returns the mapped view model when the entity exists.
+    /// </summary>
     [Fact]
     public async Task GetByIdAsync_Returns_Mapped_ViewModel_When_Found()
     {
@@ -167,6 +192,9 @@ public class NeedServiceTests
         _mapperMock.Verify(m => m.ToViewModel(need), Times.Once);
     }
 
+    /// <summary>
+    /// Verifies GetByIdAsync returns null when the entity is not found.
+    /// </summary>
     [Fact]
     public async Task GetByIdAsync_Returns_Null_When_NotFound()
     {

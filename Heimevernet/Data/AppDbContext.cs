@@ -3,6 +3,11 @@ using Heimevernet.Models;
 
 namespace Heimevernet.Data;
 
+/// <summary>
+/// Entity Framework Core DbContext for the application.
+/// Exposes DbSet properties for Users, Categories, Needs, Resources, Attachments and Matches
+/// and configures model conversions and constraints used by the database provider.
+/// </summary>
 public class AppDbContext : DbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }

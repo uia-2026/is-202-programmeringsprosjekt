@@ -1,5 +1,9 @@
 namespace Heimevernet.Models;
 
+/// <summary>
+/// Domain model representing an application user.
+/// Stores authentication and profile information along with navigation properties.
+/// </summary>
 public class User
 {
     public int Id { get; set; }

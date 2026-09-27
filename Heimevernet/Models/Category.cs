@@ -1,6 +1,10 @@
 namespace Heimevernet.Models;
 
 
+/// <summary>
+/// Domain model representing a category that applies to Needs or Resources.
+/// Used to group items and limit where categories can be applied.
+/// </summary>
 public class Category
 {
     public int Id { get; set; }

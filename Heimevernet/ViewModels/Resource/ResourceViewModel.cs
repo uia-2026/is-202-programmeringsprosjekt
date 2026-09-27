@@ -2,6 +2,9 @@ using Heimevernet.Models;
 
 namespace Heimevernet.ViewModels.Resource;
 
+/// <summary>
+/// View model containing detailed information about a Resource for presentation in views.
+/// </summary>
 public class ResourceViewModel
 {
     public int Id { get; set; }

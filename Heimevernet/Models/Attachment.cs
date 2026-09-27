@@ -1,6 +1,10 @@
 namespace Heimevernet.Models;
 
 
+/// <summary>
+/// Represents a file attachment uploaded for a resource.
+/// Stores file path and uploader metadata.
+/// </summary>
 public class Attachment
 {
     public int Id { get; set; }

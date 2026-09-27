@@ -6,6 +6,10 @@ using System.Threading;
 
 namespace Heimevernet.Controllers;
 
+/// <summary>
+/// Controller that serves the application home pages (index and privacy).
+/// Index aggregates summaries of needs and resources for the landing page.
+/// </summary>
 public class HomeController : Controller
 {
     private readonly INeedService _needService;
@@ -33,6 +37,10 @@ public class HomeController : Controller
     }
 
 
+    /// <summary>
+    /// Displays the privacy page.
+    /// </summary>
+    /// <returns>An <see cref="IActionResult"/> that renders the Privacy view.</returns>
     public IActionResult Privacy()
     {
         return View();

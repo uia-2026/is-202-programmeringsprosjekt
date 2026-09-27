@@ -13,6 +13,11 @@ namespace Microsoft.Extensions.Hosting;
 // Adds common Aspire services: service discovery, resilience, health checks, and OpenTelemetry.
 // This project should be referenced by each service project in your solution.
 // To learn more about using this project, see https://aka.ms/aspire/service-defaults
+/// <summary>
+/// Service defaults and convenience extensions for Aspire-style applications.
+/// Adds common application concerns like health checks, service discovery, HTTP client defaults
+/// and OpenTelemetry configuration used across services in the solution.
+/// </summary>
 public static class Extensions
 {
     private const string HealthEndpointPath = "/health";
@@ -46,6 +51,10 @@ public static class Extensions
 
     public static TBuilder ConfigureOpenTelemetry<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
+        /// <summary>
+        /// Adds and configures OpenTelemetry logging, metrics and tracing with sensible defaults.
+        /// This includes AspNetCore and HttpClient instrumentation and enables exporters based on configuration.
+        /// </summary>
         builder.Logging.AddOpenTelemetry(logging =>
         {
             logging.IncludeFormattedMessage = true;
@@ -80,6 +89,9 @@ public static class Extensions
 
     private static TBuilder AddOpenTelemetryExporters<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
+        /// <summary>
+        /// Configures available OpenTelemetry exporters (OTLP, Azure Monitor) based on environment configuration.
+        /// </summary>
         var useOtlpExporter = !string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
 
         if (useOtlpExporter)
@@ -99,6 +111,10 @@ public static class Extensions
 
     public static TBuilder AddDefaultHealthChecks<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
+        /// <summary>
+        /// Registers default health checks used by applications created from the template.
+        /// Adds a basic liveness check tagged with "live".
+        /// </summary>
         builder.Services.AddHealthChecks()
             // Add a default liveness check to ensure app is responsive
             .AddCheck("self", () => HealthCheckResult.Healthy(), ["live"]);
@@ -108,6 +124,10 @@ public static class Extensions
 
     public static WebApplication MapDefaultEndpoints(this WebApplication app)
     {
+        /// <summary>
+        /// Maps default endpoints such as health and aliveness checks when running in Development environment.
+        /// This keeps the endpoints disabled in production unless explicitly enabled by the operator.
+        /// </summary>
         // Adding health checks endpoints to applications in non-development environments has security implications.
         // See https://aka.ms/aspire/healthchecks for details before enabling these endpoints in non-development environments.
         if (app.Environment.IsDevelopment())

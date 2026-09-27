@@ -5,6 +5,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Heimevernet.Controllers;
 
+/// <summary>
+/// MVC controller for handling Resource-related web pages (list, create, details).
+/// Uses IResourceService for business operations and ICategoryRepository to populate category lists.
+/// </summary>
 public class ResourceController : Controller
 {
     private readonly IResourceService _resourceService;
@@ -44,6 +48,12 @@ public class ResourceController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    /// <summary>
+    /// Handles posted create resource form. Validates and persists the new resource.
+    /// </summary>
+    /// <param name="model">The create view model submitted by the user.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>Redirects to Index on success or returns the view with validation errors.</returns>
     public async Task<IActionResult> Create(
         ResourceCreateViewModel model,
         CancellationToken cancellationToken)
