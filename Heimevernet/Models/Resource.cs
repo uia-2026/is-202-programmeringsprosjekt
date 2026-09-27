@@ -1,5 +1,9 @@
 namespace Heimevernet.Models;
 
+/// <summary>
+/// Domain model representing an available resource.
+/// Includes availability window, location, category and related attachments/matches.
+/// </summary>
 public class Resource
 {
     public int Id { get; set; }

@@ -1,5 +1,9 @@
 namespace Heimevernet.Models;
 
+/// <summary>
+/// Represents a pairing between a Need and a Resource.
+/// Contains status and metadata about which user created the match.
+/// </summary>
 public class Match
 {
     public int Id { get; set; }

@@ -4,10 +4,17 @@ using Heimevernet.ViewModels.Need;
 
 namespace Heimevernet.UnitTests.Mapping;
 
+/// <summary>
+/// Unit tests for <see cref="Heimevernet.Mappers.NeedMapper"/>.
+/// Each test verifies mapping behavior between view models and domain entities.
+/// </summary>
 public class NeedMapperTests
 {
     private readonly NeedMapper _sut = new();
 
+    /// <summary>
+    /// Verifies that ToEntity trims string values and maps fields from NeedCreateViewModel.
+    /// </summary>
     [Fact]
     public void ToEntity_Maps_CreateViewModel_And_Trims_Strings()
     {
@@ -39,6 +46,9 @@ public class NeedMapperTests
         Assert.Equal("contact@example.com", result.ContactPoint);
     }
 
+    /// <summary>
+    /// Verifies that nullable fields (Description, Deadline) are preserved when null.
+    /// </summary>
     [Fact]
     public void ToEntity_Preserves_Nullable_Fields()
     {
@@ -61,6 +71,9 @@ public class NeedMapperTests
         Assert.Null(result.Deadline);
     }
 
+    /// <summary>
+    /// Verifies mapping from entity to detailed view model.
+    /// </summary>
     [Fact]
     public void ToViewModel_Maps_Entity_To_ViewModel()
     {
@@ -98,6 +111,9 @@ public class NeedMapperTests
         Assert.Equal(createdAt, result.CreatedAt);
     }
 
+    /// <summary>
+    /// Verifies mapping from entity to summary view model.
+    /// </summary>
     [Fact]
     public void ToSummaryViewModel_Maps_Entity_To_Summary()
     {
@@ -121,6 +137,9 @@ public class NeedMapperTests
         Assert.Equal(NeedStatus.New, result.Status);
     }
 
+    /// <summary>
+    /// Verifies mapping from a collection of entities to view models.
+    /// </summary>
     [Fact]
     public void ToViewModels_Maps_Collection()
     {
@@ -139,6 +158,9 @@ public class NeedMapperTests
         Assert.Equal("CatY", results[1].CategoryName);
     }
 
+    /// <summary>
+    /// Verifies mapping from a collection of entities to summary view models.
+    /// </summary>
     [Fact]
     public void ToSummaryViewModels_Maps_Collection()
     {
@@ -156,6 +178,9 @@ public class NeedMapperTests
         Assert.Equal(NeedPriority.Urgent, results[1].Priority);
     }
 
+    /// <summary>
+    /// Ensures mapping methods return empty collections when given empty inputs.
+    /// </summary>
     [Fact]
     public void Empty_Collections_Return_Empty()
     {

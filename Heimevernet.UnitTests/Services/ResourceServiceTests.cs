@@ -7,6 +7,10 @@ using Moq;
 
 namespace Heimevernet.UnitTests.Services;
 
+/// <summary>
+/// Unit tests for <see cref="Heimevernet.Services.ResourceService"/>.
+/// These tests verify orchestration between the repository, mapper and unit of work.
+/// </summary>
 public class ResourceServiceTests
 {
     private readonly Mock<IResourceRepository> _repoMock;
@@ -22,6 +26,9 @@ public class ResourceServiceTests
         _sut = new ResourceService(_repoMock.Object, _mapperMock.Object, _uowMock.Object);
     }
 
+    /// <summary>
+    /// Ensures CreateAsync maps the create model, saves the entity and commits the unit of work.
+    /// </summary>
     [Fact]
     public async Task CreateAsync_Saves_Entity_And_Commits()
     {
@@ -42,6 +49,9 @@ public class ResourceServiceTests
         _uowMock.Verify(u => u.CommitAsync(), Times.Once);
     }
 
+    /// <summary>
+    /// Verifies that when the repository throws, the unit of work is not committed.
+    /// </summary>
     [Fact]
     public async Task CreateAsync_Does_Not_Commit_When_Repository_Throws()
     {
@@ -55,6 +65,9 @@ public class ResourceServiceTests
         _uowMock.Verify(u => u.CommitAsync(), Times.Never);
     }
 
+    /// <summary>
+    /// Ensures CreateAsync calls the mapper and forwards the mapped entity to the repository.
+    /// </summary>
     [Fact]
     public async Task CreateAsync_Calls_Mapper_And_Forwards_Result_To_Repository()
     {
@@ -75,6 +88,9 @@ public class ResourceServiceTests
         _repoMock.Verify(r => r.AddAsync(mapped, It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    /// <summary>
+    /// Verifies GetAllAsync returns mapped view models for all resources.
+    /// </summary>
     [Fact]
     public async Task GetAllAsync_Returns_Mapped_ViewModels()
     {
@@ -101,6 +117,9 @@ public class ResourceServiceTests
         Assert.Equal("Medical", result[1].CategoryName);
     }
 
+    /// <summary>
+    /// Verifies GetAllAsync returns an empty collection when no resources exist.
+    /// </summary>
     [Fact]
     public async Task GetAllAsync_Returns_Empty_When_No_Resources()
     {
@@ -113,6 +132,9 @@ public class ResourceServiceTests
         _mapperMock.Verify(m => m.ToViewModel(It.IsAny<Resource>()), Times.Never);
     }
 
+    /// <summary>
+    /// Verifies GetByIdAsync returns the mapped view model when the entity exists.
+    /// </summary>
     [Fact]
     public async Task GetByIdAsync_Returns_Mapped_ViewModel_When_Found()
     {
@@ -137,6 +159,9 @@ public class ResourceServiceTests
         Assert.Equal("Cat", result.CategoryName);
     }
 
+    /// <summary>
+    /// Verifies GetByIdAsync returns null when the entity is not found.
+    /// </summary>
     [Fact]
     public async Task GetByIdAsync_Returns_Null_When_NotFound()
     {
@@ -148,6 +173,9 @@ public class ResourceServiceTests
         _mapperMock.Verify(m => m.ToViewModel(It.IsAny<Resource>()), Times.Never);
     }
 
+    /// <summary>
+    /// Ensures the cancellation token is forwarded to the repository GetAllAsync call.
+    /// </summary>
     [Fact]
     public async Task GetAllAsync_Forwards_CancellationToken_To_Repository()
     {

@@ -1,6 +1,10 @@
 namespace Heimevernet.Models;
 
 
+/// <summary>
+/// Domain model representing a reported need.
+/// Contains metadata such as category, location, priority, status and related matches.
+/// </summary>
 public class Need
 {
     public int Id { get; set; }

@@ -3,6 +3,10 @@ using Heimevernet.Models;
 
 namespace Heimevernet.ViewModels.Resource;
 
+/// <summary>
+/// View model used to create a new Resource.
+/// Contains validation attributes and a list of available categories for selection.
+/// </summary>
 public class ResourceCreateViewModel
 {
     [Required(ErrorMessage = "Please select a category.")]

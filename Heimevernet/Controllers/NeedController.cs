@@ -5,6 +5,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Heimevernet.Controllers;
 
+/// <summary>
+/// MVC controller for handling Need-related web pages (list, create, details).
+/// Uses INeedService for business operations and ICategoryRepository to populate category lists.
+/// </summary>
 public class NeedController : Controller
 {
     private readonly INeedService _needService;
@@ -18,6 +22,11 @@ public class NeedController : Controller
         _categoryRepository = categoryRepository;
     }
 
+    /// <summary>
+    /// Displays the list of needs.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>An <see cref="IActionResult"/> that renders the Index view.</returns>
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
@@ -26,6 +35,10 @@ public class NeedController : Controller
         return View(needs);
     }
 
+    /// <summary>
+    /// Shows the create need form populated with available categories.
+    /// </summary>
+    /// <returns>An <see cref="IActionResult"/> that renders the Create view.</returns>
     [HttpGet]
     public async Task<IActionResult> Create()
     {
@@ -38,6 +51,12 @@ public class NeedController : Controller
         return View(model);
     }
 
+    /// <summary>
+    /// Handles posted create need form. Validates and persists the new need.
+    /// </summary>
+    /// <param name="model">The create view model submitted by the user.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>Redirects to Index on success or returns the view with validation errors.</returns>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(

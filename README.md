@@ -80,8 +80,8 @@ GitHub-lenke: https://github.com/uia-2026/is-202-programmeringsprosjekt
 - Del 3: Håndtering av GET og POST forespørsler (Helal Karokhel)
 - Del 4: Skjema som tar data fra brukeren og visning på annen side (Sebastian Ruben Van Est)
 - Del 5: Kart + hente data fra kartet og vise på annen side (Rune Johan Corne Liefting)
-- Del 6: Dokumentasjon i GitHub (Najeebullah Maroof)
-- Del 7: Dokumentasjon i selve koden (Danylo Bodnar)
+- Del 6: Dokumentasjon i GitHub ()
+- Del 7: Dokumentasjon i selve koden (Najeebullah Maroof)
 - Del 8: Dokumenter deres bruk av KI i prosjektet fra ide til koding i Github READ ME (bruksområder, verktøy, prompt kommandoer).
 Vi vil bare lære om hvordan dere har brukt KI. Dette skal ikke påvirke godkjenningen i det hele tatt.
 

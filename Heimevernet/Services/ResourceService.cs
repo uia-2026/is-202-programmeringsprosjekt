@@ -5,6 +5,10 @@ using Heimevernet.ViewModels.Resource;
 
 namespace Heimevernet.Services;
 
+/// <summary>
+/// Application service handling operations related to Resources.
+/// Orchestrates repository access, mapping and unit-of-work commits.
+/// </summary>
 public class ResourceService : IResourceService
 {
     private readonly IResourceRepository _resourceRepository;
@@ -26,9 +30,9 @@ public class ResourceService : IResourceService
     {
         var resources =
             await _resourceRepository.GetAllAsync(cancellationToken);
-
+        // Document params/returns via interface; implementation intentionally unchanged.
         return resources
-            .Select(_resourceMapper.ToViewModel)
+            .Select(r => _resourceMapper.ToViewModel(r))
             .ToList();
     }
 

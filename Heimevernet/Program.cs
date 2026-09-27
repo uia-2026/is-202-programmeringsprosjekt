@@ -1,3 +1,5 @@
+// Application entry point for the Heimevernet web application.
+// Configures DI, DbContext and maps default endpoints before running the web host.
 using Heimevernet.Data;
 using Heimevernet.Services;
 using Heimevernet.Repositories;

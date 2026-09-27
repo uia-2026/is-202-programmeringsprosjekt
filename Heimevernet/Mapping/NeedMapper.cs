@@ -4,8 +4,18 @@ using Heimevernet.ViewModels.Need;
 
 namespace Heimevernet.Mappers;
 
+/// <summary>
+/// Maps between Need domain entities and Need view models.
+/// Provides conversions for detailed and summary view models and creation models.
+/// </summary>
 public class NeedMapper : INeedMapper
 {
+    /// <summary>
+    /// Maps a <see cref="NeedCreateViewModel"/> to a <see cref="Need"/> entity.
+    /// </summary>
+    /// <param name="model">Create view model to map from.</param>
+    /// <param name="userId">Id of the user creating the need.</param>
+    /// <returns>A populated <see cref="Need"/> entity.</returns>
     public Need ToEntity(NeedCreateViewModel model, int userId)
     {
         return new Need
@@ -23,6 +33,11 @@ public class NeedMapper : INeedMapper
         };
     }
 
+    /// <summary>
+    /// Maps a <see cref="Need"/> entity to a detailed <see cref="NeedViewModel"/>.
+    /// </summary>
+    /// <param name="need">Entity to map.</param>
+    /// <returns>A <see cref="NeedViewModel"/>.</returns>
     public NeedViewModel ToViewModel(Need need)
     {
         return new NeedViewModel
@@ -42,6 +57,11 @@ public class NeedMapper : INeedMapper
         };
     }
 
+    /// <summary>
+    /// Maps a <see cref="Need"/> entity to a <see cref="NeedSummaryViewModel"/>.
+    /// </summary>
+    /// <param name="need">Entity to map.</param>
+    /// <returns>A <see cref="NeedSummaryViewModel"/>.</returns>
     public NeedSummaryViewModel ToSummaryViewModel(Need need)
     {
         return new NeedSummaryViewModel
@@ -55,15 +75,26 @@ public class NeedMapper : INeedMapper
         };
     }
 
+    /// <summary>
+    /// Maps a sequence of <see cref="Need"/> entities to summary view models.
+    /// </summary>
+    /// <param name="needs">Sequence of needs to map.</param>
+    /// <returns>Sequence of <see cref="NeedSummaryViewModel"/>.</returns>
     public IEnumerable<NeedSummaryViewModel> ToSummaryViewModels(
         IEnumerable<Need> needs)
     {
         return needs.Select(ToSummaryViewModel);
     }
 
+    /// <summary>
+    /// Maps a sequence of <see cref="Need"/> entities to detailed view models.
+    /// </summary>
+    /// <param name="needs">Sequence of needs to map.</param>
+    /// <returns>Sequence of <see cref="NeedViewModel"/>.</returns>
     public IEnumerable<NeedViewModel> ToViewModels(
         IEnumerable<Need> needs)
     {
         return needs.Select(ToViewModel);
     }
+
 }

@@ -3,6 +3,10 @@ using Heimevernet.Models;
 
 namespace Heimevernet.ViewModels.Need;
 
+/// <summary>
+/// View model used to create a new Need.
+/// Contains validation attributes and a list of available categories for selection.
+/// </summary>
 public class NeedCreateViewModel
 {
     [Required(ErrorMessage = "Please select a category.")]

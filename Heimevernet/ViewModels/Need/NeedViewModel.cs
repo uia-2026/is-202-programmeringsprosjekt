@@ -2,6 +2,9 @@ using Heimevernet.Models;
 
 namespace Heimevernet.ViewModels.Need;
 
+/// <summary>
+/// View model containing detailed information about a Need for presentation in views.
+/// </summary>
 public class NeedViewModel
 {
     public int Id { get; set; }
