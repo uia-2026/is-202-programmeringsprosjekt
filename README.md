@@ -42,9 +42,8 @@ Du trenger ikke installere eller sette opp databasen selv.
 - Aspire starter MariaDB som en Docker-container når AppHost kjører.
 - `Heimevernet.Migrator` kjører databasemigreringene automatisk og oppretter tabellene.
 - Migratoren legger også inn testdata (seed-data) i utviklingsmiljø.
-- Connection string settes av Aspire, så ingen manuell konfigurasjon er nødvendig.
-
-Vent til `Migrator` står som ferdig i dashboardet før du åpner nettsiden, ellers kan siden vise tomme data.
+- Connection string settes av Aspire. Du trenger bare å sette passordet (se «Kom i gang»). 
+- Databasen bruker port `3307` på maskinen din.
 
 ### Feilsøking
 
@@ -54,6 +53,8 @@ Vent til `Migrator` står som ferdig i dashboardet før du åpner nettsiden, ell
 | Feil om at SDK ikke finnes | Installer riktig .NET-versjon |
 | Tom side eller ingen data | Vent til Migrator er ferdig i dashboardet |
 | `git` eller `dotnet` gjenkjennes ikke | Start terminalen på nytt etter installasjon |
+| Feil om manglende parameter eller passord | Sett `Parameters:mariadb-password` med `dotnet user-secrets` (se «Kom i gang») |
+| Feil om at port 3307 er i bruk | Stopp programmet eller containeren som bruker porten |
 
 ---
 
