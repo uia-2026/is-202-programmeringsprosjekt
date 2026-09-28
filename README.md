@@ -1,21 +1,53 @@
 # IS-202 Programmeringsprosjekt
 
-## 1. Drift (Docker)
-
-### Bygge image
-docker build -t is202-app .
-
-### Kjør container
-docker run -p 8080:8080 is202-app
+## 1. Drift
 
 ### Miljøkrav
-- Docker Desktop
-- .NET 8 SDK
-- Windows / macOS / Linux
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (må være startet)
+- [.NET SDK](https://dotnet.microsoft.com/download) (samme versjon som i `Heimevernet.csproj`)
+- Git
 
-### Stoppe container
-docker ps
-docker stop <container-id>
+### Kom i gang
+
+1. Klon repoet:
+   ```bash
+   git clone https://github.com/uia-2026/is-202-programmeringsprosjekt.git
+   cd is-202-programmeringsprosjekt
+   ```
+2. Start Docker Desktop og vent til den er klar.
+3. Start prosjektet:
+   ```bash
+   dotnet run --project Heimevernet.AppHost
+   ```
+4. Aspire-dashboardet åpnes i nettleseren. Klikk på lenken til webapplikasjonen for å åpne siden. Portnummeret varierer og står i dashboardet.
+
+Alternativt: åpne `Heimevernet.slnx` i Visual Studio eller Rider, sett `Heimevernet.AppHost` som startprosjekt og trykk F5.
+
+### Kjøreinstruksjon
+
+Prosjektet kjøres med .NET Aspire. `Heimevernet.AppHost` starter alle delene (MariaDB, Migrator og webapplikasjonen). Du starter altså ikke webprosjektet direkte.
+
+For å stoppe: trykk `Ctrl + C` i terminalen der `dotnet run` kjører. Aspire stopper da containerne.
+
+### Databaseoppsett (MariaDB)
+
+Du trenger ikke installere eller sette opp databasen selv.
+
+- Aspire starter MariaDB som en Docker-container når AppHost kjører.
+- `Heimevernet.Migrator` kjører databasemigreringene automatisk og oppretter tabellene.
+- Migratoren legger også inn testdata (seed-data) i utviklingsmiljø.
+- Connection string settes av Aspire, så ingen manuell konfigurasjon er nødvendig.
+
+Vent til `Migrator` står som ferdig i dashboardet før du åpner nettsiden, ellers kan siden vise tomme data.
+
+### Feilsøking
+
+| Problem | Løsning |
+|---|---|
+| Feil om Docker eller container | Docker Desktop er ikke startet |
+| Feil om at SDK ikke finnes | Installer riktig .NET-versjon |
+| Tom side eller ingen data | Vent til Migrator er ferdig i dashboardet |
+| `git` eller `dotnet` gjenkjennes ikke | Start terminalen på nytt etter installasjon |
 
 ---
 
