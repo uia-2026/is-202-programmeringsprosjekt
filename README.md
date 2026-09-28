@@ -15,11 +15,17 @@
    cd is-202-programmeringsprosjekt
    ```
 2. Start Docker Desktop og vent til den er klar.
-3. Start prosjektet:
+3. Sett databasepassord (kun første gang):
+   ```bash
+   dotnet user-secrets set "Parameters:mariadb-password" "velg-et-passord" --project Heimevernet.AppHost
+   ```
+   Passordet lagres lokalt på din maskin og pushes ikke til GitHub.
+
+4. Start prosjektet:
    ```bash
    dotnet run --project Heimevernet.AppHost
    ```
-4. Aspire-dashboardet åpnes i nettleseren. Klikk på lenken til webapplikasjonen for å åpne siden. Portnummeret varierer og står i dashboardet.
+5. Aspire-dashboardet åpnes i nettleseren. Klikk på lenken til webapplikasjonen for å åpne siden. Portnummeret varierer og står i dashboardet.
 
 Alternativt: åpne `Heimevernet.slnx` i Visual Studio eller Rider, sett `Heimevernet.AppHost` som startprosjekt og trykk F5.
 
