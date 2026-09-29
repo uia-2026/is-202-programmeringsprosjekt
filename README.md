@@ -1,13 +1,19 @@
 # IS-202 Programmeringsprosjekt
 
-## 1. Drift
+Kriseberedskap – ressurs- og behovsportal for Totalforsvaret. Løsningen kobler
+behov fra offentlige aktører (kommune, politi, brann, helse, Sivilforsvaret,
+Forsvaret/Heimevernet) med tilgjengelige ressurser fra privatpersoner,
+bedrifter og frivillige organisasjoner ved større hendelser eller kriser.
+Appen er laget for to brukergrupper: offentlige aktører som registrerer behov,
+og ressursleverandører som registrerer hva de kan tilby.
 
-### Miljøkrav
+## Forutsetninger
+
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (må være startet)
-- [.NET SDK](https://dotnet.microsoft.com/download) (samme versjon som i `Heimevernet.csproj`)
 - Git
 
-### Kom i gang
+## Kom i gang
 
 1. Klon repoet:
    ```bash
@@ -19,97 +25,49 @@
    ```bash
    dotnet user-secrets set "Parameters:mariadb-password" "velg-et-passord" --project Heimevernet.AppHost
    ```
-   Passordet lagres lokalt på din maskin og pushes ikke til GitHub.
-
+   Passordet lagres lokalt på din maskin og pushes ikke til GitHub. Uten dette
+   steget krasjer AppHost.
 4. Start prosjektet:
    ```bash
-   dotnet run --project Heimevernet.AppHost
+   cd Heimevernet.AppHost
+   dotnet run
    ```
-5. Aspire-dashboardet åpnes i nettleseren. Klikk på lenken til webapplikasjonen for å åpne siden. Portnummeret varierer og står i dashboardet.
+5. Aspire-dashboardet åpnes i nettleseren. Klikk på lenken til webapplikasjonen
+   for å åpne siden. Portnummeret varierer og står i dashboardet.
 
-Alternativt: åpne `Heimevernet.slnx` i Visual Studio eller Rider, sett `Heimevernet.AppHost` som startprosjekt og trykk F5.
+Alternativt: åpne `Heimevernet.slnx` i Visual Studio eller Rider, sett
+`Heimevernet.AppHost` som startprosjekt og trykk F5.
 
-### Kjøreinstruksjon
+## Mer dokumentasjon
 
-Prosjektet kjøres med .NET Aspire. `Heimevernet.AppHost` starter alle delene (MariaDB, Migrator og webapplikasjonen). Du starter altså ikke webprosjektet direkte.
+Detaljert dokumentasjon om arkitektur, database og bruk av KI i prosjektet
+ligger i [`docs/`](./docs/):
 
-For å stoppe: trykk `Ctrl + C` i terminalen der `dotnet run` kjører. Aspire stopper da containerne.
-
-### Databaseoppsett (MariaDB)
-
-Du trenger ikke installere eller sette opp databasen selv.
-
-- Aspire starter MariaDB som en Docker-container når AppHost kjører.
-- `Heimevernet.Migrator` kjører databasemigreringene automatisk og oppretter tabellene.
-- Migratoren legger også inn testdata (seed-data) i utviklingsmiljø.
-- Connection string settes av Aspire. Du trenger bare å sette passordet (se «Kom i gang»). 
-- Databasen bruker port `3307` på maskinen din.
-
-### Feilsøking
-
-| Problem | Løsning |
-|---|---|
-| Feil om Docker eller container | Docker Desktop er ikke startet |
-| Feil om at SDK ikke finnes | Installer riktig .NET-versjon |
-| Tom side eller ingen data | Vent til Migrator er ferdig i dashboardet |
-| `git` eller `dotnet` gjenkjennes ikke | Start terminalen på nytt etter installasjon |
-| Feil om manglende parameter eller passord | Sett `Parameters:mariadb-password` med `dotnet user-secrets` (se «Kom i gang») |
-| Feil om at port 3307 er i bruk | Stopp programmet eller containeren som bruker porten |
+- [`docs/architecture.md`](./docs/architecture.md) – komponentoversikt, request flow, arkitekturvalg
+- [`docs/database.md`](./docs/database.md) – tilkoblingsinfo og datamodell
+- [`docs/ai-usage.md`](./docs/ai-usage.md) – hvordan KI ble brukt i prosjektet
 
 ---
 
-## 2. Systemarkitektur
+## Systemarkitektur (kort)
 
-Prosjektet bruker ASP.NET Core MVC.
+Prosjektet bruker ASP.NET Core MVC med Controller, ViewModel og View. Se
+[`docs/architecture.md`](./docs/architecture.md) for detaljer.
 
-- Controller  
-  Håndterer GET og POST. Tar imot data fra skjema og sender data til views.
-
-- ViewModel  
-  Transportobjekt mellom controller og view.
-
-- View (Razor)  
-  Viser dynamisk innhold fra serveren.
-
-- Kart  
-  Brukeren velger posisjon. Koordinater sendes til serveren og vises på en annen side.
-
-- Docker  
-  Applikasjonen kjører i container. Port 8080 eksponeres.
-
-### Dataflyt
-1. Bruker åpner skjema (GET).
-2. Bruker fyller inn skjema + kartposisjon.
-3. POST sender data til serveren.
-4. Server lagrer data midlertidig.
-5. En annen side viser dataene.
-
----
-
-## 3. Testing
+## Testing
 
 ### Testscenarier
 - GET: Skjema vises riktig.
 - POST: Data sendes inn og vises på ny side.
 - Kart: Klikk på kart gir korrekte koordinater.
 - Responsivt design: Testet på mobil, tablet og desktop.
-- Docker: Container starter uten feil og applikasjonen er tilgjengelig på localhost:8080.
 
 ### Testresultater
 (Fylles inn når applikasjonen er ferdig.)
 
 ---
 
-## 4. Kodedokumentasjon
-
-- XML-kommentarer på controllere.
-- Kommentarer i ViewModels.
-- Ryddig struktur i Views.
-- Kommentarer i Dockerfile.
-
----
-
-## 5. Gruppe og leveranse
+## Gruppe og leveranse
 
 GitHub-lenke: https://github.com/uia-2026/is-202-programmeringsprosjekt
 
@@ -119,30 +77,7 @@ GitHub-lenke: https://github.com/uia-2026/is-202-programmeringsprosjekt
 - Del 3: Håndtering av GET og POST forespørsler (Helal Karokhel)
 - Del 4: Skjema som tar data fra brukeren og visning på annen side (Sebastian Ruben Van Est)
 - Del 5: Kart + hente data fra kartet og vise på annen side (Rune Johan Corne Liefting)
-- Del 6: Dokumentasjon i GitHub ()
-- Del 7: Dokumentasjon i selve koden (Najeebullah Maroof)
+- Del 6: Dokumentasjon i GitHub (Najeebullah Maroof)
+- Del 7: Dokumentasjon i selve koden (Danylo Bodnar)
 - Del 8: Dokumenter deres bruk av KI i prosjektet fra ide til koding i Github READ ME (bruksområder, verktøy, prompt kommandoer).
 Vi vil bare lære om hvordan dere har brukt KI. Dette skal ikke påvirke godkjenningen i det hele tatt.
-
----
-
-## 6. Bruk av KI i prosjektet
-
-Vi har brukt KI som støtteverktøy i prosjektet. Her dokumenterer vi hvordan KI ble brukt fra idé til ferdig kode.
-
-### Bruksområder
-- Må fylles inn
-
-### Verktøy
-- Microsoft Copilot  
-- GitHub Copilot  
-- KI‑assistent (ChatGPT‑lignende verktøy)
-
-### Eksempler på prompt‑kommandoer
-- Må fylles inn
-
-### Hva KI ikke gjorde
-- Må fylles inn
-
-### Oppsummering
-KI ble brukt til planlegging, dokumentasjon, feilsøking og inspirasjon. All implementasjon ble gjort av gruppen.
