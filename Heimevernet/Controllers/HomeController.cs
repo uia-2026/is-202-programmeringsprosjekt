@@ -1,7 +1,6 @@
 using Heimevernet.Services.Interfaces;
 using Heimevernet.ViewModels.Home;
 using Microsoft.AspNetCore.Mvc;
-using System.Threading;
 
 
 namespace Heimevernet.Controllers;
@@ -23,7 +22,7 @@ public class HomeController : Controller
 
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
-    {           
+    {
         var needs = await _needService.GetSummariesAsync(cancellationToken);
         var resources = await _resourceService.GetAllAsync(cancellationToken);
 
