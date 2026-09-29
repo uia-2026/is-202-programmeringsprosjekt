@@ -80,7 +80,6 @@ public class ResourceController : Controller
     }
 
     [HttpGet]
-    [HttpGet]
     public async Task<IActionResult> Details(
         int id,
         CancellationToken cancellationToken)
