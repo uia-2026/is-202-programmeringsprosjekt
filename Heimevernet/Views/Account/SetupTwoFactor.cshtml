@@ -1,0 +1,39 @@
+@model Heimevernet.ViewModels.Account.TwoFactorSetupViewModel
+@{
+    ViewData["Title"] = "Aktiver to-faktor-autentisering";
+}
+
+<h1>Aktiver to-faktor-autentisering</h1>
+<p>Skann QR-koden under med en autentiseringsapp (f.eks. Google Authenticator eller Microsoft Authenticator).</p>
+
+<div class="row">
+    <div class="col-md-5">
+        <img src="data:image/png;base64,@Model.QrCodeImageBase64" alt="QR-kode for to-faktor-oppsett"
+             class="img-fluid mb-3" />
+
+        <p>
+            Kan du ikke skanne koden? Skriv inn denne nøkkelen manuelt i appen din:
+            <br />
+            <code>@Model.ManualEntryKey</code>
+        </p>
+
+        <form asp-action="SetupTwoFactor" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="mb-3">
+                <label asp-for="Code" class="form-label">Bekreftelseskode</label>
+                <input asp-for="Code" class="form-control" autocomplete="one-time-code" inputmode="numeric"
+                       maxlength="6" />
+                <span asp-validation-for="Code" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Aktiver</button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

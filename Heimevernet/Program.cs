@@ -7,6 +7,10 @@ using Heimevernet.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Heimevernet.Mappers;
 using Heimevernet.Repositories.Interfaces;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Identity;
+using Heimevernet.Models;
+using Microsoft.AspNetCore.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,7 +22,39 @@ builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
         ?? throw new InvalidOperationException("Connection string 'heimevernetdb' not found.");
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
 });
-// Add services to the container.
+
+// === Authentication and authorization ===
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        // Redirect unauthenticated users to the login page.
+        options.LoginPath = "/Account/Login";
+
+        // Redirect authenticated users who do not have permission.
+        options.AccessDeniedPath = "/Account/AccessDenied";
+
+        // Limit how long an authentication session remains valid.
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.SlidingExpiration = false;
+
+        // Protect the authentication cookie.
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+    });
+
+builder.Services.AddAuthorization(options =>
+{
+    // Require authentication for all endpoints by default.
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
+
+builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+// ====================================
+
 builder.Services.AddScoped<IResourceService, ResourceService>();
 builder.Services.AddScoped<INeedService, NeedService>();
 
@@ -26,6 +62,7 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IResourceRepository, ResourceRepository>();
 builder.Services.AddScoped<INeedRepository, NeedRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 builder.Services.AddSingleton<INeedMapper, NeedMapper>();
 builder.Services.AddSingleton<IResourceMapper, ResourceMapper>();
@@ -35,30 +72,25 @@ builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
 
-//seed the database with example needs on startup. 
-
-
-app.MapDefaultEndpoints();
-
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
 app.UseRouting();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapStaticAssets();
+app.MapDefaultEndpoints();
+
+app.MapStaticAssets().AllowAnonymous();
 
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
-
 
 app.Run();
