@@ -34,6 +34,9 @@
                         @{
                             var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
                             var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+                            var isAuthenticated = User.Identity?.IsAuthenticated == true;
+                            var isPublicActor = User.IsInRole("PublicActor");
+                            var isResourceProvider = User.IsInRole("ResourceProvider");
 
                             string ActiveClass(string controller, string? action = null)
                             {
@@ -47,24 +50,20 @@
                             }
                         }
 
-                        <li class="nav-item">
-                            <a class="nav-link @ActiveClass("Home", "Index")" asp-controller="Home" asp-action="Index">
-                                Map
-                            </a>
-                        </li>
+                        @if (isAuthenticated)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @ActiveClass("Home", "Index")" asp-controller="Home" asp-action="Index">
+                                    Map
+                                </a>
+                            </li>
+                        }
 
-                        @if (User.IsInRole("PublicActor"))
+                        @if (isPublicActor || isResourceProvider)
                         {
                             <li class="nav-item">
                                 <a class="nav-link @ActiveClass("Need", "Index")" asp-controller="Need" asp-action="Index">
                                     Needs
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link @ActiveClass("Need", "Create")" asp-controller="Need"
-                                   asp-action="Create">
-                                    Register Need
                                 </a>
                             </li>
 
@@ -82,18 +81,25 @@
                             </li>
                         }
 
-                        @if (User.IsInRole("ResourceProvider"))
+                        @if (isPublicActor)
                         {
-                            @if (!User.IsInRole("PublicActor"))
-                            {
-                                <li class="nav-item">
-                                    <a class="nav-link @ActiveClass("Resource", "Index")" asp-controller="Resource"
-                                       asp-action="Index">
-                                        Resources
-                                    </a>
-                                </li>
-                            }
+                            <li class="nav-item">
+                                <a class="nav-link @ActiveClass("Need", "Create")" asp-controller="Need"
+                                   asp-action="Create">
+                                    Register Need
+                                </a>
+                            </li>
 
+                            <li class="nav-item">
+                                <a class="nav-link @ActiveClass("Resource", "PrintByRegion")" asp-controller="Resource"
+                                   asp-action="PrintByRegion">
+                                    Print Resource List
+                                </a>
+                            </li>
+                        }
+
+                        @if (isResourceProvider)
+                        {
                             <li class="nav-item">
                                 <a class="nav-link @ActiveClass("Resource", "Create")" asp-controller="Resource"
                                    asp-action="Create">
@@ -113,7 +119,7 @@
 
                     <ul class="navbar-nav align-items-sm-center">
 
-                        @if (User.Identity?.IsAuthenticated == true)
+                        @if (isAuthenticated)
                         {
                             <li class="nav-item">
                                 <a class="nav-link @ActiveClass("Account", "Index")" asp-controller="Account"
