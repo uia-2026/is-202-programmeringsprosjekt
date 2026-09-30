@@ -1,3 +1,4 @@
+using Heimevernet.Extensions;
 using Heimevernet.Repositories.Interfaces;
 using Heimevernet.Services.Interfaces;
 using Heimevernet.ViewModels.Resource;
@@ -66,11 +67,9 @@ public class ResourceController : Controller
             return View(model);
         }
 
-        var userId = 1; // Replace with authenticated user's ID.
-
         await _resourceService.CreateAsync(
             model,
-            userId,
+            User.GetUserId(),
             cancellationToken);
 
         TempData["Success"] =

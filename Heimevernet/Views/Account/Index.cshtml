@@ -1,0 +1,61 @@
+@model Heimevernet.ViewModels.Account.AccountViewModel
+
+@{
+    ViewData["Title"] = "My Account";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h1 class="card-title mb-4">My Account</h1>
+
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Username</dt>
+                    <dd class="col-sm-8">@Model.Username</dd>
+
+                    <dt class="col-sm-4">Email</dt>
+                    <dd class="col-sm-8">@Model.Email</dd>
+
+                    <dt class="col-sm-4">Role</dt>
+                    <dd class="col-sm-8">@Model.Role</dd>
+
+                    <dt class="col-sm-4">Two-factor authentication</dt>
+                    <dd class="col-sm-8">
+                        @if (Model.TwoFactorEnabled)
+                        {
+                            <span class="badge bg-success">Enabled</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Disabled</span>
+                        }
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mt-4">
+            <div class="card-body">
+                <h2 class="h5">Security</h2>
+
+                @if (Model.TwoFactorEnabled)
+                {
+                    <p class="text-muted mb-3">
+                        Two-factor authentication is enabled for your account.
+                    </p>
+                }
+                else
+                {
+                    <p class="text-muted mb-3">
+                        Add an extra layer of security by enabling two-factor authentication.
+                    </p>
+
+                    <a asp-controller="Account" asp-action="SetupTwoFactor" class="btn btn-primary">
+                        Enable two-factor authentication
+                    </a>
+                }
+            </div>
+        </div>
+    </div>
+</div>
