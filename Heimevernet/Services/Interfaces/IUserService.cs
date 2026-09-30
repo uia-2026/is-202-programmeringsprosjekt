@@ -1,9 +1,11 @@
-using Heimevernet.Models;
+using Heimevernet.ViewModels.Account;
 
 namespace Heimevernet.Services.Interfaces;
 
 public interface IUserService
 {
-    Task<User?> GetByIdAsync(int id, CancellationToken ct);
+    Task<AccountViewModel?> GetAccountAsync(
+      int userId,
+      CancellationToken cancellationToken = default);
 }
 

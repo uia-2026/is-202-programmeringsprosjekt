@@ -9,10 +9,24 @@ namespace Heimevernet.Controllers;
 public class AccountController : Controller
 {
     private readonly IAuthService _authService;
+    private readonly IUserService _userService;
 
-    public AccountController(IAuthService authService)
+    public AccountController(IAuthService authService, IUserService userService)
     {
         _authService = authService;
+        _userService = userService;
+    }
+
+    [Authorize]
+    [HttpGet]
+    public async Task<IActionResult> Index(CancellationToken ct)
+    {
+        var user = await _userService.GetAccountAsync(User.GetUserId(), ct);
+
+        if (user == null)
+            return NotFound();
+
+        return View(user);
     }
 
     [AllowAnonymous]

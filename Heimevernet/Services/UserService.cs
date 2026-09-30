@@ -1,6 +1,6 @@
-using Heimevernet.Models;
 using Heimevernet.Repositories.Interfaces;
 using Heimevernet.Services.Interfaces;
+using Heimevernet.ViewModels.Account;
 
 namespace Heimevernet.Services;
 
@@ -13,8 +13,23 @@ public class UserService : IUserService
         _userRepository = userRepository;
     }
 
-    public async Task<User?> GetByIdAsync(int id, CancellationToken ct)
+    public async Task<AccountViewModel?> GetAccountAsync(
+        int userId,
+        CancellationToken cancellationToken)
     {
-        return await _userRepository.GetByIdAsync(id, ct);
+        var user = await _userRepository.GetByIdAsync(
+            userId,
+            cancellationToken);
+
+        if (user == null)
+            return null;
+
+        return new AccountViewModel
+        {
+            Username = user.Username,
+            Email = user.Email,
+            Role = user.Role,
+            TwoFactorEnabled = user.TwoFactorEnabled
+        };
     }
 }

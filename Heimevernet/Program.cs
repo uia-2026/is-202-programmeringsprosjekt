@@ -57,6 +57,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 
 builder.Services.AddScoped<IResourceService, ResourceService>();
 builder.Services.AddScoped<INeedService, NeedService>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IResourceRepository, ResourceRepository>();
