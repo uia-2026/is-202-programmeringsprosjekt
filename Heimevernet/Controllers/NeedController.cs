@@ -1,3 +1,4 @@
+using Heimevernet.Extensions;
 using Heimevernet.Repositories.Interfaces;
 using Heimevernet.Services.Interfaces;
 using Heimevernet.ViewModels.Need;
@@ -71,9 +72,7 @@ public class NeedController : Controller
             return View(model);
         }
 
-        var userId = 1; // Replace with authenticated user's ID.
-
-        await _needService.CreateAsync(model, userId, cancellationToken);
+        await _needService.CreateAsync(model, User.GetUserId(), cancellationToken);
 
         TempData["Success"] =
             $"The need \"{model.Title}\" has been registered.";

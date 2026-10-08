@@ -1,0 +1,31 @@
+@model Heimevernet.ViewModels.Account.VerifyTwoFactorViewModel
+@{
+    ViewData["Title"] = "Bekreft to-faktor-kode";
+}
+
+<h1>Bekreft to-faktor-kode</h1>
+<p>Åpne autentiseringsappen din og skriv inn den 6-sifrede koden.</p>
+
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="VerifyTwoFactor" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="UserId" />
+
+            <div class="mb-3">
+                <label asp-for="Code" class="form-label">Kode</label>
+                <input asp-for="Code" class="form-control" autocomplete="one-time-code" inputmode="numeric"
+                       maxlength="6" autofocus />
+                <span asp-validation-for="Code" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Bekreft</button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

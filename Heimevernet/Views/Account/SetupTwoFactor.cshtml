@@ -1,0 +1,121 @@
+@model Heimevernet.ViewModels.Account.TwoFactorSetupViewModel
+@{
+    ViewData["Title"] = "Enable Two-Factor Authentication";
+}
+
+<div class="row justify-content-center my-5">
+    <div class="col-12 col-sm-10 col-md-8 col-lg-6">
+
+        <div class="card bg-white text-black shadow-sm border-dark rounded-0">
+            <div class="card-body p-4 p-sm-5">
+
+                <div class="text-center mb-4">
+                    <div class="mb-3">
+                        <span
+                            class="bg-black text-white p-3 rounded-circle d-inline-flex align-items-center justify-content-center">
+                            <i class="bi bi-shield-lock-fill fs-3"></i>
+                        </span>
+                    </div>
+
+                    <h1 class="h3 fw-bold mb-2">Enable Two-Factor Authentication</h1>
+
+                    <p class="text-secondary small mb-0">
+                        Scan the QR code below using an authenticator app such as
+                        Google Authenticator or Microsoft Authenticator.
+                    </p>
+                </div>
+
+                <!-- QR Code -->
+                <div class="text-center mb-4">
+                    <div class="p-3 bg-white border border-dark rounded-0 d-inline-block">
+                        <img src="data:image/png;base64,@Model.QrCodeImageBase64"
+                             alt="QR code for two-factor authentication setup" class="img-fluid"
+                             style="max-width: 200px; height: auto;" />
+                    </div>
+                </div>
+
+                <!-- Manual Entry Key -->
+                <div class="border border-dark p-3 mb-4">
+                    <div class="mb-2">
+                        <span class="small fw-bold text-uppercase">
+                            Can't scan the QR code?
+                        </span>
+                    </div>
+
+                    <p class="small text-secondary mb-2">
+                        Enter this setup key manually into your authenticator app:
+                    </p>
+
+                    <div class="input-group">
+                        <input type="text"
+                               class="form-control bg-white text-black border-dark font-monospace text-center fw-bold"
+                               id="manualKey" value="@Model.ManualEntryKey" readonly />
+
+                        <button class="btn btn-outline-dark" type="button" onclick="copyKey()" id="copyBtn">
+                            <i class="bi bi-clipboard me-1"></i>
+                            Copy
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Verification -->
+                <form asp-action="SetupTwoFactor" method="post">
+
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Code" class="form-label fw-semibold">
+                            Verification code
+                        </label>
+
+                        <input asp-for="Code"
+                               class="form-control form-control-lg bg-white text-black border-dark text-center fs-4 fw-bold"
+                               placeholder="000000" autocomplete="one-time-code" inputmode="numeric" maxlength="6"
+                               autofocus />
+
+                        <span asp-validation-for="Code" class="text-danger small d-block mt-1"></span>
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-dark btn-lg fw-semibold">
+                            Enable 2FA
+                        </button>
+
+                        <a asp-controller="Account" asp-action="Index" class="btn btn-outline-dark btn-lg">
+                            Cancel
+                        </a>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        function copyKey() {
+            const copyText = document.getElementById("manualKey");
+
+            navigator.clipboard.writeText(copyText.value);
+
+            const btn = document.getElementById("copyBtn");
+
+            btn.innerHTML = '<i class="bi bi-check2 me-1"></i>Copied!';
+            btn.classList.remove("btn-outline-dark");
+            btn.classList.add("btn-dark");
+
+            setTimeout(function () {
+                btn.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copy';
+                btn.classList.remove("btn-dark");
+                btn.classList.add("btn-outline-dark");
+            }, 2000);
+        }
+    </script>
+}

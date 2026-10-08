@@ -1,5 +1,6 @@
 using Heimevernet.Data;
 using Heimevernet.Models;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 public static class SeedData
@@ -9,58 +10,47 @@ public static class SeedData
         CancellationToken ct)
     {
         // Seed users
-        var ola = await db.Users
-            .FirstOrDefaultAsync(u => u.Username == "ola", ct);
-
-        if (ola == null)
-        {
-            ola = new User
-            {
-                Username = "ola",
-                Email = "ola@example.com",
-                PasswordHash = "dev-seed-password",
-                Role = UserRole.ResourceProvider,
-                ActorType = "Private",
-                TwoFactorEnabled = false
-            };
-
-            db.Users.Add(ola);
-        }
-
-        var kari = await db.Users
-            .FirstOrDefaultAsync(u => u.Username == "kari", ct);
-
-        if (kari == null)
-        {
-            kari = new User
-            {
-                Username = "kari",
-                Email = "kari@example.com",
-                PasswordHash = "dev-seed-password",
-                Role = UserRole.ResourceProvider,
-                ActorType = "Private",
-                TwoFactorEnabled = false
-            };
-
-            db.Users.Add(kari);
-        }
+        var passwordHasher = new PasswordHasher<User>();
+        const string devPassword = "DevPassword123!";
 
         var publicActor = await db.Users
-            .FirstOrDefaultAsync(u => u.Username == "public-actor", ct);
+            .FirstOrDefaultAsync(u => u.Username == "dev_public_actor", ct);
 
         if (publicActor == null)
         {
             publicActor = new User
             {
-                Username = "public-actor",
-                Email = "public@example.com",
-                PasswordHash = "dev-seed-password",
+                Username = "dev_public_actor",
+                Email = "dev.public.actor@example.com",
                 Role = UserRole.PublicActor,
                 ActorType = "Public Authority",
                 TwoFactorEnabled = false
             };
 
+            publicActor.PasswordHash =
+                passwordHasher.HashPassword(publicActor, devPassword);
+
             db.Users.Add(publicActor);
+        }
+
+        var resourceProvider = await db.Users
+            .FirstOrDefaultAsync(u => u.Username == "dev_resource_provider", ct);
+
+        if (resourceProvider == null)
+        {
+            resourceProvider = new User
+            {
+                Username = "dev_resource_provider",
+                Email = "dev.resource.provider@example.com",
+                Role = UserRole.ResourceProvider,
+                ActorType = "Private",
+                TwoFactorEnabled = false
+            };
+
+            resourceProvider.PasswordHash =
+                passwordHasher.HashPassword(resourceProvider, devPassword);
+
+            db.Users.Add(resourceProvider);
         }
 
         await db.SaveChangesAsync(ct);
@@ -116,28 +106,28 @@ public static class SeedData
             db.Resources.AddRange(
                 new Resource
                 {
-                    UserId = ola.Id,
+                    UserId = resourceProvider.Id,
                     CategoryId = transportCategory.Id,
-                    Title = "Traktor",
-                    Description = "Tractor available for transport and clearing work.",
+                    Title = "Dev Test Tractor",
+                    Description = "Development test resource for transport and clearing work.",
                     Latitude = 58.1467,
                     Longitude = 7.9956,
                     Region = "Kristiansand",
                     AvailableFrom = DateTime.UtcNow,
-                    ContactPoint = "ola@example.com",
+                    ContactPoint = resourceProvider.Email,
                     Status = ResourceStatus.Available
                 },
                 new Resource
                 {
-                    UserId = kari.Id,
+                    UserId = resourceProvider.Id,
                     CategoryId = equipmentCategory.Id,
-                    Title = "Drone",
-                    Description = "Drone available for aerial observation.",
+                    Title = "Dev Test Drone",
+                    Description = "Development test resource for aerial observation.",
                     Latitude = 58.1599,
                     Longitude = 8.0182,
                     Region = "Kristiansand",
                     AvailableFrom = DateTime.UtcNow,
-                    ContactPoint = "kari@example.com",
+                    ContactPoint = resourceProvider.Email,
                     Status = ResourceStatus.Available
                 }
             );
@@ -153,28 +143,28 @@ public static class SeedData
                 {
                     UserId = publicActor.Id,
                     CategoryId = transportCategory.Id,
-                    Title = "Need for transport",
-                    Description = "Transport assistance is needed for emergency supplies.",
+                    Title = "Dev Test Transport Need",
+                    Description = "Development test need for emergency transport.",
                     Latitude = 58.1500,
                     Longitude = 7.9980,
                     Region = "Kristiansand",
                     Priority = NeedPriority.Urgent,
                     Deadline = DateTime.UtcNow.AddDays(1),
-                    ContactPoint = "public@example.com",
+                    ContactPoint = publicActor.Email,
                     Status = NeedStatus.New
                 },
                 new Need
                 {
                     UserId = publicActor.Id,
                     CategoryId = equipmentCategory.Id,
-                    Title = "Need for aerial observation",
-                    Description = "Aerial overview of the affected area is needed.",
+                    Title = "Dev Test Aerial Observation Need",
+                    Description = "Development test need for aerial observation.",
                     Latitude = 58.1550,
                     Longitude = 8.0100,
                     Region = "Kristiansand",
                     Priority = NeedPriority.Planned,
                     Deadline = DateTime.UtcNow.AddDays(3),
-                    ContactPoint = "public@example.com",
+                    ContactPoint = publicActor.Email,
                     Status = NeedStatus.New
                 }
             );

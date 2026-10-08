@@ -64,5 +64,14 @@ public class AppDbContext : DbContext
             .HasOne(a => a.UploadedByUser)
             .WithMany(u => u.UploadedAttachments)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // DB lvl protection for unique usernames and emails for users
+        modelBuilder.Entity<User>()
+            .HasIndex(u => u.Username)
+            .IsUnique();
+
+        modelBuilder.Entity<User>()
+            .HasIndex(u => u.Email)
+            .IsUnique();
     }
 }
