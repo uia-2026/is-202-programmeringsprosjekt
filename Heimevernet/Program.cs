@@ -11,6 +11,10 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Heimevernet.Models;
 using Microsoft.AspNetCore.Authorization;
+using Heimevernet.Infrastructure.Storage;
+using Amazon.S3;
+using Microsoft.Extensions.Options;
+using Amazon.Runtime;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -54,6 +58,37 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 // ====================================
+
+// === Storage infrastructure ===
+builder.Services
+    .AddOptions<StorageOptions>()
+    .BindConfiguration("Storage")
+    .Validate(
+        options =>
+            !string.IsNullOrWhiteSpace(options.Endpoint) &&
+            !string.IsNullOrWhiteSpace(options.AccessKeyId) &&
+            !string.IsNullOrWhiteSpace(options.SecretAccessKey) &&
+            !string.IsNullOrWhiteSpace(options.Bucket),
+        "Storage configuration is incomplete.")
+    .ValidateOnStart();
+
+builder.Services.AddSingleton<IAmazonS3>(sp =>
+{
+    var o = sp.GetRequiredService<IOptions<StorageOptions>>().Value;
+    return new AmazonS3Client(
+        new BasicAWSCredentials(o.AccessKeyId, o.SecretAccessKey),
+        new AmazonS3Config
+        {
+            ServiceURL = o.Endpoint,
+            AuthenticationRegion = o.Region,
+            ForcePathStyle = true
+        });
+});
+builder.Services.AddSingleton<IFileStorage, S3FileStorage>();
+builder.Services.AddScoped<IAttachmentRepository, AttachmentRepository>();
+builder.Services.AddScoped<IAttachmentService, AttachmentService>();
+// ====================================
+
 
 builder.Services.AddScoped<IResourceService, ResourceService>();
 builder.Services.AddScoped<INeedService, NeedService>();
