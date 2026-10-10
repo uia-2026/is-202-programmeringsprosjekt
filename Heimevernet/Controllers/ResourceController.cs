@@ -52,34 +52,47 @@ public class ResourceController : Controller
     }
 
     /// <summary>
-    /// Handles posted create resource form. Validates and persists the new resource.
+    /// Validates and saves a new resource, then tries to attach the optional photo.
+    /// The resource is registered even if the photo upload fails.
     /// </summary>
-    /// <param name="model">The create view model submitted by the user.</param>
-    /// <param name="cancellationToken">Cancellation token for the request.</param>
-    /// <returns>Redirects to Index on success or returns the view with validation errors.</returns>
+    /// <returns>Redirects to the new resource's Details page, or redisplays the form on validation errors.</returns>
     [HttpPost]
+    [Authorize(Roles = "ResourceProvider")]
     [ValidateAntiForgeryToken]
+    [RequestSizeLimit(6 * 1024 * 1024)] // 5 MB photo plus form overhead
     public async Task<IActionResult> Create(
         ResourceCreateViewModel model,
         CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid)
         {
-            model.AvailableCategories =
-                await _categoryRepository.GetAllAsync();
-
+            model.AvailableCategories = await _categoryRepository.GetAllAsync();
             return View(model);
         }
 
-        await _resourceService.CreateAsync(
-            model,
-            User.GetUserId(),
-            cancellationToken);
+        var userId = User.GetUserId();
+        var id = await _resourceService.CreateAsync(model, userId, cancellationToken);
 
-        TempData["Success"] =
-            $"The resource \"{model.Title}\" has been registered.";
+        TempData["Success"] = $"The resource \"{model.Title}\" has been registered.";
 
-        return RedirectToAction(nameof(Index));
+        if (model.Image is { Length: > 0 })
+        {
+            try
+            {
+                await using var stream = model.Image.OpenReadStream();
+                var result = await _attachmentService.UploadAsync(
+                    id, stream, model.Image.FileName, model.Image.Length, userId, cancellationToken);
+
+                if (!result.Success)
+                    TempData["Warning"] = $"Resource registered, but the photo was not saved: {result.Error}";
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                TempData["Warning"] = "Resource registered, but the photo could not be saved. You can add it again below.";
+            }
+        }
+
+        return RedirectToAction(nameof(Details), new { id });
     }
 
     [HttpGet]
