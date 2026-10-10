@@ -15,28 +15,40 @@ og ressursleverandører som registrerer hva de kan tilby.
 
 ## Kom i gang
 
-1. Klon repoet:
+1. **Klon repoet:**
+
    ```bash
    git clone https://github.com/uia-2026/is-202-programmeringsprosjekt.git
    cd is-202-programmeringsprosjekt
    ```
-2. Start Docker Desktop og vent til den er klar.
-3. Sett databasepassord (kun første gang):
+
+2. **Start Docker Desktop** og vent til det er klart.
+
+3. **Konfigurer Supabase Storage (valgfritt, men nødvendig for bildeopplasting).**
+
+   Gå til `Heimevernet`-prosjektet og sett opp lokal konfigurasjon for Supabase Storage:
+
    ```bash
-   dotnet user-secrets set "Parameters:mariadb-password" "velg-et-passord" --project Heimevernet.AppHost
+   dotnet user-secrets set "Storage:Endpoint" "https://hhbpqeqznbrwzuooqakk.storage.supabase.co/storage/v1/s3" --project Heimevernet
+   dotnet user-secrets set "Storage:Region" "eu-west-1" --project Heimevernet
+   dotnet user-secrets set "Storage:AccessKeyId" "<din-access-key>" --project Heimevernet
+   dotnet user-secrets set "Storage:SecretAccessKey" "<din-secret-access-key>" --project Heimevernet
+   dotnet user-secrets set "Storage:Bucket" "dev_bucket_is202" --project Heimevernet
+   dotnet user-secrets set "Storage:PublicBaseUrl" "https://hhbpqeqznbrwzuooqakk.supabase.co/storage/v1/object/public/dev_bucket_is202" --project Heimevernet
    ```
-   Passordet lagres lokalt på din maskin og pushes ikke til GitHub. Uten dette
-   steget krasjer AppHost.
-4. Start prosjektet:
+
+   Be prosjektgruppen om tilgang til Supabase-credentials. Ikke bruk plassholderverdiene som faktiske credentials, og ikke commit hemmeligheter til GitHub.
+
+4. **Start prosjektet:**
+
    ```bash
    cd Heimevernet.AppHost
    dotnet run
    ```
-5. Aspire-dashboardet åpnes i nettleseren. Klikk på lenken til webapplikasjonen
-   for å åpne siden. Portnummeret varierer og står i dashboardet.
 
-Alternativt: åpne `Heimevernet.slnx` i Visual Studio eller Rider, sett
-`Heimevernet.AppHost` som startprosjekt og trykk F5.
+5. Aspire-dashboardet åpnes i nettleseren. Klikk på lenken til webapplikasjonen for å åpne siden. Portnummeret varierer og vises i dashboardet.
+
+Alternativt kan du åpne `Heimevernet.slnx` i Visual Studio eller Rider, velge `Heimevernet.AppHost` som startprosjekt og trykke F5.
 
 ## Mer dokumentasjon
 
@@ -57,6 +69,7 @@ Prosjektet bruker ASP.NET Core MVC med Controller, ViewModel og View. Se
 ## Testing
 
 ### Testscenarier
+
 Dette er de testing-scenariene vi har foreløpig. Flere testscenarier vil bli lagt til etter hvert som vi utvikler applikasjonen.
 
 - GET: Skjema vises riktig.
@@ -65,22 +78,20 @@ Dette er de testing-scenariene vi har foreløpig. Flere testscenarier vil bli la
 - Responsivt design: Testet på mobil, tablet og desktop.
 
 ### Testresultater
-| Testscenario                                                     | Resultat     |
-| ---------------------------------------------------------------- | ------------ |
-| GET: Skjema vises riktig.                                        | Bestått      |
-| POST: Data sendes inn og vises på ny side.                       | Bestått      |
+
+| Testscenario                                                   | Resultat       |
+| -------------------------------------------------------------- | -------------- |
+| GET: Skjema vises riktig.                                      | Bestått        |
+| POST: Data sendes inn og vises på ny side.                     | Bestått        |
 | POST/Validering: Ugyldige eller manglende aa håndteres riktig. | Delvis bestått |
-| Responsivt design: Testet på mobil, tablet og desktop.           | Bestått      |
+| Responsivt design: Testet på mobil, tablet og desktop.         | Bestått        |
 
 <br>
 Unit-tests er forøvrig også implementert og gjennomført. Ingen feil oppstår ved første innlevering av prosjektet:
 <br>
 <br>
 
-![Unit Tester](docs/UnitTestsScreenshot29-09.png)	
-
-
-
+![Unit Tester](docs/UnitTestsScreenshot29-09.png)
 
 ---
 
@@ -89,6 +100,7 @@ Unit-tests er forøvrig også implementert og gjennomført. Ingen feil oppstår 
 GitHub-lenke: https://github.com/uia-2026/is-202-programmeringsprosjekt
 
 ### Roller
+
 - Del 1: Controller, ViewModel og View
 - Del 2: Responsive nettsider med dynamisk innhold (Daniel Nemeye)
 - Del 3: Håndtering av GET og POST forespørsler (Helal Karokhel)
@@ -97,4 +109,4 @@ GitHub-lenke: https://github.com/uia-2026/is-202-programmeringsprosjekt
 - Del 6: Dokumentasjon i GitHub (Najeebullah Maroof)
 - Del 7: Dokumentasjon i selve koden (Danylo Bodnar)
 - Del 8: Dokumenter deres bruk av KI i prosjektet fra ide til koding i Github READ ME (bruksområder, verktøy, prompt kommandoer).
-Vi vil bare lære om hvordan dere har brukt KI. Dette skal ikke påvirke godkjenningen i det hele tatt.
+  Vi vil bare lære om hvordan dere har brukt KI. Dette skal ikke påvirke godkjenningen i det hele tatt.

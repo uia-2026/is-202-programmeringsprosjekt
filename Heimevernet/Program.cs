@@ -1,73 +1,22 @@
-// Application entry point for the Heimevernet web application.
-// Configures DI, DbContext and maps default endpoints before running the web host.
 using Heimevernet.Data;
-using Heimevernet.Services;
-using Heimevernet.Repositories;
-using Heimevernet.Services.Interfaces;
+using Heimevernet.Extensions;
 using Microsoft.EntityFrameworkCore;
-using Heimevernet.Mappers;
-using Heimevernet.Repositories.Interfaces;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Identity;
-using Heimevernet.Models;
-using Microsoft.AspNetCore.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
-{
-    var connectionString = builder.Configuration.GetConnectionString("heimevernetdb")
-        ?? throw new InvalidOperationException("Connection string 'heimevernetdb' not found.");
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
-});
+var connectionString = builder.Configuration.GetConnectionString("heimevernetdb")
+    ?? throw new InvalidOperationException("Connection string 'heimevernetdb' not found.");
 
-// === Authentication and authorization ===
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
-    {
-        // Redirect unauthenticated users to the login page.
-        options.LoginPath = "/Account/Login";
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
-        // Redirect authenticated users who do not have permission.
-        options.AccessDeniedPath = "/Account/AccessDenied";
-
-        // Limit how long an authentication session remains valid.
-        options.ExpireTimeSpan = TimeSpan.FromHours(8);
-        options.SlidingExpiration = false;
-
-        // Protect the authentication cookie.
-        options.Cookie.HttpOnly = true;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-        options.Cookie.SameSite = SameSiteMode.Lax;
-    });
-
-builder.Services.AddAuthorization(options =>
-{
-    // Require authentication for all endpoints by default.
-    options.FallbackPolicy = new AuthorizationPolicyBuilder()
-        .RequireAuthenticatedUser()
-        .Build();
-});
-
-builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
-builder.Services.AddScoped<IAuthService, AuthService>();
-// ====================================
-
-builder.Services.AddScoped<IResourceService, ResourceService>();
-builder.Services.AddScoped<INeedService, NeedService>();
-builder.Services.AddScoped<IUserService, UserService>();
-
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-builder.Services.AddScoped<IResourceRepository, ResourceRepository>();
-builder.Services.AddScoped<INeedRepository, NeedRepository>();
-builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-
-builder.Services.AddSingleton<INeedMapper, NeedMapper>();
-builder.Services.AddSingleton<IResourceMapper, ResourceMapper>();
-
+builder.Services
+    .AddAppAuthentication()
+    .AddPersistence()
+    .AddFileStorage()
+    .AddApplicationServices();
 
 builder.Services.AddControllersWithViews();
 
@@ -86,12 +35,11 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapDefaultEndpoints();
-
 app.MapStaticAssets().AllowAnonymous();
 
 app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}")
+        name: "default",
+        pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
 
 app.Run();

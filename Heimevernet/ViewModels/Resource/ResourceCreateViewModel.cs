@@ -40,4 +40,6 @@ public class ResourceCreateViewModel
     [Required(ErrorMessage = "Contact point is required.")]
     [StringLength(200, ErrorMessage = "Contact point cannot exceed 200 characters.")]
     public string ContactPoint { get; set; } = string.Empty;
+
+    public IFormFile? Image { get; set; }
 }
