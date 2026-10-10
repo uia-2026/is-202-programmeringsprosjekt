@@ -3,136 +3,97 @@ using Heimevernet.Models;
 using Heimevernet.Services.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
 
 public static class SeedData
 {
-    public static async Task SeedAsync(
+    private const string DevPassword = "DevPassword123!";
+
+    private static readonly (string Name, CategoryAppliesTo AppliesTo)[] Categories =
+    {
+        ("Transport",     CategoryAppliesTo.Both),
+        ("Machinery",     CategoryAppliesTo.Both),
+        ("Equipment",     CategoryAppliesTo.Both),
+        ("Power",         CategoryAppliesTo.Both),
+        ("Communication", CategoryAppliesTo.Both),
+        ("Personnel",     CategoryAppliesTo.Both),
+        ("Premises",      CategoryAppliesTo.Both),
+        ("Materials",     CategoryAppliesTo.Both),
+    };
+
+    /// <summary>
+    /// Data the application cannot work without. Runs in every environment, on every start.
+    /// </summary>
+    public static async Task SeedReferenceDataAsync(AppDbContext db, CancellationToken ct)
+    {
+        foreach (var (name, appliesTo) in Categories)
+        {
+            var category = await db.Categories.FirstOrDefaultAsync(c => c.Name == name, ct);
+
+            if (category is null)
+                db.Categories.Add(new Category { Name = name, AppliesTo = appliesTo });
+            else if (category.AppliesTo != appliesTo)
+                category.AppliesTo = appliesTo;
+        }
+
+        await db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// Development-only fixtures: two users, two resources with images, two needs.
+    /// </summary>
+    public static async Task SeedDevDataAsync(
         AppDbContext db,
         IAttachmentService attachmentService,
-        IHostEnvironment environment,
         CancellationToken ct)
     {
-        var passwordHasher = new PasswordHasher<User>();
-        const string devPassword = "DevPassword123!";
+        var publicActor = await GetOrCreateUserAsync(
+            db, "dev_public_actor", "dev.public.actor@example.com",
+            UserRole.PublicActor, "Public Authority", ct);
 
-        // Seed users
-        var publicActor = await db.Users
-            .FirstOrDefaultAsync(u => u.Username == "dev_public_actor", ct);
+        var provider = await GetOrCreateUserAsync(
+            db, "dev_resource_provider", "dev.resource.provider@example.com",
+            UserRole.ResourceProvider, "Private", ct);
 
-        if (publicActor is null)
-        {
-            publicActor = new User
+        await db.SaveChangesAsync(ct); // new users need their ids below
+
+        var transport = await GetCategoryAsync(db, "Transport", ct);
+        var equipment = await GetCategoryAsync(db, "Equipment", ct);
+
+        var tractor = await db.Resources.FirstOrDefaultAsync(r => r.Title == "Dev Test Tractor", ct)
+            ?? db.Resources.Add(new Resource
             {
-                Username = "dev_public_actor",
-                Email = "dev.public.actor@example.com",
-                Role = UserRole.PublicActor,
-                ActorType = "Public Authority",
-                TwoFactorEnabled = false
-            };
-
-            publicActor.PasswordHash =
-                passwordHasher.HashPassword(publicActor, devPassword);
-
-            db.Users.Add(publicActor);
-        }
-
-        var resourceProvider = await db.Users
-            .FirstOrDefaultAsync(u => u.Username == "dev_resource_provider", ct);
-
-        if (resourceProvider is null)
-        {
-            resourceProvider = new User
-            {
-                Username = "dev_resource_provider",
-                Email = "dev.resource.provider@example.com",
-                Role = UserRole.ResourceProvider,
-                ActorType = "Private",
-                TwoFactorEnabled = false
-            };
-
-            resourceProvider.PasswordHash =
-                passwordHasher.HashPassword(resourceProvider, devPassword);
-
-            db.Users.Add(resourceProvider);
-        }
-
-        await db.SaveChangesAsync(ct);
-
-        // Seed categories
-        var equipmentCategory = await GetOrCreateCategoryAsync(
-            db, "Equipment", CategoryAppliesTo.Both, ct);
-
-        var transportCategory = await GetOrCreateCategoryAsync(
-            db, "Transport", CategoryAppliesTo.Both, ct);
-
-        await GetOrCreateCategoryAsync(
-            db, "Personnel", CategoryAppliesTo.Need, ct);
-
-        await db.SaveChangesAsync(ct);
-
-        // Seed resources
-        var tractor = await db.Resources
-            .FirstOrDefaultAsync(r => r.Title == "Dev Test Tractor", ct);
-
-        if (tractor is null)
-        {
-            tractor = new Resource
-            {
-                UserId = resourceProvider.Id,
-                CategoryId = transportCategory.Id,
+                UserId = provider.Id,
+                CategoryId = transport.Id,
                 Title = "Dev Test Tractor",
                 Description = "Development test resource for transport and clearing work.",
                 Latitude = 58.1467,
                 Longitude = 7.9956,
                 Region = "Kristiansand",
                 AvailableFrom = DateTime.UtcNow,
-                ContactPoint = resourceProvider.Email,
+                ContactPoint = provider.Email,
                 Status = ResourceStatus.Available
-            };
+            }).Entity;
 
-            db.Resources.Add(tractor);
-        }
-
-        var drone = await db.Resources
-            .FirstOrDefaultAsync(r => r.Title == "Dev Test Drone", ct);
-
-        if (drone is null)
-        {
-            drone = new Resource
+        var drone = await db.Resources.FirstOrDefaultAsync(r => r.Title == "Dev Test Drone", ct)
+            ?? db.Resources.Add(new Resource
             {
-                UserId = resourceProvider.Id,
-                CategoryId = equipmentCategory.Id,
+                UserId = provider.Id,
+                CategoryId = equipment.Id,
                 Title = "Dev Test Drone",
                 Description = "Development test resource for aerial observation.",
                 Latitude = 58.1599,
                 Longitude = 8.0182,
                 Region = "Kristiansand",
                 AvailableFrom = DateTime.UtcNow,
-                ContactPoint = resourceProvider.Email,
+                ContactPoint = provider.Email,
                 Status = ResourceStatus.Available
-            };
+            }).Entity;
 
-            db.Resources.Add(drone);
-        }
-
-        await db.SaveChangesAsync(ct);
-
-        // Seed resource images
-        await SeedAttachmentAsync(
-            db, attachmentService, environment, tractor, "isbil.jpg", ct);
-
-        await SeedAttachmentAsync(
-            db, attachmentService, environment, drone, "drone.jpg", ct);
-
-        // Seed needs
-        if (!await db.Needs.AnyAsync(
-                n => n.Title == "Dev Test Transport Need", ct))
-        {
-            db.Needs.Add(new Need
+        var transportNeed = await db.Needs.FirstOrDefaultAsync(n => n.Title == "Dev Test Transport Need", ct)
+            ?? db.Needs.Add(new Need
             {
                 UserId = publicActor.Id,
-                CategoryId = transportCategory.Id,
+                CategoryId = transport.Id,
                 Title = "Dev Test Transport Need",
                 Description = "Development test need for emergency transport.",
                 Latitude = 58.1500,
@@ -142,16 +103,13 @@ public static class SeedData
                 Deadline = DateTime.UtcNow.AddDays(1),
                 ContactPoint = publicActor.Email,
                 Status = NeedStatus.New
-            });
-        }
+            }).Entity;
 
-        if (!await db.Needs.AnyAsync(
-                n => n.Title == "Dev Test Aerial Observation Need", ct))
-        {
-            db.Needs.Add(new Need
+        var aerialNeed = await db.Needs.FirstOrDefaultAsync(n => n.Title == "Dev Test Aerial Observation Need", ct)
+            ?? db.Needs.Add(new Need
             {
                 UserId = publicActor.Id,
-                CategoryId = equipmentCategory.Id,
+                CategoryId = equipment.Id,
                 Title = "Dev Test Aerial Observation Need",
                 Description = "Development test need for aerial observation.",
                 Latitude = 58.1550,
@@ -161,72 +119,82 @@ public static class SeedData
                 Deadline = DateTime.UtcNow.AddDays(3),
                 ContactPoint = publicActor.Email,
                 Status = NeedStatus.New
-            });
-        }
+            }).Entity;
+
+        RenewDeadlineIfExpired(transportNeed, days: 1);
+        RenewDeadlineIfExpired(aerialNeed, days: 3);
 
         await db.SaveChangesAsync(ct);
+
+        await SeedAttachmentAsync(db, attachmentService, tractor, "isbil.jpg", ct);
+        await SeedAttachmentAsync(db, attachmentService, drone, "drone.jpg", ct);
     }
 
-    private static async Task<Category> GetOrCreateCategoryAsync(
+    private static async Task<User> GetOrCreateUserAsync(
         AppDbContext db,
-        string name,
-        CategoryAppliesTo appliesTo,
+        string username,
+        string email,
+        UserRole role,
+        string actorType,
         CancellationToken ct)
     {
-        var category = await db.Categories
-            .FirstOrDefaultAsync(c => c.Name == name, ct);
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
+        if (user is not null) return user;
 
-        if (category is not null)
-            return category;
-
-        category = new Category
+        user = new User
         {
-            Name = name,
-            AppliesTo = appliesTo
+            Username = username,
+            Email = email,
+            Role = role,
+            ActorType = actorType,
+            TwoFactorEnabled = false
         };
+        user.PasswordHash = new PasswordHasher<User>().HashPassword(user, DevPassword);
 
-        db.Categories.Add(category);
-        return category;
+        db.Users.Add(user);
+        return user;
+    }
+
+    private static async Task<Category> GetCategoryAsync(AppDbContext db, string name, CancellationToken ct) =>
+        await db.Categories.FirstOrDefaultAsync(c => c.Name == name, ct)
+            ?? throw new InvalidOperationException(
+                $"Category '{name}' is missing. SeedReferenceDataAsync must run first.");
+
+    private static void RenewDeadlineIfExpired(Need need, int days)
+    {
+        if (need.Deadline is null || need.Deadline < DateTime.UtcNow)
+            need.Deadline = DateTime.UtcNow.AddDays(days);
     }
 
     private static async Task SeedAttachmentAsync(
         AppDbContext db,
         IAttachmentService attachmentService,
-        IHostEnvironment environment,
         Resource resource,
         string fileName,
         CancellationToken ct)
     {
-        // Assumes each seeded resource should have exactly one seed image.
-        if (await db.Attachments.AnyAsync(
-                a => a.ResourceId == resource.Id, ct))
+        if (await db.Attachments.AnyAsync(a => a.ResourceId == resource.Id, ct))
+            return;
+
+        var path = Path.Combine(AppContext.BaseDirectory, "SeedAssets", fileName);
+        if (!File.Exists(path))
         {
+            Console.WriteLine($"Warning: seed image not found: {path}");
             return;
         }
 
-        var filePath = Path.Combine(
-            environment.ContentRootPath, "SeedAssets", fileName);
-
-        if (!File.Exists(filePath))
+        try
         {
-            throw new FileNotFoundException(
-                $"Seed image was not found: {filePath}", filePath);
+            await using var stream = File.OpenRead(path);
+            var result = await attachmentService.UploadAsync(
+                resource.Id, stream, fileName, stream.Length, resource.UserId, ct);
+
+            if (!result.Success)
+                Console.WriteLine($"Warning: seed image '{fileName}' was not uploaded: {result.Error}");
         }
-
-        await using var stream = File.OpenRead(filePath);
-
-        var result = await attachmentService.UploadAsync(
-            resource.Id,
-            stream,
-            fileName,
-            stream.Length,
-            resource.UserId,
-            ct);
-
-        if (!result.Success)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            throw new InvalidOperationException(
-                $"Failed to seed image '{fileName}': {result.Error}");
+            Console.WriteLine($"Warning: seed image '{fileName}' failed: {ex.Message}");
         }
     }
 }
