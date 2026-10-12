@@ -50,7 +50,7 @@ public class ResourceService : IResourceService
             : _resourceMapper.ToViewModel(resource);
     }
 
-    public async Task CreateAsync(
+    public async Task<int> CreateAsync(
         ResourceCreateViewModel model,
         int userId,
         CancellationToken cancellationToken = default)
@@ -62,5 +62,7 @@ public class ResourceService : IResourceService
             resource,
             cancellationToken);
         await _unitOfWork.CommitAsync();
+
+        return resource.Id;
     }
 }

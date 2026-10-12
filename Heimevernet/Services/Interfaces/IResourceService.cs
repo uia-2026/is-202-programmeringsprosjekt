@@ -32,7 +32,7 @@ public interface IResourceService
     /// <param name="model">The create view model containing resource details.</param>
     /// <param name="userId">The id of the user creating the resource.</param>
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
-    Task CreateAsync(
+    Task<int> CreateAsync(
         ResourceCreateViewModel model,
         int userId,
         CancellationToken cancellationToken = default);

@@ -1,6 +1,5 @@
 namespace Heimevernet.Models;
 
-
 /// <summary>
 /// Represents a file attachment uploaded for a resource.
 /// Stores file path and uploader metadata.
@@ -12,7 +11,8 @@ public class Attachment
     public int ResourceId { get; set; }
     public Resource Resource { get; set; } = null!;
 
-    public string FilePath { get; set; } = string.Empty;
+    /// <summary>Object key within the storage bucket.</summary>
+    public string StorageKey { get; set; } = string.Empty;
 
     public int UploadedByUserId { get; set; }
     public User UploadedByUser { get; set; } = null!;
