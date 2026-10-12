@@ -16,7 +16,7 @@
 
                 <h2 class="h4 mb-4">Register Need</h2>
 
-                <form asp-action="Create" method="post">
+                <form id="need-create-form" asp-action="Create" method="post">
 
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger">
                     </div>
@@ -70,25 +70,22 @@
 
                     <div class="row">
 
-                        <div class="col-12 col-sm-6 mb-3">
-                            <label asp-for="Latitude" class="form-label">
-                            </label>
+                        <!-- Hidden latitude/longitude fields; selection is done on the map below -->
+                        <input asp-for="Latitude" type="hidden" />
+                        <input asp-for="Longitude" type="hidden" />
 
-                            <input asp-for="Latitude" class="form-control" type="number" step="any"
-                                   placeholder="Latitude" />
+                        <div class="col-12 mb-3">
+                            <div class="form-label">Pick location on the map</div>
 
-                            <span asp-validation-for="Latitude" class="text-danger small">
+                            <div id="map" style="width:100%;height:360px;border:1px solid rgba(0,0,0,0.08);border-radius:.25rem"></div>
+
+                            <div class="small mt-2">
+                                Selected coordinates: <span id="selected-coords">@(Model.Latitude != 0 || Model.Longitude != 0 ? Model.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture) + ", " + Model.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture) : "None")</span>
+                            </div>
+
+                            <span asp-validation-for="Latitude" class="text-danger small d-block">
                             </span>
-                        </div>
-
-                        <div class="col-12 col-sm-6 mb-3">
-                            <label asp-for="Longitude" class="form-label">
-                            </label>
-
-                            <input asp-for="Longitude" class="form-control" type="number" step="any"
-                                   placeholder="Longitude" />
-
-                            <span asp-validation-for="Longitude" class="text-danger small">
+                            <span asp-validation-for="Longitude" class="text-danger small d-block">
                             </span>
                         </div>
 
@@ -96,7 +93,20 @@
                             <label asp-for="Region" class="form-label">
                             </label>
 
-                            <input asp-for="Region" class="form-control" placeholder="Region" />
+                            <select asp-for="Region" class="form-select">
+                                <option value="">Select county...</option>
+                                <option value="Oslo">Oslo</option>
+                                <option value="Viken">Viken</option>
+                                <option value="Innlandet">Innlandet</option>
+                                <option value="Vestfold og Telemark">Vestfold og Telemark</option>
+                                <option value="Agder">Agder</option>
+                                <option value="Rogaland">Rogaland</option>
+                                <option value="Vestland">Vestland</option>
+                                <option value="Møre og Romsdal">Møre og Romsdal</option>
+                                <option value="Trøndelag">Trøndelag</option>
+                                <option value="Nordland">Nordland</option>
+                                <option value="Troms og Finnmark">Troms og Finnmark</option>
+                            </select>
 
                             <span asp-validation-for="Region" class="text-danger small">
                             </span>
@@ -163,4 +173,113 @@
 
 @section Scripts {
     @await Html.PartialAsync("_ValidationScriptsPartial")
+
+    <!-- Leaflet CSS/JS for map selection -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        (function () {
+            // Initialize map centered on Norway
+            var map = L.map('map').setView([60.472, 8.4689], 5);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            var marker = null;
+
+            function setMarker(lat, lng) {
+                if (marker) {
+                    marker.setLatLng([lat, lng]);
+                } else {
+                    marker = L.marker([lat, lng]).addTo(map);
+                }
+            }
+
+            // Wire map click to set hidden fields and marker
+            map.on('click', function (e) {
+                var lat = e.latlng.lat.toFixed(6);
+                var lng = e.latlng.lng.toFixed(6);
+
+                var latEl = document.getElementById('Latitude');
+                var lngEl = document.getElementById('Longitude');
+
+                if (latEl) latEl.value = lat;
+                if (lngEl) lngEl.value = lng;
+
+                document.getElementById('selected-coords').textContent = lat + ', ' + lng;
+
+                setMarker(lat, lng);
+            });
+
+            // If model contains coordinates (non-zero), show marker on load
+            var initialLat = @Model.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var initialLng = @Model.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+            if (initialLat !== 0 || initialLng !== 0) {
+                var latNum = Number(initialLat);
+                var lngNum = Number(initialLng);
+                setMarker(latNum, lngNum);
+                map.setView([latNum, lngNum], 13);
+            }
+        })();
+    </script>
+
+    <script>
+        (function () {
+            var form = document.getElementById('need-create-form');
+            if (!form) return;
+
+            var deadlineEl = document.getElementById('Deadline');
+            var deadlineError = document.querySelector('[data-valmsg-for="Deadline"]');
+
+            function clearDeadlineError() {
+                if (deadlineError) deadlineError.textContent = '';
+                if (deadlineEl) deadlineEl.classList.remove('is-invalid');
+            }
+
+            function showDeadlineError(msg) {
+                if (deadlineError) deadlineError.textContent = msg;
+                if (deadlineEl) deadlineEl.classList.add('is-invalid');
+            }
+
+            form.addEventListener('submit', function (e) {
+                if (!deadlineEl) return;
+
+                var val = deadlineEl.value; // empty string when no value
+                if (val) {
+                    // Parse datetime-local as local time
+                    var selected = new Date(val);
+                    var now = new Date();
+
+                    if (isNaN(selected.getTime())) {
+                        // invalid input format — let server handle, but show generic message
+                        e.preventDefault();
+                        showDeadlineError('Invalid deadline format.');
+                        deadlineEl.focus();
+                        return;
+                    }
+
+                    if (selected <= now) {
+                        e.preventDefault();
+                        showDeadlineError('Deadline must be in the future.');
+                        deadlineEl.focus();
+                        return;
+                    }
+                }
+
+                // valid or empty -> clear any client error and allow submit
+                clearDeadlineError();
+            });
+
+            if (deadlineEl) {
+                deadlineEl.addEventListener('input', function () {
+                    // clear client-side message as user edits
+                    clearDeadlineError();
+                });
+            }
+        })();
+    </script>
 }

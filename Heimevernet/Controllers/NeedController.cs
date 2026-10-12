@@ -2,6 +2,7 @@ using Heimevernet.Extensions;
 using Heimevernet.Repositories.Interfaces;
 using Heimevernet.Services.Interfaces;
 using Heimevernet.ViewModels.Need;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Heimevernet.Controllers;
@@ -41,6 +42,7 @@ public class NeedController : Controller
     /// </summary>
     /// <returns>An <see cref="IActionResult"/> that renders the Create view.</returns>
     [HttpGet]
+    [Authorize(Roles = "PublicActor")]
     public async Task<IActionResult> Create()
     {
         var model = new NeedCreateViewModel
@@ -60,10 +62,21 @@ public class NeedController : Controller
     /// <returns>Redirects to Index on success or returns the view with validation errors.</returns>
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "PublicActor")]
     public async Task<IActionResult> Create(
         NeedCreateViewModel model,
         CancellationToken cancellationToken)
     {
+        // Ensure deadline (if provided) is in the future
+        if (model.Deadline.HasValue)
+        {
+            var deadlineUtc = model.Deadline.Value.ToUniversalTime();
+            if (deadlineUtc <= DateTime.UtcNow)
+            {
+                ModelState.AddModelError(nameof(model.Deadline), "Deadline must be in the future.");
+            }
+        }
+
         if (!ModelState.IsValid)
         {
             model.AvailableCategories =
@@ -72,12 +85,12 @@ public class NeedController : Controller
             return View(model);
         }
 
-        await _needService.CreateAsync(model, User.GetUserId(), cancellationToken);
+        var createdId = await _needService.CreateAsync(model, User.GetUserId(), cancellationToken);
 
         TempData["Success"] =
             $"The need \"{model.Title}\" has been registered.";
 
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Details), new { id = createdId });
     }
 
     [HttpGet]

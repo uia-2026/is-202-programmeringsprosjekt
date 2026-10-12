@@ -31,7 +31,7 @@ public class NeedService : INeedService
     /// <param name="model">The data used to create the need.</param>
     /// <param name="userId">The id of the user creating the need.</param>
     /// <param name="cancellationToken">A token used to cancel the operation.</param>
-    public async Task CreateAsync(
+    public async Task<int> CreateAsync(
         NeedCreateViewModel model,
         int userId,
         CancellationToken cancellationToken = default)
@@ -40,6 +40,8 @@ public class NeedService : INeedService
 
         await _needRepository.AddAsync(need, cancellationToken);
         await _unitOfWork.CommitAsync();
+
+        return need.Id;
     }
 
     /// <summary>
