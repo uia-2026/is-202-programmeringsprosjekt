@@ -152,4 +152,11 @@ public class AccountController : Controller
         await _authService.SignOutAsync(HttpContext);
         return RedirectToAction("Index", "Home");
     }
+
+    [AllowAnonymous]
+    [HttpGet]
+    public IActionResult AccessDenied()
+    {
+        return View();
+    }
 }

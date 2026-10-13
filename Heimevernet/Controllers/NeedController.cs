@@ -2,6 +2,8 @@ using Heimevernet.Extensions;
 using Heimevernet.Repositories.Interfaces;
 using Heimevernet.Services.Interfaces;
 using Heimevernet.ViewModels.Need;
+using Heimevernet.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Heimevernet.Controllers;
@@ -40,6 +42,7 @@ public class NeedController : Controller
     /// Shows the create need form populated with available categories.
     /// </summary>
     /// <returns>An <see cref="IActionResult"/> that renders the Create view.</returns>
+    [Authorize(Roles = nameof(UserRole.PublicActor))]
     [HttpGet]
     public async Task<IActionResult> Create()
     {
@@ -58,6 +61,7 @@ public class NeedController : Controller
     /// <param name="model">The create view model submitted by the user.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>Redirects to Index on success or returns the view with validation errors.</returns>
+    [Authorize(Roles = nameof(UserRole.PublicActor))]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(
