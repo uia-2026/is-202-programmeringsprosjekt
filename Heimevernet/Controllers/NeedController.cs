@@ -1,4 +1,6 @@
 using Heimevernet.Extensions;
+using System.Net.Http;
+using System.Text.Json;
 using Heimevernet.Repositories.Interfaces;
 using Heimevernet.Services.Interfaces;
 using Heimevernet.ViewModels.Need;
@@ -74,6 +76,69 @@ public class NeedController : Controller
             if (deadlineUtc <= DateTime.UtcNow)
             {
                 ModelState.AddModelError(nameof(model.Deadline), "Deadline must be in the future.");
+            }
+        }
+
+        // If coordinates are provided, derive the county (region) server-side to ensure integrity.
+        // If the coordinates are outside Norway/Svalbard, set Region to "International".
+        if (model.Latitude != 0 || model.Longitude != 0)
+        {
+            try
+            {
+                var url = $"https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat={model.Latitude}&lon={model.Longitude}&accept-language=nb";
+                using var client = new HttpClient();
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("Heimevernet/1.0 (contact@heimevernet.example)");
+
+                using var resp = await client.GetAsync(url, cancellationToken);
+                if (resp.IsSuccessStatusCode)
+                {
+                    using var stream = await resp.Content.ReadAsStreamAsync(cancellationToken);
+                    using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+
+                    if (doc.RootElement.TryGetProperty("address", out var addr))
+                    {
+                        var countryCode = addr.TryGetProperty("country_code", out var ccEl) ? ccEl.GetString()?.ToLowerInvariant() : null;
+                        var isNorway = countryCode == "no" || countryCode == "sj";
+
+                        // Prefer county, fall back to state if present
+                        var county = addr.TryGetProperty("county", out var countyEl) ? countyEl.GetString() : null;
+                        if (string.IsNullOrEmpty(county) && addr.TryGetProperty("state", out var stateEl))
+                        {
+                            county = stateEl.GetString();
+                        }
+
+                        if (isNorway)
+                        {
+                            model.Region = !string.IsNullOrEmpty(county) ? county : "Unknown county";
+                        }
+                        else
+                        {
+                            model.Region = "International";
+                        }
+                    }
+
+        // If we resolved region server-side, remove any ModelState entry for Region so
+        // validation reflects the server-set value rather than a missing client input.
+        if (model.Latitude != 0 || model.Longitude != 0)
+        {
+            ModelState.Remove(nameof(model.Region));
+        }
+                    else
+                    {
+                        // No address object; fall back to International
+                        model.Region = "International";
+                    }
+                }
+                else
+                {
+                    // Could not verify; fall back to International
+                    model.Region = "International";
+                }
+            }
+            catch
+            {
+                // On error, do not block creation; treat as International
+                model.Region = "International";
             }
         }
 
