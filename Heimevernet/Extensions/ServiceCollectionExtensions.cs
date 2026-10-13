@@ -59,6 +59,15 @@ public static class ServiceCollectionExtensions
         services.AddScoped<INeedService, NeedService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IAttachmentService, AttachmentService>();
+        // Region resolver and HTTP client used for reverse geocoding
+        services.AddHttpClient("nominatim", client =>
+        {
+            client.BaseAddress = new Uri("https://nominatim.openstreetmap.org/");
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Heimevernet/1.0 (contact@heimevernet.example)");
+            client.Timeout = TimeSpan.FromSeconds(5);
+        });
+        services.AddScoped<Services.Interfaces.IRegionResolver, Services.RegionResolver>();
+
         services.AddSingleton<INeedMapper, NeedMapper>();
         services.AddSingleton<IResourceMapper, ResourceMapper>();
         return services;

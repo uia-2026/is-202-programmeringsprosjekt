@@ -91,7 +91,7 @@
 
                         <div class="col-12 mb-3">
 
-                        <div id="map-error" class="text-danger small mt-1" style="display:none"></div>
+                        <span asp-validation-for="Region" id="map-error" class="text-danger small mt-1 d-block"></span>
                         </div>
 
                     </div>
@@ -171,6 +171,27 @@
             }).addTo(map);
 
             var marker = null;
+
+            // Place marker and update hidden inputs when user clicks the map.
+            map.on('click', function (e) {
+                var lat = e.latlng.lat;
+                var lon = e.latlng.lng;
+
+                if (marker) map.removeLayer(marker);
+                marker = L.marker([lat, lon]).addTo(map);
+
+                var latInput = document.querySelector('input[name="Latitude"]');
+                var lonInput = document.querySelector('input[name="Longitude"]');
+                if (latInput) latInput.value = lat;
+                if (lonInput) lonInput.value = lon;
+
+                var coordsEl = document.getElementById('selected-coords');
+                if (coordsEl) coordsEl.textContent = lat.toFixed(6) + ', ' + lon.toFixed(6);
+
+                // Clear any server-side validation message for Region when user picks a new point
+                var errEl = document.getElementById('map-error');
+                if (errEl) { errEl.textContent = ''; errEl.style.display = 'none'; }
+            });
 
             function setMarker(lat, lng) {
                 if (marker) {

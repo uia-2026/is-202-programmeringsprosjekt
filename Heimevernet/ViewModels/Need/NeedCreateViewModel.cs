@@ -28,7 +28,7 @@ public class NeedCreateViewModel
     [Range(-180, 180, ErrorMessage = "Longitude must be between -180 and 180.")]
     public double Longitude { get; set; }
 
-    [Required(ErrorMessage = "Region is required.")]
+    [Required(ErrorMessage = "Bad location.")]
     [StringLength(100, ErrorMessage = "Region cannot exceed 100 characters.")]
     public string Region { get; set; } = string.Empty;
 
@@ -36,6 +36,7 @@ public class NeedCreateViewModel
     public NeedPriority Priority { get; set; } = NeedPriority.Planned;
 
     [DataType(DataType.DateTime)]
+    [Heimevernet.ViewModels.Validation.FutureDate(ErrorMessage = "Deadline must be in the future.")]
     public DateTime? Deadline { get; set; }
 
     [Required(ErrorMessage = "Contact point is required.")]
