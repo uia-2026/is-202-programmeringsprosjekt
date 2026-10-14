@@ -96,7 +96,7 @@
 
         html += '<div class="map-popup-row"><strong>Type:</strong> ' + escapeHtml(marker.category) + '</div>';
         if (marker.region) {
-            html += '<div class="map-popup-row"><strong>Address:</strong> ' + escapeHtml(marker.region) + '</div>';
+            html += '<div class="map-popup-row"><strong>Region:</strong> ' + escapeHtml(marker.region) + '</div>';
         }
         if (marker.when) {
             html += '<div class="map-popup-row"><strong>' + whenLabel + ':</strong> ' + formatDate(marker.when) + '</div>';
