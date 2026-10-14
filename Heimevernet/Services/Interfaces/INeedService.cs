@@ -14,7 +14,7 @@ public interface INeedService
     /// <param name="model">The create view model containing need details.</param>
     /// <param name="userId">The id of the user creating the need.</param>
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
-    Task CreateAsync(NeedCreateViewModel model, int userId, CancellationToken cancellationToken = default);
+    Task<int> CreateAsync(NeedCreateViewModel model, int userId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Returns all needs mapped to view models.
