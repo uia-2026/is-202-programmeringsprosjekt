@@ -16,7 +16,7 @@
 
                 <h2 class="h4 mb-4">Register Need</h2>
 
-                <form asp-action="Create" method="post">
+                <form id="need-create-form" asp-action="Create" method="post">
 
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger">
                     </div>
@@ -70,36 +70,28 @@
 
                     <div class="row">
 
-                        <div class="col-12 col-sm-6 mb-3">
-                            <label asp-for="Latitude" class="form-label">
-                            </label>
+                        <!-- Hidden latitude/longitude fields; selection is done on the map below -->
+                        <input asp-for="Latitude" type="hidden" />
+                        <input asp-for="Longitude" type="hidden" />
 
-                            <input asp-for="Latitude" class="form-control" type="number" step="any"
-                                   placeholder="Latitude" />
+                        <div class="col-12 mb-3">
+                            <div class="form-label">Pick location on the map</div>
 
-                            <span asp-validation-for="Latitude" class="text-danger small">
+                            <div id="map" style="width:100%;height:360px;border:1px solid rgba(0,0,0,0.08);border-radius:.25rem"></div>
+
+                            <div class="small mt-2">
+                                <span id="selected-coords">@(Model.Latitude != 0 || Model.Longitude != 0 ? Model.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture) + ", " + Model.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")</span>
+                            </div>
+
+                            <span asp-validation-for="Latitude" class="text-danger small d-block">
                             </span>
-                        </div>
-
-                        <div class="col-12 col-sm-6 mb-3">
-                            <label asp-for="Longitude" class="form-label">
-                            </label>
-
-                            <input asp-for="Longitude" class="form-control" type="number" step="any"
-                                   placeholder="Longitude" />
-
-                            <span asp-validation-for="Longitude" class="text-danger small">
+                            <span asp-validation-for="Longitude" class="text-danger small d-block">
                             </span>
                         </div>
 
                         <div class="col-12 mb-3">
-                            <label asp-for="Region" class="form-label">
-                            </label>
 
-                            <input asp-for="Region" class="form-control" placeholder="Region" />
-
-                            <span asp-validation-for="Region" class="text-danger small">
-                            </span>
+                        <span asp-validation-for="Region" id="map-error" class="text-danger small mt-1 d-block"></span>
                         </div>
 
                     </div>
@@ -163,4 +155,146 @@
 
 @section Scripts {
     @await Html.PartialAsync("_ValidationScriptsPartial")
+
+    <!-- Leaflet CSS/JS for map selection -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        (function () {
+            // Initialize map centered on Norway
+            var map = L.map('map').setView([60.472, 8.4689], 5);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            var marker = null;
+
+            // Place marker and update hidden inputs when user clicks the map.
+            map.on('click', function (e) {
+                var lat = e.latlng.lat;
+                var lon = e.latlng.lng;
+
+                if (marker) map.removeLayer(marker);
+                marker = L.marker([lat, lon]).addTo(map);
+
+                var latInput = document.querySelector('input[name="Latitude"]');
+                var lonInput = document.querySelector('input[name="Longitude"]');
+                if (latInput) latInput.value = lat;
+                if (lonInput) lonInput.value = lon;
+
+                var coordsEl = document.getElementById('selected-coords');
+                if (coordsEl) coordsEl.textContent = lat.toFixed(6) + ', ' + lon.toFixed(6);
+
+                // Clear any server-side validation message for Region when user picks a new point
+                var errEl = document.getElementById('map-error');
+                if (errEl) { errEl.textContent = ''; errEl.style.display = 'none'; }
+            });
+
+            function setMarker(lat, lng) {
+                if (marker) {
+                    marker.setLatLng([lat, lng]);
+                } else {
+                    marker = L.marker([lat, lng]).addTo(map);
+                }
+            }
+
+            // Wire map click to set hidden latitude/longitude fields and marker.
+            // Region will be resolved server-side when the form is submitted to avoid frequent external API calls.
+            map.on('click', function (e) {
+                var lat = e.latlng.lat;
+                var lng = e.latlng.lng;
+
+                var latEl = document.getElementById('Latitude');
+                var lngEl = document.getElementById('Longitude');
+
+                var latStr = lat.toFixed(6);
+                var lngStr = lng.toFixed(6);
+
+                if (latEl) latEl.value = latStr;
+                if (lngEl) lngEl.value = lngStr;
+
+                var selectedCoordsEl = document.getElementById('selected-coords');
+                if (selectedCoordsEl) selectedCoordsEl.textContent = latStr + ', ' + lngStr;
+
+                // hide any previous map error
+                var mapErrorEl = document.getElementById('map-error');
+                if (mapErrorEl) {
+                    mapErrorEl.style.display = 'none';
+                    mapErrorEl.textContent = '';
+                }
+
+                setMarker(lat, lng);
+            });
+
+            // If model contains coordinates (non-zero), show marker on load
+            var initialLat = @Model.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var initialLng = @Model.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+            if (initialLat !== 0 || initialLng !== 0) {
+                var latNum = Number(initialLat);
+                var lngNum = Number(initialLng);
+                setMarker(latNum, lngNum);
+                map.setView([latNum, lngNum], 13);
+            }
+        })();
+    </script>
+
+    <script>
+        (function () {
+            var form = document.getElementById('need-create-form');
+            if (!form) return;
+
+            var deadlineEl = document.getElementById('Deadline');
+            var deadlineError = document.querySelector('[data-valmsg-for="Deadline"]');
+
+            function clearDeadlineError() {
+                if (deadlineError) deadlineError.textContent = '';
+                if (deadlineEl) deadlineEl.classList.remove('is-invalid');
+            }
+
+            function showDeadlineError(msg) {
+                if (deadlineError) deadlineError.textContent = msg;
+                if (deadlineEl) deadlineEl.classList.add('is-invalid');
+            }
+
+            form.addEventListener('submit', function (e) {
+                if (!deadlineEl) return;
+
+                var val = deadlineEl.value; // empty string when no value
+                if (val) {
+                    // Parse datetime-local as local time
+                    var selected = new Date(val);
+                    var now = new Date();
+
+                    if (isNaN(selected.getTime())) {
+                        // invalid input format — let server handle, but show generic message
+                        e.preventDefault();
+                        showDeadlineError('Invalid deadline format.');
+                        deadlineEl.focus();
+                        return;
+                    }
+
+                    if (selected <= now) {
+                        e.preventDefault();
+                        showDeadlineError('Deadline must be in the future.');
+                        deadlineEl.focus();
+                        return;
+                    }
+                }
+
+                // valid or empty -> clear any client error and allow submit
+                clearDeadlineError();
+            });
+
+            if (deadlineEl) {
+                deadlineEl.addEventListener('input', function () {
+                    // clear client-side message as user edits
+                    clearDeadlineError();
+                });
+            }
+        })();
+    </script>
 }
