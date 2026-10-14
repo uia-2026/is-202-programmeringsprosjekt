@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AspireUseCliBundle>true</AspireUseCliBundle>
-    <UserSecretsId>2e6d7293-b2a2-4def-82e9-480a28896607</UserSecretsId>
+    <UserSecretsId>2c937a63-ca13-4012-8f3f-bae10149ef70</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

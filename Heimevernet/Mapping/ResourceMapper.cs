@@ -1,4 +1,5 @@
 using Heimevernet.Models;
+using Heimevernet.ViewModels.Attachment;
 using Heimevernet.ViewModels.Resource;
 
 namespace Heimevernet.Mappers;
@@ -54,7 +55,10 @@ public class ResourceMapper : IResourceMapper
             AvailableTo = resource.AvailableTo,
             ContactPoint = resource.ContactPoint,
             Status = resource.Status,
-            CreatedAt = resource.CreatedAt
+            CreatedAt = resource.CreatedAt,
+            UserId = resource.UserId,
+            IsOwner = false, // This will be set by the controller based on the current user
+            Attachments = Array.Empty<AttachmentViewModel>() // This will be populated by the controller
         };
     }
 

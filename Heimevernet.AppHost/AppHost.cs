@@ -7,9 +7,11 @@ var mariadbPassword = builder.AddParameter("mariadb-password", secret: true);
 var mariadb = builder.AddMySql("mariadb", password: mariadbPassword, port: 3307)
     .WithEnvironment("DOTNET_ENVIRONMENT", "Development")
     .WithImage("mariadb", "11")
+    .WithDataVolume()
     .AddDatabase("heimevernetdb");
 
 var migrator = builder.AddProject<Projects.Heimevernet_Migrator>("migrator")
+    .WithEnvironment("DOTNET_ENVIRONMENT", "Development")
     .WithReference(mariadb)
     .WaitFor(mariadb);
 

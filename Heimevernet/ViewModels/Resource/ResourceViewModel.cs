@@ -1,4 +1,5 @@
 using Heimevernet.Models;
+using Heimevernet.ViewModels.Attachment;
 
 namespace Heimevernet.ViewModels.Resource;
 
@@ -30,4 +31,8 @@ public class ResourceViewModel
     public ResourceStatus Status { get; set; }
 
     public DateTime CreatedAt { get; set; }
+
+    public int UserId { get; set; }
+    public bool IsOwner { get; set; }
+    public IReadOnlyList<AttachmentViewModel> Attachments { get; set; } = Array.Empty<AttachmentViewModel>();
 }

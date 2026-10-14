@@ -4,186 +4,245 @@
     ViewData["Title"] = "Register Resource";
 }
 
-<a asp-action="Index" class="btn btn-link ps-0 mb-3">
-    <i class="bi bi-arrow-left"></i> Back to Overview
+<a asp-action="Index" class="btn btn-link link-secondary text-decoration-none ps-0 mb-3">
+    <i class="bi bi-arrow-left me-1"></i>
+    Back to overview
 </a>
 
 <div class="row justify-content-center">
-
     <div class="col-12 col-lg-8 col-xl-6">
+        <div class="card border-0 shadow-sm" style="color-scheme: light;">
+            <div class="card-body p-4 p-md-5">
 
-        <div class="card shadow-sm" style="color-scheme: light;">
+                <div class="mb-4">
+                    <h1 class="h4 mb-1">Register Resource</h1>
+                    <p class="text-secondary small mb-0">
+                        Provide the resource details and optionally upload a photo.
+                    </p>
+                </div>
 
-            <div class="card-body">
-
-                <h2 class="h4 mb-4">Register Resource</h2>
-
-                <form asp-action="Create" method="post">
-
-                    <div asp-validation-summary="ModelOnly" class="alert alert-danger">
-                    </div>
+                <form asp-action="Create" method="post" enctype="multipart/form-data">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
                     <div class="mb-3">
-
-                        <label asp-for="Title" class="form-label">
-                        </label>
-
+                        <label asp-for="Title" class="form-label"></label>
                         <input asp-for="Title" class="form-control" placeholder="E.g. Snow plow" />
-
-                        <span asp-validation-for="Title" class="text-danger small">
-                        </span>
-
+                        <span asp-validation-for="Title" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-3">
-
-                        <label asp-for="CategoryId" class="form-label">
-                            Category
-                        </label>
-
+                        <label asp-for="CategoryId" class="form-label">Category</label>
                         <select asp-for="CategoryId" class="form-select">
-
-                            <option value="">
-                                Select category...
-                            </option>
-
+                            <option value="">Select category...</option>
                             @foreach (var category in Model.AvailableCategories)
                             {
-                                <option value="@category.Id">
-                                    @category.Name
-                                </option>
+                                <option value="@category.Id">@category.Name</option>
                             }
-
                         </select>
-
-                        <span asp-validation-for="CategoryId" class="text-danger small">
-                        </span>
-
+                        <span asp-validation-for="CategoryId" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-3">
-
-                        <label asp-for="Description" class="form-label">
-                        </label>
-
+                        <label asp-for="Description" class="form-label"></label>
                         <textarea asp-for="Description" class="form-control" rows="4"
-                                  placeholder="Describe the resource (optional)">
-                        </textarea>
-
-                        <span asp-validation-for="Description" class="text-danger small">
-                        </span>
-
+                                  placeholder="Describe the resource (optional)"></textarea>
+                        <span asp-validation-for="Description" class="text-danger small"></span>
                     </div>
 
-                    <h6 class="mb-3 mt-4">Location</h6>
+                    <hr class="my-4" />
+
+                    <h2 class="h6 mb-3">Location</h2>
 
                     <div class="row">
-
                         <div class="col-12 col-sm-6 mb-3">
-
-                            <label asp-for="Latitude" class="form-label">
-                            </label>
-
+                            <label asp-for="Latitude" class="form-label"></label>
                             <input asp-for="Latitude" class="form-control" type="number" step="any"
                                    placeholder="Latitude" />
-
-                            <span asp-validation-for="Latitude" class="text-danger small">
-                            </span>
-
+                            <span asp-validation-for="Latitude" class="text-danger small"></span>
                         </div>
 
                         <div class="col-12 col-sm-6 mb-3">
-
-                            <label asp-for="Longitude" class="form-label">
-                            </label>
-
+                            <label asp-for="Longitude" class="form-label"></label>
                             <input asp-for="Longitude" class="form-control" type="number" step="any"
                                    placeholder="Longitude" />
-
-                            <span asp-validation-for="Longitude" class="text-danger small">
-                            </span>
-
+                            <span asp-validation-for="Longitude" class="text-danger small"></span>
                         </div>
 
                         <div class="col-12 mb-3">
-
-                            <label asp-for="Region" class="form-label">
-                            </label>
-
+                            <label asp-for="Region" class="form-label"></label>
                             <input asp-for="Region" class="form-control" placeholder="Region" />
-
-                            <span asp-validation-for="Region" class="text-danger small">
-                            </span>
-
+                            <span asp-validation-for="Region" class="text-danger small"></span>
                         </div>
-
                     </div>
 
-                    <h6 class="mb-3 mt-4">Availability</h6>
+                    <hr class="my-4" />
+
+                    <h2 class="h6 mb-3">Availability</h2>
 
                     <div class="row">
-
                         <div class="col-12 col-sm-6 mb-3">
-
-                            <label asp-for="AvailableFrom" class="form-label">
-                            </label>
-
+                            <label asp-for="AvailableFrom" class="form-label"></label>
                             <input asp-for="AvailableFrom" class="form-control" type="datetime-local" />
-
-                            <span asp-validation-for="AvailableFrom" class="text-danger small">
-                            </span>
-
+                            <span asp-validation-for="AvailableFrom" class="text-danger small"></span>
                         </div>
 
                         <div class="col-12 col-sm-6 mb-3">
-
-                            <label asp-for="AvailableTo" class="form-label">
-                            </label>
-
+                            <label asp-for="AvailableTo" class="form-label"></label>
                             <input asp-for="AvailableTo" class="form-control" type="datetime-local" />
-
-                            <span asp-validation-for="AvailableTo" class="text-danger small">
-                            </span>
-
+                            <span asp-validation-for="AvailableTo" class="text-danger small"></span>
                         </div>
-
                     </div>
 
                     <div class="mb-4">
-
-                        <label asp-for="ContactPoint" class="form-label">
-                        </label>
-
+                        <label asp-for="ContactPoint" class="form-label"></label>
                         <input asp-for="ContactPoint" class="form-control"
                                placeholder="Phone, email, or other contact information" />
-
-                        <span asp-validation-for="ContactPoint" class="text-danger small">
-                        </span>
-
+                        <span asp-validation-for="ContactPoint" class="text-danger small"></span>
                     </div>
 
-                    <div class="d-flex flex-column flex-sm-row gap-2">
+                    <hr class="my-4" />
 
+                    <h2 class="h6 mb-1">Resource photo</h2>
+                    <p class="text-secondary small mb-3">
+                        Add a photo to help others identify the resource. This is optional.
+                    </p>
+
+                    <label for="Image" class="resource-upload-area w-100 rounded-3 p-4 text-center">
+                        <div class="resource-upload-icon mb-2">
+                            <i class="bi bi-cloud-arrow-up"></i>
+                        </div>
+
+                        <div class="fw-medium mb-1" id="upload-label">
+                            Click to choose an image
+                        </div>
+
+                        <div class="text-secondary small">
+                            JPG, PNG or WebP · Maximum 5 MB
+                        </div>
+
+                        <input asp-for="Image" id="Image" type="file" class="visually-hidden"
+                               accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" />
+                    </label>
+
+                    <span asp-validation-for="Image" class="text-danger small"></span>
+
+                    <div id="image-preview-container" class="mt-3 d-none">
+                        <div class="d-flex align-items-center gap-3 p-2 border rounded-3">
+                            <img id="image-preview" src="" alt="Selected resource photo"
+                                 class="rounded object-fit-cover" style="width: 84px; height: 64px;" />
+
+                            <div class="flex-grow-1 min-width-0">
+                                <div id="image-name" class="small fw-medium text-break"></div>
+                                <div id="image-size" class="small text-secondary"></div>
+                            </div>
+
+                            <button type="button" id="remove-image" class="btn btn-sm btn-outline-secondary">
+                                Remove
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-column flex-sm-row gap-2 mt-4">
                         <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-plus-lg me-1"></i>
                             Register Resource
                         </button>
 
                         <a asp-action="Index" class="btn btn-outline-secondary">
                             Cancel
                         </a>
-
                     </div>
-
                 </form>
-
             </div>
-
         </div>
-
     </div>
-
 </div>
+
+<style>
+    .resource-upload-area {
+        display: block;
+        border: 1px dashed var(--bs-border-color);
+        background: var(--bs-tertiary-bg);
+        cursor: pointer;
+        transition: border-color .15s ease, background-color .15s ease;
+    }
+
+    .resource-upload-area:hover {
+        border-color: var(--bs-primary);
+        background: var(--bs-secondary-bg);
+    }
+
+    .resource-upload-icon {
+        font-size: 2rem;
+        color: var(--bs-primary);
+    }
+</style>
 
 @section Scripts {
     @await Html.PartialAsync("_ValidationScriptsPartial")
+
+    <script>
+        (() => {
+            const input = document.getElementById('Image');
+            const label = document.getElementById('upload-label');
+            const container = document.getElementById('image-preview-container');
+            const preview = document.getElementById('image-preview');
+            const name = document.getElementById('image-name');
+            const size = document.getElementById('image-size');
+            const remove = document.getElementById('remove-image');
+
+            let previewUrl = null;
+
+            input.addEventListener('change', () => {
+                const file = input.files[0];
+
+                if (previewUrl) {
+                    URL.revokeObjectURL(previewUrl);
+                    previewUrl = null;
+                }
+
+                if (!file) {
+                    container.classList.add('d-none');
+                    label.textContent = 'Click to choose an image';
+                    return;
+                }
+
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('The image must not exceed 5 MB.');
+                    input.value = '';
+                    container.classList.add('d-none');
+                    label.textContent = 'Click to choose an image';
+                    return;
+                }
+
+                if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+                    alert('Choose a JPG, PNG or WebP image.');
+                    input.value = '';
+                    container.classList.add('d-none');
+                    label.textContent = 'Click to choose an image';
+                    return;
+                }
+
+                previewUrl = URL.createObjectURL(file);
+                preview.src = previewUrl;
+                name.textContent = file.name;
+                size.textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+                label.textContent = 'Image selected';
+                container.classList.remove('d-none');
+            });
+
+            remove.addEventListener('click', () => {
+                input.value = '';
+
+                if (previewUrl) {
+                    URL.revokeObjectURL(previewUrl);
+                    previewUrl = null;
+                }
+
+                preview.removeAttribute('src');
+                container.classList.add('d-none');
+                label.textContent = 'Click to choose an image';
+            });
+        })();
+    </script>
 }

@@ -11,115 +11,250 @@
         ResourceStatus.Busy => "bg-warning text-dark",
         _ => "bg-secondary"
     };
+
+    var photos = Model.Attachments;
 }
 
-<a asp-action="Index" class="btn btn-link ps-0 mb-3">
-    <i class="bi bi-arrow-left"></i> Back to Overview
-</a>
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">
+        @TempData["Success"]
+    </div>
+}
 
-<div class="row">
+<div class="container py-4">
 
-    <div class="col-12 col-lg-8">
+    <a asp-action="Index" class="btn btn-link link-secondary text-decoration-none ps-0 mb-3">
+        <i class="bi bi-arrow-left me-1"></i>
+        Back to overview
+    </a>
 
-        <div class="card shadow-sm">
+    <div class="row g-4">
 
-            <div class="card-body">
+        <!-- Main content -->
+        <div class="col-12 col-lg-8">
 
-                <span class="badge @badgeClass mb-2">
-                    @Model.Status
-                </span>
+            <div class="card border-0 shadow-sm overflow-hidden">
 
-                <h2 class="h4">@Model.Title</h2>
+                <!-- Image gallery -->
+                <div class="p-3 pb-0">
 
-                <dl class="row mt-4">
+                    @if (photos.Any())
+                    {
+                        var featuredPhoto = photos.First();
 
-                    <dt class="col-sm-4">Category</dt>
-                    <dd class="col-sm-8">
-                        @Model.CategoryName
-                    </dd>
+                        <div class="ratio ratio-16x9 rounded overflow-hidden bg-light position-relative">
+                            <img src="@featuredPhoto.PublicUrl" alt="Photo of @Model.Title"
+                                 class="w-100 h-100 object-fit-cover" />
 
-                    <dt class="col-sm-4">Region</dt>
-                    <dd class="col-sm-8">
-                        @Model.Region
-                    </dd>
+                            @if (Model.IsOwner)
+                            {
+                                <div class="position-absolute bottom-0 end-0 p-2">
+                                    <form asp-action="DeleteAttachment" method="post"
+                                          onsubmit="return confirm('Remove this photo?')">
+                                        <input type="hidden" name="attachmentId" value="@featuredPhoto.Id" />
+                                        <input type="hidden" name="resourceId" value="@Model.Id" />
 
-                    <dt class="col-sm-4">Coordinates</dt>
-                    <dd class="col-sm-8">
-                        @Model.Latitude, @Model.Longitude
-                    </dd>
+                                        <button type="submit" class="btn btn-sm btn-dark bg-opacity-75">
+                                            <i class="bi bi-trash me-1"></i>
+                                            Remove photo
+                                        </button>
+                                    </form>
+                                </div>
+                            }
+                        </div>
 
-                    <dt class="col-sm-4">Available from</dt>
-                    <dd class="col-sm-8">
-                        @Model.AvailableFrom.ToString(
-                            "dddd dd.MM.yyyy, HH:mm")
-                    </dd>
-
-                    <dt class="col-sm-4">Available until</dt>
-                    <dd class="col-sm-8">
-                        @if (Model.AvailableTo.HasValue)
+                        @if (photos.Count > 1)
                         {
-                            @Model.AvailableTo.Value.ToString(
-                                "dddd dd.MM.yyyy, HH:mm")
-                        }
-                        else
-                        {
-                            <span class="text-muted">
-                                No end date
-                            </span>
-                        }
-                    </dd>
+                            <div class="row g-2 mt-1">
+                                @foreach (var photo in photos.Skip(1))
+                                {
+                                    <div class="col-4 col-md-3">
+                                        <div class="ratio ratio-4x3 rounded overflow-hidden bg-light">
+                                            <img src="@photo.PublicUrl" alt="Photo of @Model.Title"
+                                                 class="w-100 h-100 object-fit-cover" />
+                                        </div>
 
-                    <dt class="col-sm-4">Contact</dt>
-                    <dd class="col-sm-8">
-                        @Model.ContactPoint
-                    </dd>
+                                        @if (Model.IsOwner)
+                                        {
+                                            <form asp-action="DeleteAttachment" method="post" class="mt-1"
+                                                  onsubmit="return confirm('Remove this photo?')">
+                                                <input type="hidden" name="attachmentId" value="@photo.Id" />
+                                                <input type="hidden" name="resourceId" value="@Model.Id" />
 
-                    <dt class="col-sm-4">Status</dt>
-                    <dd class="col-sm-8">
-                        <span class="badge @badgeClass">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                                                    <i class="bi bi-trash"></i>
+                                                    Remove
+                                                </button>
+                                            </form>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="ratio ratio-16x9 rounded bg-body-tertiary
+                            d-flex align-items-center justify-content-center">
+                            <div class="text-center text-secondary">
+                                <i class="bi bi-image fs-1"></i>
+                                <p class="small mb-0 mt-2">No photos available</p>
+                            </div>
+                        </div>
+                    }
+
+                </div>
+
+                <!-- Resource details -->
+                <div class="card-body p-4">
+
+                    <div class="d-flex justify-content-between align-items-start
+                        flex-wrap gap-2 mb-3">
+                        <div>
+                            <div class="text-secondary small mb-2">
+                                @Model.CategoryName
+                                <span class="mx-1">·</span>
+                                @Model.Region
+                            </div>
+
+                            <h1 class="h3 mb-0">@Model.Title</h1>
+                        </div>
+
+                        <span class="badge @badgeClass rounded-pill px-3 py-2">
                             @Model.Status
                         </span>
-                    </dd>
+                    </div>
 
-                </dl>
+                    @if (!string.IsNullOrWhiteSpace(Model.Description))
+                    {
+                        <hr class="my-4" />
 
-                @if (!string.IsNullOrWhiteSpace(Model.Description))
-                {
-                    <hr />
+                        <h2 class="h6 mb-2">Description</h2>
+                        <p class="text-body-secondary mb-0" style="white-space: pre-line">@Model.Description</p>
+                    }
 
-                    <h6>Description</h6>
+                    <hr class="my-4" />
 
-                    <p class="mb-0">
-                        @Model.Description
-                    </p>
-                }
+                    <h2 class="h6 mb-3">Resource information</h2>
 
+                    <div class="row g-4">
+
+                        <div class="col-12 col-sm-6">
+                            <div class="d-flex gap-3">
+                                <div class="text-secondary fs-5">
+                                    <i class="bi bi-geo-alt"></i>
+                                </div>
+                                <div>
+                                    <div class="small text-secondary">Location</div>
+                                    <div class="fw-medium">@Model.Region</div>
+                                    <div class="small text-secondary">
+                                        @Model.Latitude, @Model.Longitude
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6">
+                            <div class="d-flex gap-3">
+                                <div class="text-secondary fs-5">
+                                    <i class="bi bi-person-lines-fill"></i>
+                                </div>
+                                <div>
+                                    <div class="small text-secondary">Contact</div>
+                                    <div class="fw-medium">@Model.ContactPoint</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6">
+                            <div class="d-flex gap-3">
+                                <div class="text-secondary fs-5">
+                                    <i class="bi bi-calendar-check"></i>
+                                </div>
+                                <div>
+                                    <div class="small text-secondary">Available from</div>
+                                    <div class="fw-medium">
+                                        @Model.AvailableFrom.ToString("dd.MM.yyyy")
+                                    </div>
+                                    <div class="small text-secondary">
+                                        @Model.AvailableFrom.ToString("HH:mm")
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6">
+                            <div class="d-flex gap-3">
+                                <div class="text-secondary fs-5">
+                                    <i class="bi bi-calendar-x"></i>
+                                </div>
+                                <div>
+                                    <div class="small text-secondary">Available until</div>
+
+                                    @if (Model.AvailableTo.HasValue)
+                                    {
+                                        <div class="fw-medium">
+                                            @Model.AvailableTo.Value.ToString("dd.MM.yyyy")
+                                        </div>
+                                        <div class="small text-secondary">
+                                            @Model.AvailableTo.Value.ToString("HH:mm")
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="fw-medium">No end date</div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
             </div>
 
         </div>
 
-    </div>
+        <!-- Owner actions -->
+        @if (Model.IsOwner)
+        {
+            <div class="col-12 col-lg-4">
 
-    <div class="col-12 col-lg-4 mt-3 mt-lg-0">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
 
-        <div class="card shadow-sm">
+                        <h2 class="h5 mb-1">Manage resource</h2>
+                        <p class="text-secondary small mb-4">
+                            Manage photos and availability.
+                        </p>
 
-            <div class="card-body">
+                        <form asp-action="UploadAttachment" method="post" enctype="multipart/form-data">
 
-                <h6 class="card-title">Actions</h6>
+                            <input type="hidden" name="ResourceId" value="@Model.Id" />
 
-                <button class="btn btn-primary w-100 mb-2" type="button">
-                    Use Resource
-                </button>
+                            <label for="photo" class="form-label fw-medium">
+                                Add photos
+                            </label>
 
-                <button class="btn btn-outline-secondary w-100" type="button">
-                    Mark as Busy
-                </button>
+                            <input id="photo" type="file" name="File" required accept="image/jpeg,image/png,image/webp"
+                                   class="form-control mb-2" />
+
+                            <div class="form-text mb-3">
+                                JPG, PNG or WebP. Maximum 5 MB per photo.
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-cloud-upload me-1"></i>
+                                Upload photo
+                            </button>
+
+                        </form>
+                    </div>
+                </div>
 
             </div>
-
-        </div>
+        }
 
     </div>
-
 </div>
