@@ -55,6 +55,21 @@
         return R * c;
     }
 
+    function priorityBucket(priority) {
+        switch (priority) {
+            case 'Urgent':
+            case 'High':
+            case 'Critical':
+                return 'urgent';
+            case 'Planned':
+            case 'Medium':
+            case 'Low':
+                return 'planned';
+            default:
+                return 'planned';
+        }
+    }
+
     function buildPopupHtml(marker) {
         var whenLabel = marker.kind === 'need' ? 'Deadline' : 'Available from';
         var kindLabel = marker.kind === 'need'
@@ -196,7 +211,7 @@
 
         var filtered = allMarkers.filter(function (marker) {
             if (state.kinds.indexOf(marker.kind) === -1) return false;
-            if (marker.kind === 'need' && marker.priority && state.priorities.indexOf(marker.priority) === -1) return false;
+            if (marker.kind === 'need' && marker.priority && state.priorities.indexOf(priorityBucket(marker.priority)) === -1) return false;
             if (state.category && marker.category !== state.category) return false;
             if (state.region && marker.region !== state.region) return false;
             if (marker.kind === 'need' && state.needStatus && marker.status !== state.needStatus) return false;

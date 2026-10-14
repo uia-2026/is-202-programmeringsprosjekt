@@ -37,7 +37,7 @@ public class MapController : Controller
             Region: n.Region,
             Priority: n.Priority.ToString(),
             Status: n.Status.ToString(),
-            MarkerColor: n.Priority == NeedPriority.Urgent ? "red" : "yellow",
+            MarkerColor: GetNeedMarkerColor(n.Priority),
             When: n.Deadline,
             ContactInfo: n.ContactPoint,
             Latitude: n.Latitude,
@@ -62,4 +62,15 @@ public class MapController : Controller
 
         return Json(needMarkers.Concat(resourceMarkers));
     }
+
+    private static string GetNeedMarkerColor(NeedPriority priority) => priority switch
+    {
+        NeedPriority.Urgent => "red",
+        NeedPriority.Critical => "red",
+        NeedPriority.High => "red",
+        NeedPriority.Planned => "yellow",
+        NeedPriority.Medium => "yellow",
+        NeedPriority.Low => "yellow",
+        _ => "yellow"
+    };
 }
