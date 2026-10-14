@@ -11,6 +11,11 @@
     var DEFAULT_ZOOM = 9;
     var detailsCounter = 0;
 
+    var allMarkers = [];
+    var markersLayer = null;
+    var filterCenter = null; // { lat, lng } set by "Use my location" or address search
+    var searchMarker = null;
+
     function formatDate(isoString) {
         if (!isoString) return '';
         var d = new Date(isoString);
@@ -39,6 +44,17 @@
         button.textContent = isHidden ? 'Hide details' : 'Show details';
     };
 
+    function distanceKm(lat1, lon1, lat2, lon2) {
+        var R = 6371;
+        var dLat = (lat2 - lat1) * Math.PI / 180;
+        var dLon = (lon2 - lon1) * Math.PI / 180;
+        var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+
     function buildPopupHtml(marker) {
         var whenLabel = marker.kind === 'need' ? 'Deadline' : 'Available from';
         var kindLabel = marker.kind === 'need'
@@ -56,6 +72,11 @@
         if (marker.priority) {
             html += '<span class="map-popup-badge" style="background:' + (MARKER_COLORS[marker.markerColor] || '#1d385a') + '">' +
                 escapeHtml(marker.priority) + ' priority</span>';
+        }
+
+        if (filterCenter) {
+            var distance = distanceKm(filterCenter.lat, filterCenter.lng, marker.latitude, marker.longitude);
+            html += '<div class="map-popup-row"><strong>Distance:</strong> ' + distance.toFixed(1) + ' km away</div>';
         }
 
         html += '<div class="map-popup-row"><strong>Type:</strong> ' + escapeHtml(marker.category) + '</div>';
@@ -84,14 +105,24 @@
         return html;
     }
 
-    function plotMarkers(map, markers) {
+    function renderMarkers(map, markers) {
+        if (!markersLayer) {
+            markersLayer = L.layerGroup().addTo(map);
+        }
+        markersLayer.clearLayers();
+
+        var note = document.getElementById('mapEmptyNote');
+
         if (markers.length === 0) {
-            var note = document.getElementById('mapEmptyNote');
-            if (note) note.style.display = 'block';
+            if (note) {
+                note.textContent = allMarkers.length === 0
+                    ? 'No needs or resources have coordinates yet.'
+                    : 'No needs or resources match your current filters.';
+                note.style.display = 'block';
+            }
             return;
         }
-
-        var bounds = [];
+        if (note) note.style.display = 'none';
 
         markers.forEach(function (marker) {
             var color = MARKER_COLORS[marker.markerColor] || '#1d385a';
@@ -102,17 +133,273 @@
                 weight: 2,
                 fillColor: color,
                 fillOpacity: 0.95
-            }).addTo(map);
+            });
 
             circle.bindPopup(buildPopupHtml(marker), { minWidth: 220 });
-            bounds.push([marker.latitude, marker.longitude]);
+            circle.addTo(markersLayer);
+        });
+    }
+
+    function populateFilterOptions(markers) {
+        var categorySel = document.getElementById('mapFilterCategory');
+        var regionSel = document.getElementById('mapFilterRegion');
+        var needStatusSel = document.getElementById('mapFilterNeedStatus');
+        var resourceStatusSel = document.getElementById('mapFilterResourceStatus');
+
+        function uniqueSorted(values) {
+            var seen = {};
+            var result = [];
+            values.forEach(function (v) {
+                if (v && !seen[v]) {
+                    seen[v] = true;
+                    result.push(v);
+                }
+            });
+            result.sort();
+            return result;
+        }
+
+        function fillSelect(select, values) {
+            if (!select) return;
+            values.forEach(function (v) {
+                var opt = document.createElement('option');
+                opt.value = v;
+                opt.textContent = v;
+                select.appendChild(opt);
+            });
+        }
+
+        fillSelect(categorySel, uniqueSorted(markers.map(function (m) { return m.category; })));
+        fillSelect(regionSel, uniqueSorted(markers.map(function (m) { return m.region; })));
+        fillSelect(needStatusSel, uniqueSorted(markers.filter(function (m) { return m.kind === 'need'; }).map(function (m) { return m.status; })));
+        fillSelect(resourceStatusSel, uniqueSorted(markers.filter(function (m) { return m.kind === 'resource'; }).map(function (m) { return m.status; })));
+    }
+
+    function getFilterState() {
+        var kindBoxes = document.querySelectorAll('.map-filter-kind:checked');
+        var priorityBoxes = document.querySelectorAll('.map-filter-priority:checked');
+
+        var kinds = Array.prototype.map.call(kindBoxes, function (cb) { return cb.value; });
+        var priorities = Array.prototype.map.call(priorityBoxes, function (cb) { return cb.value; });
+
+        var category = document.getElementById('mapFilterCategory').value;
+        var region = document.getElementById('mapFilterRegion').value;
+        var needStatus = document.getElementById('mapFilterNeedStatus').value;
+        var resourceStatus = document.getElementById('mapFilterResourceStatus').value;
+        var radius = parseFloat(document.getElementById('mapFilterRadius').value || '0');
+
+        return { kinds: kinds, priorities: priorities, category: category, region: region, needStatus: needStatus, resourceStatus: resourceStatus, radius: radius };
+    }
+
+    function applyFilters(map) {
+        var state = getFilterState();
+
+        var filtered = allMarkers.filter(function (marker) {
+            if (state.kinds.indexOf(marker.kind) === -1) return false;
+            if (marker.kind === 'need' && marker.priority && state.priorities.indexOf(marker.priority) === -1) return false;
+            if (state.category && marker.category !== state.category) return false;
+            if (state.region && marker.region !== state.region) return false;
+            if (marker.kind === 'need' && state.needStatus && marker.status !== state.needStatus) return false;
+            if (marker.kind === 'resource' && state.resourceStatus && marker.status !== state.resourceStatus) return false;
+
+            if (state.radius && filterCenter) {
+                var d = distanceKm(filterCenter.lat, filterCenter.lng, marker.latitude, marker.longitude);
+                if (d > state.radius) return false;
+            }
+
+            return true;
         });
 
-        if (bounds.length > 1) {
-            map.fitBounds(bounds, { padding: [40, 40] });
-        } else if (bounds.length === 1) {
-            map.setView(bounds[0], 12);
+        renderMarkers(map, filtered);
+    }
+
+    function wireFilterControls(map) {
+        var box = document.getElementById('mapFilterBox');
+        var toggleBtn = document.getElementById('mapFilterToggle');
+        var locationBtn = document.getElementById('mapFilterLocationBtn');
+        var radiusSel = document.getElementById('mapFilterRadius');
+        var distanceNote = document.getElementById('mapFilterDistanceNote');
+        var resetBtn = document.getElementById('mapFilterResetBtn');
+
+        if (toggleBtn && box) {
+            toggleBtn.addEventListener('click', function () {
+                box.classList.toggle('collapsed');
+                toggleBtn.setAttribute('aria-expanded', !box.classList.contains('collapsed'));
+            });
         }
+
+        var changeTargets = document.querySelectorAll(
+            '.map-filter-kind, .map-filter-priority, #mapFilterCategory, #mapFilterRegion, #mapFilterNeedStatus, #mapFilterResourceStatus, #mapFilterRadius'
+        );
+        changeTargets.forEach(function (el) {
+            el.addEventListener('change', function () { applyFilters(map); });
+        });
+
+        if (locationBtn) {
+            locationBtn.addEventListener('click', function () {
+                if (!navigator.geolocation) {
+                    if (distanceNote) distanceNote.textContent = "Your browser doesn't support location.";
+                    return;
+                }
+                locationBtn.textContent = 'Locating…';
+                navigator.geolocation.getCurrentPosition(function (pos) {
+                    if (searchMarker) { map.removeLayer(searchMarker); searchMarker = null; }
+                    filterCenter = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                    locationBtn.textContent = 'Location set';
+                    locationBtn.classList.add('active');
+                    if (radiusSel) radiusSel.disabled = false;
+                    if (distanceNote) distanceNote.textContent = 'Centered on your current location.';
+                    applyFilters(map);
+                }, function () {
+                    locationBtn.textContent = 'Use my location';
+                    if (distanceNote) distanceNote.textContent = "Couldn't get your location — check your browser's permission for this site.";
+                });
+            });
+        }
+
+        if (resetBtn) {
+            resetBtn.addEventListener('click', function () {
+                document.querySelectorAll('.map-filter-kind, .map-filter-priority').forEach(function (cb) { cb.checked = true; });
+                document.getElementById('mapFilterCategory').value = '';
+                document.getElementById('mapFilterRegion').value = '';
+                document.getElementById('mapFilterNeedStatus').value = '';
+                document.getElementById('mapFilterResourceStatus').value = '';
+                if (radiusSel) { radiusSel.value = ''; radiusSel.disabled = true; }
+                filterCenter = null;
+                if (locationBtn) { locationBtn.textContent = 'Use my location'; locationBtn.classList.remove('active'); }
+                if (distanceNote) distanceNote.textContent = '';
+                if (searchMarker) { map.removeLayer(searchMarker); searchMarker = null; }
+                var searchInput = document.getElementById('globalSearchInput');
+                if (searchInput) searchInput.value = '';
+                applyFilters(map);
+            });
+        }
+    }
+
+    function wireAddressSearch(map) {
+        var input = document.getElementById('globalSearchInput');
+        if (!input) return;
+
+        var wrapper = input.parentElement;
+        if (wrapper && !wrapper.style.position) wrapper.style.position = 'relative';
+
+        var suggestionsBox = document.createElement('div');
+        suggestionsBox.className = 'app-search-suggestions';
+        suggestionsBox.style.display = 'none';
+        if (wrapper) wrapper.appendChild(suggestionsBox);
+
+        var debounceTimer = null;
+        var currentResults = [];
+
+        function hideSuggestions() {
+            suggestionsBox.style.display = 'none';
+            suggestionsBox.innerHTML = '';
+        }
+
+        function selectAddress(index) {
+            var item = currentResults[index];
+            if (!item) return;
+
+            input.value = item.label;
+            hideSuggestions();
+
+            if (searchMarker) {
+                map.removeLayer(searchMarker);
+            }
+            searchMarker = L.circleMarker([item.lat, item.lon], {
+                radius: 8,
+                color: '#1d385a',
+                weight: 3,
+                fillColor: '#ffffff',
+                fillOpacity: 1
+            }).addTo(map);
+            searchMarker.bindPopup('Search center: ' + escapeHtml(item.label));
+
+            filterCenter = { lat: item.lat, lng: item.lon };
+
+            var radiusSel = document.getElementById('mapFilterRadius');
+            var locationBtn = document.getElementById('mapFilterLocationBtn');
+            var distanceNote = document.getElementById('mapFilterDistanceNote');
+
+            if (radiusSel) { radiusSel.disabled = false; radiusSel.value = '10'; }
+            if (locationBtn) locationBtn.classList.add('active');
+            if (distanceNote) distanceNote.textContent = 'Centered on: ' + item.label;
+
+            map.flyTo([item.lat, item.lon], 13);
+            applyFilters(map);
+        }
+
+        function renderSuggestions(items) {
+            currentResults = items;
+            suggestionsBox.innerHTML = '';
+
+            if (items.length === 0) {
+                var empty = document.createElement('div');
+                empty.className = 'app-search-suggestion-empty';
+                empty.textContent = 'No matching address found.';
+                suggestionsBox.appendChild(empty);
+            } else {
+                items.forEach(function (item, index) {
+                    var row = document.createElement('div');
+                    row.className = 'app-search-suggestion-item';
+                    row.textContent = item.label;
+                    row.addEventListener('click', function () { selectAddress(index); });
+                    suggestionsBox.appendChild(row);
+                });
+            }
+
+            suggestionsBox.style.display = 'block';
+        }
+
+        function fetchResults(query) {
+            var url = 'https://ws.geonorge.no/adresser/v1/sok?sok=' + encodeURIComponent(query) + '&treffPerSide=6&fuzzy=true';
+
+            fetch(url)
+                .then(function (response) {
+                    if (!response.ok) throw new Error('Address search failed: ' + response.status);
+                    return response.json();
+                })
+                .then(function (data) {
+                    var addresses = (data && data.adresser) || [];
+                    var items = addresses.map(function (a) {
+                        var label = a.adressetekst || '';
+                        if (a.postnummer || a.poststed) {
+                            label += ', ' + (a.postnummer || '') + ' ' + (a.poststed || '');
+                        }
+                        return {
+                            label: label.trim(),
+                            lat: a.representasjonspunkt.lat,
+                            lon: a.representasjonspunkt.lon
+                        };
+                    });
+                    renderSuggestions(items);
+                })
+                .catch(function (err) {
+                    console.error('Address search failed', err);
+                    renderSuggestions([]);
+                });
+        }
+
+        input.addEventListener('input', function () {
+            var query = input.value.trim();
+
+            if (debounceTimer) clearTimeout(debounceTimer);
+
+            if (query.length < 3) {
+                hideSuggestions();
+                return;
+            }
+
+            debounceTimer = setTimeout(function () { fetchResults(query); }, 300);
+        });
+
+        input.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') hideSuggestions();
+        });
+
+        document.addEventListener('click', function (e) {
+            if (!wrapper || !wrapper.contains(e.target)) hideSuggestions();
+        });
     }
 
     function init() {
@@ -129,13 +416,25 @@
         setTimeout(function () { map.invalidateSize(); }, 0);
         window.addEventListener('resize', function () { map.invalidateSize(); });
 
+        wireFilterControls(map);
+        wireAddressSearch(map);
+
         fetch('/Map/Data')
             .then(function (response) {
                 if (!response.ok) throw new Error('Map data request failed: ' + response.status);
                 return response.json();
             })
             .then(function (markers) {
-                plotMarkers(map, markers || []);
+                allMarkers = markers || [];
+                populateFilterOptions(allMarkers);
+                applyFilters(map);
+
+                var bounds = allMarkers.map(function (m) { return [m.latitude, m.longitude]; });
+                if (bounds.length > 1) {
+                    map.fitBounds(bounds, { padding: [40, 40] });
+                } else if (bounds.length === 1) {
+                    map.setView(bounds[0], 12);
+                }
             })
             .catch(function (err) {
                 console.error('Could not load map data', err);

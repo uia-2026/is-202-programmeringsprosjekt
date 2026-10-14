@@ -58,6 +58,7 @@ body {
 .app-topbar-search {
     flex: 1;
     max-width: 360px;
+    position: relative;
 }
 
     .app-topbar-search input {
