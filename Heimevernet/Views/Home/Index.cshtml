@@ -61,7 +61,7 @@
         View registered needs and resources visualized on a map.
     </p>
 
-    <a asp-controller= "Map" asp-action="Index" class= "btn btn-success">
+    <a asp-controller="Map" asp-action="Index" class="btn btn-success">
         Open Map
     </a>
 
@@ -98,8 +98,9 @@
                                 @{
                                     var badgeClass = need.Priority switch
                                     {
-                                        NeedPriority.Urgent => "bg-danger",
-                                        NeedPriority.Planned => "bg-primary",
+NeedPriority.Low => "bg-primary",
+                                        NeedPriority.Medium => "bg-info text-dark",
+                                        NeedPriority.Critical => "bg-danger",
                                         _ => "bg-secondary"
                                     };
                                 }

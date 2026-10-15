@@ -1,6 +1,9 @@
+using Heimevernet.Infrastructure.Geo;
 using Heimevernet.Mappers;
+using Heimevernet.Mappers.Interfaces;
 using Heimevernet.Repositories.Interfaces;
 using Heimevernet.Services.Interfaces;
+using Heimevernet.ViewModels.Map;
 using Heimevernet.ViewModels.Resource;
 
 namespace Heimevernet.Services;
@@ -13,15 +16,18 @@ public class ResourceService : IResourceService
 {
     private readonly IResourceRepository _resourceRepository;
     private readonly IResourceMapper _resourceMapper;
+    private readonly IMapMarkerMapper _mapMarkerMapper;
     private readonly IUnitOfWork _unitOfWork;
 
     public ResourceService(
         IResourceRepository resourceRepository,
         IResourceMapper resourceMapper,
+        IMapMarkerMapper mapMarkerMapper,
         IUnitOfWork unitOfWork)
     {
         _resourceRepository = resourceRepository;
         _resourceMapper = resourceMapper;
+        _mapMarkerMapper = mapMarkerMapper;
         _unitOfWork = unitOfWork;
     }
 
@@ -64,5 +70,13 @@ public class ResourceService : IResourceService
         await _unitOfWork.CommitAsync();
 
         return resource.Id;
+    }
+
+    public async Task<IReadOnlyList<MapMarkerViewModel>> GetMapMarkersAsync(
+        GeoBox box, int? ownerUserId, bool availableOnly, int limit,
+        CancellationToken cancellationToken = default)
+    {
+        var dtos = await _resourceRepository.GetMapMarkersAsync(box, ownerUserId, availableOnly, limit, cancellationToken);
+        return _mapMarkerMapper.ToViewModels(dtos);
     }
 }

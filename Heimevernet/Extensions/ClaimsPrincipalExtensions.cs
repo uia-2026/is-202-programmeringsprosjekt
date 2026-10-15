@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Heimevernet.Models;
 
 namespace Heimevernet.Extensions;
 
@@ -15,4 +16,9 @@ public static class ClaimsPrincipalExtensions
 
         return userId;
     }
+
+    public static UserRole GetRole(this ClaimsPrincipal user) =>
+        Enum.TryParse<UserRole>(user.FindFirstValue(ClaimTypes.Role), out var role)
+        ? role
+        : throw new InvalidOperationException("User has no valid role claim.");
 }

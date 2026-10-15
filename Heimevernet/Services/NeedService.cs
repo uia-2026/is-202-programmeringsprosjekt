@@ -1,6 +1,9 @@
+using Heimevernet.Infrastructure.Geo;
 using Heimevernet.Mappers;
+using Heimevernet.Mappers.Interfaces;
 using Heimevernet.Repositories.Interfaces;
 using Heimevernet.Services.Interfaces;
+using Heimevernet.ViewModels.Map;
 using Heimevernet.ViewModels.Need;
 
 namespace Heimevernet.Services;
@@ -13,15 +16,18 @@ public class NeedService : INeedService
 {
     private readonly INeedRepository _needRepository;
     private readonly INeedMapper _needMapper;
+    private readonly IMapMarkerMapper _mapMarkerMapper;
     private readonly IUnitOfWork _unitOfWork;
 
     public NeedService(
         INeedRepository repository,
-        INeedMapper mapper,
+        INeedMapper needMapper,
+        IMapMarkerMapper mapMarkerMapper,
         IUnitOfWork unitOfWork)
     {
         _needRepository = repository;
-        _needMapper = mapper;
+        _needMapper = needMapper;
+        _mapMarkerMapper = mapMarkerMapper;
         _unitOfWork = unitOfWork;
     }
 
@@ -81,5 +87,12 @@ public class NeedService : INeedService
         return need == null
             ? null
             : _needMapper.ToViewModel(need);
+    }
+
+    public async Task<IReadOnlyList<MapMarkerViewModel>> GetMapMarkersAsync(
+        GeoBox box, int limit, CancellationToken cancellationToken = default)
+    {
+        var dtos = await _needRepository.GetMapMarkersAsync(box, limit, cancellationToken);
+        return _mapMarkerMapper.ToViewModels(dtos);
     }
 }

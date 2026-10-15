@@ -1,4 +1,5 @@
 using Heimevernet.Mappers;
+using Heimevernet.Mappers.Interfaces;
 using Heimevernet.Models;
 using Heimevernet.Repositories.Interfaces;
 using Heimevernet.Services;
@@ -15,6 +16,7 @@ public class ResourceServiceTests
 {
     private readonly Mock<IResourceRepository> _repoMock;
     private readonly Mock<IResourceMapper> _mapperMock;
+    private readonly Mock<IMapMarkerMapper> _mapMarkerMapperMock;
     private readonly Mock<IUnitOfWork> _uowMock;
     private readonly ResourceService _sut;
 
@@ -22,8 +24,9 @@ public class ResourceServiceTests
     {
         _repoMock = new Mock<IResourceRepository>();
         _mapperMock = new Mock<IResourceMapper>();
+        _mapMarkerMapperMock = new Mock<IMapMarkerMapper>();
         _uowMock = new Mock<IUnitOfWork>();
-        _sut = new ResourceService(_repoMock.Object, _mapperMock.Object, _uowMock.Object);
+        _sut = new ResourceService(_repoMock.Object, _mapperMock.Object, _mapMarkerMapperMock.Object, _uowMock.Object);
     }
 
     /// <summary>

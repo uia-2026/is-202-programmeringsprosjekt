@@ -2,6 +2,7 @@ using Amazon.Runtime;
 using Amazon.S3;
 using Heimevernet.Infrastructure.Storage;
 using Heimevernet.Mappers;
+using Heimevernet.Mappers.Interfaces;
 using Heimevernet.Repositories;
 using Heimevernet.Repositories.Interfaces;
 using Heimevernet.Services;
@@ -59,6 +60,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<INeedService, NeedService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IAttachmentService, AttachmentService>();
+        services.AddScoped<IMapService, MapService>();
+
         // Region resolver and HTTP client used for reverse geocoding
         services.AddHttpClient("nominatim", client =>
         {
@@ -66,10 +69,12 @@ public static class ServiceCollectionExtensions
             client.DefaultRequestHeaders.UserAgent.ParseAdd("Heimevernet/1.0 (contact@heimevernet.example)");
             client.Timeout = TimeSpan.FromSeconds(5);
         });
-        services.AddScoped<Services.Interfaces.IRegionResolver, Services.RegionResolver>();
+        services.AddScoped<IRegionResolver, RegionResolver>();
 
         services.AddSingleton<INeedMapper, NeedMapper>();
         services.AddSingleton<IResourceMapper, ResourceMapper>();
+        services.AddSingleton<IMapMarkerMapper, MapMarkerMapper>();
+
         return services;
     }
 }

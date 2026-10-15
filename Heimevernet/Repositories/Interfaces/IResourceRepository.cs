@@ -1,3 +1,5 @@
+using Heimevernet.DTOs.Map;
+using Heimevernet.Infrastructure.Geo;
 using Heimevernet.Models;
 
 namespace Heimevernet.Repositories.Interfaces;
@@ -34,4 +36,8 @@ public interface IResourceRepository
     Task AddAsync(
         Resource resource,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<MapMarkerDto>> GetMapMarkersAsync(
+            GeoBox box, int? ownerUserId, bool availableOnly, int limit,
+            CancellationToken cancellationToken = default);
 }
