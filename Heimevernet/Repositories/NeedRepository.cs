@@ -55,12 +55,12 @@ public class NeedRepository : INeedRepository
             .Where(n => n.Status != NeedStatus.Resolved
                      && n.Latitude >= box.MinLat && n.Latitude <= box.MaxLat
                      && n.Longitude >= box.MinLng && n.Longitude <= box.MaxLng)
-            .OrderByDescending(n => n.Priority == NeedPriority.Urgent)   // if the cap cuts anything, it never cuts acute needs
+            .OrderByDescending(n => n.Priority == NeedPriority.Critical)   // if the cap cuts anything, it never cuts acute needs
             .ThenByDescending(n => n.CreatedAt)
             .Take(limit)
             .Select(n => new MapMarkerDto(
                 n.Id, MapMarkerKind.Need, n.Title, n.Category.Name, n.Description, n.Region,
-                n.Priority.ToString(), n.Priority == NeedPriority.Urgent, n.Status.ToString(),
+                n.Priority.ToString(), n.Priority == NeedPriority.Critical, n.Status.ToString(),
                 n.Deadline, n.ContactPoint, n.Latitude, n.Longitude))
             .ToListAsync(cancellationToken);
     }

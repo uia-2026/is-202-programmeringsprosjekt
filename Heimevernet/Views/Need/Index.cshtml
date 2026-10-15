@@ -35,8 +35,9 @@
                             @{
                                 var badgeClass = need.Priority switch
                                 {
-                                    NeedPriority.Urgent => "bg-danger",
-                                    NeedPriority.Planned => "bg-primary",
+                                    NeedPriority.Low => "bg-primary",
+                                    NeedPriority.Medium => "bg-info text-dark",
+                                    NeedPriority.Critical => "bg-danger",
                                     _ => "bg-secondary"
                                 };
                             }

@@ -1,842 +1,987 @@
-(function () {
-    'use strict';
 
-    var MARKER_COLORS = {
-        red: '#e4483c',
-        yellow: '#f0a93b',
-        green: '#2e9e5b',
-        blue: '#3b7dd8',
-        default: '#1d385a'
+(() => {
+    "use strict";
+
+    // ------------------------------------------------------------
+    // Configuration
+    // ------------------------------------------------------------
+
+    const CONFIG = {
+        dataUrl: "/Map/Data",
+        initialCenter: [58.35, 7.6],
+        initialZoom: 9,
+        maxZoom: 19,
+        requestDebounceMs: 250,
+        searchRadiusKm: 10,
+        maxDisplayedMarkersPerKind: 500,
+        tileUrl: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        tileAttribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     };
 
-    var MARKER_KIND = {
-        NEED: 'Need',
-        RESOURCE: 'Resource'
+    const MARKER_KIND = {
+        NEED: "Need",
+        RESOURCE: "Resource"
     };
 
-    var DEFAULT_CENTER = [58.35, 7.6];
-    var DEFAULT_ZOOM = 9;
-    var detailsCounter = 0;
+    const PRIORITIES = ["Low", "Medium", "Critical"];
 
-    var allMarkers = [];
-    var markersLayer = null;
-    var filterCenter = null;
-    var searchMarker = null;
+    const COLORS = {
+        Low: "#2563eb",
+        Medium: "#ca8a04",
+        Critical: "#dc2626",
+        ResourceAvailable: "#16a34a",
+        ResourceBusy: "#64748b",
+        Search: "#7c3aed"
+    };
 
-    var loadTimer = null;
-    var requestSeq = 0;
-    var hasLoadedMarkers = false;
+    const NEED_STATUSES = ["New", "UnderReview", "Assigned", "Resolved"];
+    const RESOURCE_STATUSES = ["Available", "Busy"];
+
+    // ------------------------------------------------------------
+    // State
+    // ------------------------------------------------------------
+
+    let map;
+    let markerLayer;
+    let searchLayer;
+
+    let allMarkers = [];
+    let renderedMarkers = [];
+
+    let hasLoadedMarkers = false;
+    let isLoading = false;
+    let requestSequence = 0;
+    let debounceTimeout = null;
+
+    let searchLocation = null;
+    let searchRadiusCircle = null;
+
+    const elements = {};
+
+    // ------------------------------------------------------------
+    // General utilities
+    // ------------------------------------------------------------
 
     function getElement(id) {
         return document.getElementById(id);
     }
 
-    function clamp(value, min, max) {
-        return Math.max(min, Math.min(max, value));
-    }
-
-    function formatDate(isoString) {
-        if (!isoString) return '';
-
-        var date = new Date(isoString);
-
-        if (isNaN(date.getTime())) return isoString;
-
-        return date.toLocaleString('en-GB', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
+    function cacheElements() {
+        [
+            "mapFilterBox",
+            "mapFilterToggle",
+            "mapFilterCategory",
+            "mapFilterRegion",
+            "mapFilterNeedStatus",
+            "mapFilterResourceStatus",
+            "mapFilterRadius",
+            "mapFilterLocationBtn",
+            "mapFilterDistanceNote",
+            "mapFilterResetBtn",
+            "mapEmptyNote",
+            "mapCapNote",
+            "globalSearchInput"
+        ].forEach(id => {
+            elements[id] = getElement(id);
         });
     }
 
     function escapeHtml(value) {
-        if (value === null || value === undefined) return '';
+        return String(value ?? "").replace(/[&<>"']/g, character => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;"
+        })[character]);
+    }
+
+    function normalize(value) {
+        return String(value ?? "").trim().toLowerCase();
+    }
+
+    function clamp(value, min, max) {
+        return Math.min(Math.max(value, min), max);
+    }
+
+    function formatDate(value) {
+        if (!value) {
+            return "Not specified";
+        }
+
+        const date = new Date(value);
+
+        if (Number.isNaN(date.getTime())) {
+            return "Not specified";
+        }
+
+        return new Intl.DateTimeFormat("en-GB", {
+            dateStyle: "medium",
+            timeStyle: "short"
+        }).format(date);
+    }
+
+    function formatLabel(value) {
+        if (!value) {
+            return "Not specified";
+        }
 
         return String(value)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
+            .replace(/([a-z])([A-Z])/g, "$1 $2")
+            .replace(/_/g, " ");
     }
 
-    function getMarkerColor(marker) {
-        if (marker.kind === MARKER_KIND.NEED) {
-            return marker.isUrgent
-                ? MARKER_COLORS.red
-                : MARKER_COLORS.yellow;
-        }
-
-        if (
-            marker.kind === MARKER_KIND.RESOURCE &&
-            marker.status === 'Available'
-        ) {
-            return MARKER_COLORS.green;
-        }
-
-        return MARKER_COLORS.default;
-    }
-
-    window.toggleMapPopupDetails = function (detailsId) {
-        var panel = getElement(detailsId);
-        var button = getElement(detailsId + '-toggle');
-
-        if (!panel || !button) return;
-
-        var isHidden = panel.style.display === 'none';
-
-        panel.style.display = isHidden ? 'block' : 'none';
-        button.textContent = isHidden ? 'Hide details' : 'Show details';
-    };
-
-    function distanceKm(lat1, lon1, lat2, lon2) {
-        var earthRadiusKm = 6371;
-        var dLat = (lat2 - lat1) * Math.PI / 180;
-        var dLon = (lon2 - lon1) * Math.PI / 180;
-
-        var a =
-            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(lat1 * Math.PI / 180) *
-            Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
-
-        var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-        return earthRadiusKm * c;
-    }
-
-    function priorityBucket(priority) {
-        switch (priority) {
-            case 'Urgent':
-            case 'High':
-            case 'Critical':
-                return 'urgent';
-
-            case 'Planned':
-            case 'Medium':
-            case 'Low':
-            default:
-                return 'planned';
-        }
-    }
-
-    function buildPopupHtml(marker) {
-        var isNeed = marker.kind === MARKER_KIND.NEED;
-        var whenLabel = isNeed ? 'Deadline' : 'Available from';
-
-        var kindLabel = isNeed
-            ? (marker.priority || 'Planned').toUpperCase() + ' NEED'
-            : (marker.status || '').toUpperCase() + ' RESOURCE';
-
-        var detailsUrl = isNeed
-            ? '/Need/Details?id=' + encodeURIComponent(marker.id)
-            : '/Resource/Details?id=' + encodeURIComponent(marker.id);
-
-        var detailsId = 'map-popup-details-' + detailsCounter++;
-        var markerColor = getMarkerColor(marker);
-        var html = '';
-
-        html += '<div class="map-popup-kind">' +
-            escapeHtml(kindLabel) + '</div>';
-
-        html += '<div class="map-popup-title">' +
-            escapeHtml(marker.title) + '</div>';
-
-        if (isNeed && marker.priority) {
-            html += '<span class="map-popup-badge" style="background:' +
-                markerColor + '">' +
-                escapeHtml(marker.priority) + ' priority</span>';
-        }
-
-        if (filterCenter) {
-            var distance = distanceKm(
-                filterCenter.lat,
-                filterCenter.lng,
-                Number(marker.latitude),
-                Number(marker.longitude)
-            );
-
-            html += '<div class="map-popup-row"><strong>Distance:</strong> ' +
-                distance.toFixed(1) + ' km away</div>';
-        }
-
-        html += '<div class="map-popup-row"><strong>Type:</strong> ' +
-            escapeHtml(marker.category) + '</div>';
-
-        if (marker.region) {
-            html += '<div class="map-popup-row"><strong>Region:</strong> ' +
-                escapeHtml(marker.region) + '</div>';
-        }
-
-        if (marker.when) {
-            html += '<div class="map-popup-row"><strong>' +
-                whenLabel + ':</strong> ' +
-                escapeHtml(formatDate(marker.when)) + '</div>';
-        }
-
-        html += '<div class="map-popup-row"><strong>Status:</strong> ' +
-            escapeHtml(marker.status) + '</div>';
-
-        html += '<a class="map-popup-action" href="' +
-            detailsUrl + '">View details</a>';
-
-        html += '<button type="button" id="' + detailsId +
-            '-toggle" class="map-popup-toggle" ' +
-            'onclick="toggleMapPopupDetails(\'' + detailsId +
-            '\')">Show details</button>';
-
-        html += '<div class="map-popup-extra" id="' + detailsId +
-            '" style="display:none;">';
-
-        if (marker.description) {
-            html += '<div class="map-popup-row">' +
-                escapeHtml(marker.description) + '</div>';
-        }
-
-        if (marker.contactInfo) {
-            html += '<div class="map-popup-row"><strong>Contact:</strong> ' +
-                escapeHtml(marker.contactInfo) + '</div>';
-        }
-
-        html += '</div>';
-
-        return html;
+    function isValidCoordinate(value, min, max) {
+        return value !== null &&
+            value !== undefined &&
+            value !== "" &&
+            Number.isFinite(Number(value)) &&
+            Number(value) >= min &&
+            Number(value) <= max;
     }
 
     function hasValidCoordinates(marker) {
-        return Number.isFinite(Number(marker.latitude)) &&
-            Number.isFinite(Number(marker.longitude)) &&
-            Number(marker.latitude) >= -90 &&
-            Number(marker.latitude) <= 90 &&
-            Number(marker.longitude) >= -180 &&
-            Number(marker.longitude) <= 180;
+        return marker &&
+            isValidCoordinate(marker.latitude, -90, 90) &&
+            isValidCoordinate(marker.longitude, -180, 180);
     }
 
-    function renderMarkers(map, markers) {
-        if (!markersLayer) {
-            markersLayer = L.layerGroup().addTo(map);
+    function isNeed(marker) {
+        return marker.kind === MARKER_KIND.NEED;
+    }
+
+    function isResource(marker) {
+        return marker.kind === MARKER_KIND.RESOURCE;
+    }
+
+    function getPriority(marker) {
+        const priority = String(marker.priority ?? "");
+
+        return PRIORITIES.includes(priority) ? priority : "Medium";
+    }
+
+    function getResourceColor(marker) {
+        return marker.status === "Available"
+            ? COLORS.ResourceAvailable
+            : COLORS.ResourceBusy;
+    }
+
+    function getMarkerColor(marker) {
+        if (isResource(marker)) {
+            return getResourceColor(marker);
         }
 
-        markersLayer.clearLayers();
+        return COLORS[getPriority(marker)];
+    }
 
-        var note = getElement('mapEmptyNote');
+    function getPriorityLabel(marker) {
+        return isNeed(marker)
+            ? formatLabel(getPriority(marker))
+            : null;
+    }
 
-        if (markers.length === 0) {
-            if (note) {
-                note.textContent = !hasLoadedMarkers
-                    ? 'Loading map data...'
-                    : allMarkers.length === 0
-                        ? 'No needs or resources in this area.'
-                        : 'No needs or resources match your current filters.';
+    // ------------------------------------------------------------
+    // Distance calculations
+    // ------------------------------------------------------------
 
-                note.style.display = 'block';
-            }
+    function distanceKm(lat1, lon1, lat2, lon2) {
+        const earthRadiusKm = 6371;
+        const toRadians = degrees => degrees * Math.PI / 180;
 
+        const latitudeDifference = toRadians(lat2 - lat1);
+        const longitudeDifference = toRadians(lon2 - lon1);
+
+        const a =
+            Math.sin(latitudeDifference / 2) ** 2 +
+            Math.cos(toRadians(lat1)) *
+            Math.cos(toRadians(lat2)) *
+            Math.sin(longitudeDifference / 2) ** 2;
+
+        return earthRadiusKm * 2 * Math.atan2(
+            Math.sqrt(a),
+            Math.sqrt(1 - a)
+        );
+    }
+
+    function getDistanceFromSearch(marker) {
+        if (!searchLocation || !hasValidCoordinates(marker)) {
+            return null;
+        }
+
+        return distanceKm(
+            searchLocation.lat,
+            searchLocation.lng,
+            Number(marker.latitude),
+            Number(marker.longitude)
+        );
+    }
+
+    // ------------------------------------------------------------
+    // Marker icons
+    //
+    // Needs: coloured diamonds, with a priority label.
+    // Resources: squares, with availability indicated by colour.
+    // Shapes remain distinct even without relying on colour alone.
+    // ------------------------------------------------------------
+
+    function createMarkerIcon(marker) {
+        const color = getMarkerColor(marker);
+        const resource = isResource(marker);
+
+        const shapeClass = resource
+            ? "map-marker-shape map-marker-resource"
+            : "map-marker-shape map-marker-need";
+
+        const symbol = resource
+            ? "+"
+            : getPriority(marker) === "Critical"
+                ? "!"
+                : getPriority(marker) === "Medium"
+                    ? "M"
+                    : "L";
+
+        const html = `
+            <div
+                class="${shapeClass}"
+                style="--marker-color:${color}"
+                title="${escapeHtml(
+                    resource
+                        ? `Resource: ${marker.status}`
+                        : `Need priority: ${getPriority(marker)}`
+                )}"
+                aria-label="${escapeHtml(
+                    resource
+                        ? `Resource, ${marker.status}`
+                        : `Need, ${getPriority(marker)} priority`
+                )}">
+                <span>${symbol}</span>
+            </div>`;
+
+        return L.divIcon({
+            className: "map-marker-icon",
+            html,
+            iconSize: [32, 32],
+            iconAnchor: [16, 16],
+            popupAnchor: [0, -16]
+        });
+    }
+
+    function installMarkerStyles() {
+        if (getElement("mapMarkerStyles")) {
             return;
         }
 
-        if (note) note.style.display = 'none';
+        const style = document.createElement("style");
+        style.id = "mapMarkerStyles";
 
-        markers.forEach(function (marker) {
-            var circle = L.circleMarker(
+        style.textContent = `
+            .map-marker-icon {
+                background: transparent;
+                border: none;
+            }
+
+            .map-marker-shape {
+                width: 25px;
+                height: 25px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: var(--marker-color);
+                color: #fff;
+                border: 2px solid #fff;
+                box-shadow: 0 1px 5px rgba(0, 0, 0, .45);
+                font-size: 12px;
+                font-weight: 800;
+                box-sizing: border-box;
+            }
+
+            .map-marker-need {
+                transform: rotate(45deg);
+                border-radius: 3px;
+            }
+
+            .map-marker-need span {
+                transform: rotate(-45deg);
+            }
+
+            .map-marker-resource {
+                border-radius: 5px;
+                font-size: 20px;
+            }
+
+            .map-popup {
+                min-width: 190px;
+                max-width: 280px;
+            }
+
+            .map-popup h3 {
+                font-size: 1rem;
+                margin: 0 0 8px;
+                overflow-wrap: anywhere;
+            }
+
+            .map-popup p {
+                margin: 4px 0;
+                overflow-wrap: anywhere;
+            }
+
+            .map-popup-details {
+                margin-top: 8px;
+            }
+
+            .map-popup-details summary {
+                cursor: pointer;
+                font-weight: 600;
+            }
+
+            .map-popup-badge {
+                display: inline-block;
+                padding: 3px 7px;
+                border-radius: 4px;
+                color: white;
+                font-size: .75rem;
+                font-weight: 700;
+            }
+        `;
+
+        document.head.appendChild(style);
+    }
+
+    // ------------------------------------------------------------
+    // Popup content
+    // ------------------------------------------------------------
+
+    function buildPopupHtml(marker) {
+        const resource = isResource(marker);
+        const typeLabel = resource ? "Resource" : "Need";
+        const color = getMarkerColor(marker);
+
+        const priorityHtml = isNeed(marker)
+            ? `<p><strong>Priority:</strong> ${escapeHtml(getPriorityLabel(marker))}</p>`
+            : "";
+
+        const availabilityHtml = resource
+            ? `<p><strong>Availability:</strong> ${escapeHtml(formatLabel(marker.status))}</p>`
+            : "";
+
+        const relevantDateHtml = marker.when
+            ? `<p><strong>${resource ? "Available from" : "Relevant date"}:</strong>
+                   ${escapeHtml(formatDate(marker.when))}</p>`
+            : "";
+
+        const distance = getDistanceFromSearch(marker);
+        const distanceHtml = distance !== null
+            ? `<p><strong>Distance:</strong> ${distance.toFixed(1)} km</p>`
+            : "";
+
+        const descriptionHtml = marker.description
+            ? `<p>${escapeHtml(marker.description)}</p>`
+            : "";
+
+        const contactHtml = marker.contactInfo
+            ? `<p><strong>Contact:</strong> ${escapeHtml(marker.contactInfo)}</p>`
+            : "";
+
+        return `
+            <div class="map-popup">
+                <h3>${escapeHtml(marker.title || typeLabel)}</h3>
+
+                <p>
+                    <span class="map-popup-badge"
+                          style="background:${color}">
+                        ${escapeHtml(typeLabel)}
+                    </span>
+                </p>
+
+                <p><strong>Category:</strong> ${escapeHtml(marker.category)}</p>
+                <p><strong>Region:</strong> ${escapeHtml(marker.region)}</p>
+                ${priorityHtml}
+                ${availabilityHtml}
+                ${relevantDateHtml}
+                ${distanceHtml}
+
+                <details class="map-popup-details">
+                    <summary>More details</summary>
+                    ${descriptionHtml}
+                    ${contactHtml}
+                    <p><strong>Status:</strong> ${escapeHtml(formatLabel(marker.status))}</p>
+                </details>
+            </div>`;
+    }
+
+    // ------------------------------------------------------------
+    // Marker rendering
+    // ------------------------------------------------------------
+
+    function renderMarkers(markers) {
+        markerLayer.clearLayers();
+        renderedMarkers = [];
+
+        markers.forEach(marker => {
+            const leafletMarker = L.marker(
                 [Number(marker.latitude), Number(marker.longitude)],
                 {
-                    radius: 9,
-                    color: '#ffffff',
-                    weight: 2,
-                    fillColor: getMarkerColor(marker),
-                    fillOpacity: 0.95
+                    icon: createMarkerIcon(marker),
+                    title: marker.title || marker.kind
                 }
             );
 
-            circle.bindPopup(buildPopupHtml(marker), {
-                minWidth: 220
-            });
+            leafletMarker.bindPopup(buildPopupHtml(marker));
+            leafletMarker.addTo(markerLayer);
 
-            circle.addTo(markersLayer);
+            renderedMarkers.push({
+                data: marker,
+                leafletMarker
+            });
         });
+
+        updateEmptyMessage(markers.length);
     }
 
-    function populateFilterOptions(markers) {
-        var categorySelect = getElement('mapFilterCategory');
-        var regionSelect = getElement('mapFilterRegion');
-        var needStatusSelect = getElement('mapFilterNeedStatus');
-        var resourceStatusSelect = getElement('mapFilterResourceStatus');
+    function updateEmptyMessage(visibleCount) {
+        const emptyNote = elements.mapEmptyNote;
 
-        function uniqueSorted(values) {
-            var seen = Object.create(null);
-            var result = [];
-
-            values.forEach(function (value) {
-                if (value && !seen[value]) {
-                    seen[value] = true;
-                    result.push(value);
-                }
-            });
-
-            return result.sort();
+        if (!emptyNote) {
+            return;
         }
 
-        function fillSelect(select, values) {
-            if (!select) return;
-
-            var current = select.value;
-
-            if (current && values.indexOf(current) === -1) {
-                values.push(current);
-                values.sort();
-            }
-
-            while (select.options.length > 1) {
-                select.remove(1);
-            }
-
-            values.forEach(function (value) {
-                var option = document.createElement('option');
-                option.value = value;
-                option.textContent = value;
-                select.appendChild(option);
-            });
-
-            select.value = current;
+        if (!hasLoadedMarkers && isLoading) {
+            emptyNote.textContent = "Loading map data...";
+            emptyNote.style.display = "";
+            return;
         }
 
+        if (visibleCount === 0) {
+            emptyNote.textContent = allMarkers.length === 0
+                ? "No needs or resources in this area."
+                : "No markers match the selected filters.";
+
+            emptyNote.style.display = "";
+            return;
+        }
+
+        emptyNote.style.display = "none";
+    }
+
+    function updateCapMessage(truncated) {
+        const capNote = elements.mapCapNote;
+
+        if (!capNote) {
+            return;
+        }
+
+        capNote.style.display = truncated ? "" : "none";
+    }
+
+    // ------------------------------------------------------------
+    // Filter option population
+    // ------------------------------------------------------------
+
+    function fillSelect(select, values, placeholder) {
+        if (!select) {
+            return;
+        }
+
+        const previousValue = select.value;
+        const uniqueValues = [...new Set(
+            values.filter(value => value !== null && value !== undefined && value !== "")
+        )].sort((a, b) => String(a).localeCompare(String(b)));
+
+        select.replaceChildren();
+
+        const defaultOption = document.createElement("option");
+        defaultOption.value = "";
+        defaultOption.textContent = placeholder;
+        select.appendChild(defaultOption);
+
+        uniqueValues.forEach(value => {
+            const option = document.createElement("option");
+            option.value = String(value);
+            option.textContent = formatLabel(value);
+            select.appendChild(option);
+        });
+
+        // Keep the selected filter when panning to a different area.
+        if (previousValue && !uniqueValues.some(value => String(value) === previousValue)) {
+            const preservedOption = document.createElement("option");
+            preservedOption.value = previousValue;
+            preservedOption.textContent = formatLabel(previousValue);
+            select.appendChild(preservedOption);
+        }
+
+        select.value = previousValue;
+    }
+
+    function populateFilterOptions() {
         fillSelect(
-            categorySelect,
-            uniqueSorted(markers.map(function (marker) {
-                return marker.category;
-            }))
+            elements.mapFilterCategory,
+            allMarkers.map(marker => marker.category),
+            "All categories"
         );
 
         fillSelect(
-            regionSelect,
-            uniqueSorted(markers.map(function (marker) {
-                return marker.region;
-            }))
+            elements.mapFilterRegion,
+            allMarkers.map(marker => marker.region),
+            "All regions"
         );
 
         fillSelect(
-            needStatusSelect,
-            uniqueSorted(markers
-                .filter(function (marker) {
-                    return marker.kind === MARKER_KIND.NEED;
-                })
-                .map(function (marker) {
-                    return marker.status;
-                }))
+            elements.mapFilterNeedStatus,
+            NEED_STATUSES,
+            "All need statuses"
         );
 
         fillSelect(
-            resourceStatusSelect,
-            uniqueSorted(markers
-                .filter(function (marker) {
-                    return marker.kind === MARKER_KIND.RESOURCE;
-                })
-                .map(function (marker) {
-                    return marker.status;
-                }))
+            elements.mapFilterResourceStatus,
+            RESOURCE_STATUSES,
+            "All resource statuses"
         );
+    }
+
+    // ------------------------------------------------------------
+    // Read filter state
+    // ------------------------------------------------------------
+
+    function getCheckedValues(selector) {
+        return [...document.querySelectorAll(selector)]
+            .filter(input => input.checked)
+            .map(input => input.value);
     }
 
     function getFilterState() {
-        var kindBoxes = document.querySelectorAll('.map-filter-kind:checked');
-        var priorityBoxes = document.querySelectorAll('.map-filter-priority:checked');
+        const kinds = getCheckedValues(".map-filter-kind");
+        const priorities = getCheckedValues(".map-filter-priority");
 
         return {
-            kinds: Array.prototype.map.call(kindBoxes, function (checkbox) {
-                return checkbox.value;
-            }),
-            priorities: Array.prototype.map.call(priorityBoxes, function (checkbox) {
-                return checkbox.value;
-            }),
-            category: getElement('mapFilterCategory')?.value || '',
-            region: getElement('mapFilterRegion')?.value || '',
-            needStatus: getElement('mapFilterNeedStatus')?.value || '',
-            resourceStatus: getElement('mapFilterResourceStatus')?.value || '',
-            radius: parseFloat(getElement('mapFilterRadius')?.value || '0')
+            kinds,
+            priorities,
+            category: elements.mapFilterCategory?.value ?? "",
+            region: elements.mapFilterRegion?.value ?? "",
+            needStatus: elements.mapFilterNeedStatus?.value ?? "",
+            resourceStatus: elements.mapFilterResourceStatus?.value ?? "",
+            radiusEnabled: elements.mapFilterRadius?.checked ?? false
         };
     }
 
-    function applyFilters(map) {
-        var state = getFilterState();
+    function matchesFilters(marker, filters) {
+        if (!filters.kinds.includes(marker.kind)) {
+            return false;
+        }
 
-        var filtered = allMarkers.filter(function (marker) {
-            if (state.kinds.indexOf(marker.kind) === -1) {
+        if (filters.category && marker.category !== filters.category) {
+            return false;
+        }
+
+        if (filters.region && marker.region !== filters.region) {
+            return false;
+        }
+
+        if (isNeed(marker)) {
+            if (filters.priorities.length > 0 &&
+                !filters.priorities.includes(getPriority(marker))) {
                 return false;
             }
 
-            if (
-                marker.kind === MARKER_KIND.NEED &&
-                marker.priority &&
-                state.priorities.indexOf(priorityBucket(marker.priority)) === -1
-            ) {
+            if (filters.needStatus && marker.status !== filters.needStatus) {
                 return false;
             }
+        }
 
-            if (state.category && marker.category !== state.category) {
+        if (isResource(marker) &&
+            filters.resourceStatus &&
+            marker.status !== filters.resourceStatus) {
+            return false;
+        }
+
+        if (filters.radiusEnabled && searchLocation) {
+            const distance = getDistanceFromSearch(marker);
+
+            if (distance === null || distance > CONFIG.searchRadiusKm) {
                 return false;
             }
+        }
 
-            if (state.region && marker.region !== state.region) {
-                return false;
-            }
+        return true;
+    }
 
-            if (
-                marker.kind === MARKER_KIND.NEED &&
-                state.needStatus &&
-                marker.status !== state.needStatus
-            ) {
-                return false;
-            }
+    function applyFilters() {
+        if (!hasLoadedMarkers) {
+            updateEmptyMessage(0);
+            return;
+        }
 
-            if (
-                marker.kind === MARKER_KIND.RESOURCE &&
-                state.resourceStatus &&
-                marker.status !== state.resourceStatus
-            ) {
-                return false;
-            }
+        const filters = getFilterState();
+        const filteredMarkers = allMarkers.filter(marker =>
+            matchesFilters(marker, filters)
+        );
 
-            if (state.radius && filterCenter) {
-                var distance = distanceKm(
-                    filterCenter.lat,
-                    filterCenter.lng,
-                    Number(marker.latitude),
-                    Number(marker.longitude)
-                );
+        renderMarkers(filteredMarkers);
+        updateDistanceNote(filters.radiusEnabled);
+    }
 
-                if (distance > state.radius) {
-                    return false;
-                }
-            }
+    function updateDistanceNote(radiusEnabled) {
+        const note = elements.mapFilterDistanceNote;
 
-            return true;
+        if (!note) {
+            return;
+        }
+
+        if (!searchLocation) {
+            note.textContent = "Search for an address to filter by distance.";
+            return;
+        }
+
+        if (radiusEnabled) {
+            note.textContent =
+                `Showing markers within ${CONFIG.searchRadiusKm} km of the searched location.`;
+        } else {
+            note.textContent =
+                "Address found. Enable the distance filter to limit results.";
+        }
+    }
+
+    // ------------------------------------------------------------
+    // Fetch markers for the currently visible map bounds
+    // ------------------------------------------------------------
+
+    function scheduleLoad() {
+        window.clearTimeout(debounceTimeout);
+
+        debounceTimeout = window.setTimeout(() => {
+            loadMarkers();
+        }, CONFIG.requestDebounceMs);
+    }
+
+    async function loadMarkers() {
+        if (!map) {
+            return;
+        }
+
+        const bounds = map.getBounds();
+        const southWest = bounds.getSouthWest();
+        const northEast = bounds.getNorthEast();
+
+        const params = new URLSearchParams({
+            south: String(southWest.lat),
+            north: String(northEast.lat),
+            west: String(southWest.lng),
+            east: String(northEast.lng)
         });
 
-        renderMarkers(map, filtered);
-    }
+        const currentRequest = ++requestSequence;
+        isLoading = true;
 
-    function scheduleLoad(map) {
-        clearTimeout(loadTimer);
-
-        loadTimer = setTimeout(function () {
-            loadMarkers(map);
-        }, 250);
-    }
-
-    function loadMarkers(map) {
-        var bounds = map.getBounds();
-
-        var params = new URLSearchParams({
-            south: clamp(bounds.getSouth(), -90, 90),
-            north: clamp(bounds.getNorth(), -90, 90),
-            west: clamp(bounds.getWest(), -180, 180),
-            east: clamp(bounds.getEast(), -180, 180)
-        });
-
-        var sequence = ++requestSeq;
-
-        fetch('/Map/Data?' + params.toString())
-            .then(function (response) {
-                if (!response.ok) {
-                    throw new Error(
-                        'Map data request failed: ' + response.status
-                    );
-                }
-
-                return response.json();
-            })
-            .then(function (data) {
-                if (sequence !== requestSeq) return;
-
-                var markers = Array.isArray(data.markers)
-                    ? data.markers
-                    : [];
-
-                allMarkers = markers.filter(hasValidCoordinates);
-                hasLoadedMarkers = true;
-
-                populateFilterOptions(allMarkers);
-                applyFilters(map);
-
-                var capNote = getElement('mapCapNote');
-
-                if (capNote) {
-                    capNote.style.display = data.truncated ? 'block' : 'none';
-                }
-            })
-            .catch(function (error) {
-                if (sequence !== requestSeq) return;
-
-                console.error('Could not load map data', error);
-
-                var note = getElement('mapEmptyNote');
-
-                if (note) {
-                    note.textContent =
-                        'Could not load map data. Please reload the page.';
-                    note.style.display = 'block';
-                }
-            });
-    }
-
-    function wireFilterControls(map) {
-        var box = getElement('mapFilterBox');
-        var toggleButton = getElement('mapFilterToggle');
-        var locationButton = getElement('mapFilterLocationBtn');
-        var radiusSelect = getElement('mapFilterRadius');
-        var distanceNote = getElement('mapFilterDistanceNote');
-        var resetButton = getElement('mapFilterResetBtn');
-
-        if (toggleButton && box) {
-            toggleButton.addEventListener('click', function () {
-                box.classList.toggle('collapsed');
-
-                toggleButton.setAttribute(
-                    'aria-expanded',
-                    String(!box.classList.contains('collapsed'))
-                );
-            });
+        if (!hasLoadedMarkers) {
+            updateEmptyMessage(0);
         }
 
-        document.querySelectorAll(
-            '.map-filter-kind, .map-filter-priority, ' +
-            '#mapFilterCategory, #mapFilterRegion, ' +
-            '#mapFilterNeedStatus, #mapFilterResourceStatus, ' +
-            '#mapFilterRadius'
-        ).forEach(function (element) {
-            element.addEventListener('change', function () {
-                applyFilters(map);
-            });
-        });
-
-        if (locationButton) {
-            locationButton.addEventListener('click', function () {
-                if (!navigator.geolocation) {
-                    if (distanceNote) {
-                        distanceNote.textContent =
-                            "Your browser doesn't support location.";
-                    }
-
-                    return;
-                }
-
-                locationButton.textContent = 'Locating…';
-
-                navigator.geolocation.getCurrentPosition(
-                    function (position) {
-                        if (searchMarker) {
-                            map.removeLayer(searchMarker);
-                            searchMarker = null;
-                        }
-
-                        filterCenter = {
-                            lat: position.coords.latitude,
-                            lng: position.coords.longitude
-                        };
-
-                        locationButton.textContent = 'Location set';
-                        locationButton.classList.add('active');
-
-                        if (radiusSelect) radiusSelect.disabled = false;
-
-                        if (distanceNote) {
-                            distanceNote.textContent =
-                                'Centered on your current location.';
-                        }
-
-                        applyFilters(map);
-                    },
-                    function () {
-                        locationButton.textContent = 'Use my location';
-
-                        if (distanceNote) {
-                            distanceNote.textContent =
-                                "Couldn't get your location. Check your browser's permissions.";
-                        }
-                    },
-                    {
-                        enableHighAccuracy: false,
-                        timeout: 10000,
-                        maximumAge: 60000
-                    }
-                );
-            });
-        }
-
-        if (resetButton) {
-            resetButton.addEventListener('click', function () {
-                document.querySelectorAll(
-                    '.map-filter-kind, .map-filter-priority'
-                ).forEach(function (checkbox) {
-                    checkbox.checked = true;
-                });
-
-                [
-                    'mapFilterCategory',
-                    'mapFilterRegion',
-                    'mapFilterNeedStatus',
-                    'mapFilterResourceStatus'
-                ].forEach(function (id) {
-                    var element = getElement(id);
-                    if (element) element.value = '';
-                });
-
-                if (radiusSelect) {
-                    radiusSelect.value = '';
-                    radiusSelect.disabled = true;
-                }
-
-                filterCenter = null;
-
-                if (locationButton) {
-                    locationButton.textContent = 'Use my location';
-                    locationButton.classList.remove('active');
-                }
-
-                if (distanceNote) distanceNote.textContent = '';
-
-                if (searchMarker) {
-                    map.removeLayer(searchMarker);
-                    searchMarker = null;
-                }
-
-                var searchInput = getElement('globalSearchInput');
-                if (searchInput) searchInput.value = '';
-
-                applyFilters(map);
-            });
-        }
-    }
-
-    function wireAddressSearch(map) {
-        var input = getElement('globalSearchInput');
-
-        if (!input) return;
-
-        var wrapper = input.parentElement;
-
-        if (wrapper && !wrapper.style.position) {
-            wrapper.style.position = 'relative';
-        }
-
-        var suggestionsBox = document.createElement('div');
-        suggestionsBox.className = 'app-search-suggestions';
-        suggestionsBox.style.display = 'none';
-
-        if (wrapper) wrapper.appendChild(suggestionsBox);
-
-        var debounceTimer = null;
-        var currentResults = [];
-        var requestNumber = 0;
-
-        function hideSuggestions() {
-            suggestionsBox.style.display = 'none';
-            suggestionsBox.replaceChildren();
-        }
-
-        function selectAddress(index) {
-            var item = currentResults[index];
-
-            if (!item) return;
-
-            input.value = item.label;
-            hideSuggestions();
-
-            if (searchMarker) {
-                map.removeLayer(searchMarker);
-            }
-
-            searchMarker = L.circleMarker(
-                [item.lat, item.lon],
+        try {
+            const response = await fetch(
+                `${CONFIG.dataUrl}?${params.toString()}`,
                 {
-                    radius: 8,
-                    color: MARKER_COLORS.default,
-                    weight: 3,
-                    fillColor: '#ffffff',
-                    fillOpacity: 1
+                    method: "GET",
+                    headers: {
+                        Accept: "application/json"
+                    },
+                    credentials: "same-origin"
                 }
-            ).addTo(map);
-
-            searchMarker.bindPopup(
-                'Search center: ' + escapeHtml(item.label)
             );
 
-            filterCenter = {
-                lat: item.lat,
-                lng: item.lon
-            };
-
-            var radiusSelect = getElement('mapFilterRadius');
-            var locationButton = getElement('mapFilterLocationBtn');
-            var distanceNote = getElement('mapFilterDistanceNote');
-
-            if (radiusSelect) {
-                radiusSelect.disabled = false;
-                radiusSelect.value = '10';
+            if (!response.ok) {
+                throw new Error(`Map request failed: ${response.status}`);
             }
 
-            if (locationButton) {
-                locationButton.classList.add('active');
-                locationButton.textContent = 'Location set';
-            }
+            const data = await response.json();
 
-            if (distanceNote) {
-                distanceNote.textContent = 'Centered on: ' + item.label;
-            }
-
-            map.flyTo([item.lat, item.lon], 13);
-            applyFilters(map);
-        }
-
-        function renderSuggestions(items) {
-            currentResults = items;
-            suggestionsBox.replaceChildren();
-
-            if (items.length === 0) {
-                var empty = document.createElement('div');
-                empty.className = 'app-search-suggestion-empty';
-                empty.textContent = 'No matching address found.';
-                suggestionsBox.appendChild(empty);
-            } else {
-                items.forEach(function (item, index) {
-                    var row = document.createElement('div');
-                    row.className = 'app-search-suggestion-item';
-                    row.textContent = item.label;
-
-                    row.addEventListener('click', function () {
-                        selectAddress(index);
-                    });
-
-                    suggestionsBox.appendChild(row);
-                });
-            }
-
-            suggestionsBox.style.display = 'block';
-        }
-
-        function fetchResults(query) {
-            var currentRequest = ++requestNumber;
-
-            var url =
-                'https://ws.geonorge.no/adresser/v1/sok?sok=' +
-                encodeURIComponent(query) +
-                '&treffPerSide=6&fuzzy=true';
-
-            fetch(url)
-                .then(function (response) {
-                    if (!response.ok) {
-                        throw new Error(
-                            'Address search failed: ' + response.status
-                        );
-                    }
-
-                    return response.json();
-                })
-                .then(function (data) {
-                    if (currentRequest !== requestNumber) return;
-
-                    var addresses = (data && data.adresser) || [];
-
-                    var items = addresses
-                        .filter(function (address) {
-                            return address.representasjonspunkt &&
-                                Number.isFinite(Number(address.representasjonspunkt.lat)) &&
-                                Number.isFinite(Number(address.representasjonspunkt.lon));
-                        })
-                        .map(function (address) {
-                            var label = address.adressetekst || '';
-
-                            if (address.postnummer || address.poststed) {
-                                label += ', ' +
-                                    (address.postnummer || '') + ' ' +
-                                    (address.poststed || '');
-                            }
-
-                            return {
-                                label: label.trim(),
-                                lat: Number(address.representasjonspunkt.lat),
-                                lon: Number(address.representasjonspunkt.lon)
-                            };
-                        });
-
-                    renderSuggestions(items);
-                })
-                .catch(function (error) {
-                    if (currentRequest !== requestNumber) return;
-
-                    console.error('Address search failed', error);
-                    renderSuggestions([]);
-                });
-        }
-
-        input.addEventListener('input', function () {
-            var query = input.value.trim();
-
-            if (debounceTimer) clearTimeout(debounceTimer);
-
-            requestNumber++;
-
-            if (query.length < 3) {
-                hideSuggestions();
+            // Ignore responses from older requests after a pan or zoom.
+            if (currentRequest !== requestSequence) {
                 return;
             }
 
-            debounceTimer = setTimeout(function () {
-                fetchResults(query);
-            }, 300);
-        });
+            if (!Array.isArray(data.markers)) {
+                throw new Error("The map API returned an invalid marker list.");
+            }
 
-        input.addEventListener('keydown', function (event) {
-            if (event.key === 'Escape') hideSuggestions();
-        });
+            allMarkers = data.markers.filter(hasValidCoordinates);
+            hasLoadedMarkers = true;
 
-        document.addEventListener('click', function (event) {
-            if (!wrapper || !wrapper.contains(event.target)) {
-                hideSuggestions();
+            updateCapMessage(Boolean(data.truncated));
+            populateFilterOptions();
+            applyFilters();
+        } catch (error) {
+            if (currentRequest === requestSequence) {
+                console.error("Unable to load map markers:", error);
+
+                if (!hasLoadedMarkers && elements.mapEmptyNote) {
+                    elements.mapEmptyNote.textContent =
+                        "Unable to load map data. Try refreshing the page.";
+                    elements.mapEmptyNote.style.display = "";
+                }
+            }
+        } finally {
+            if (currentRequest === requestSequence) {
+                isLoading = false;
+            }
+        }
+    }
+
+    // ------------------------------------------------------------
+    // Address search
+    // ------------------------------------------------------------
+
+    function setSearchLocation(latitude, longitude, label) {
+        searchLocation = {
+            lat: Number(latitude),
+            lng: Number(longitude),
+            label: label || ""
+        };
+
+        if (searchLayer) {
+            searchLayer.clearLayers();
+        }
+
+        if (searchRadiusCircle) {
+            searchLayer.removeLayer(searchRadiusCircle);
+        }
+
+        const searchMarker = L.circleMarker(
+            [searchLocation.lat, searchLocation.lng],
+            {
+                radius: 8,
+                color: "#ffffff",
+                weight: 2,
+                fillColor: COLORS.Search,
+                fillOpacity: 1
+            }
+        ).bindPopup(`<strong>${escapeHtml(label || "Searched location")}</strong>`);
+
+        searchMarker.addTo(searchLayer);
+
+        searchRadiusCircle = L.circle(
+            [searchLocation.lat, searchLocation.lng],
+            {
+                radius: CONFIG.searchRadiusKm * 1000,
+                color: COLORS.Search,
+                weight: 2,
+                fillColor: COLORS.Search,
+                fillOpacity: 0.08
+            }
+        );
+
+        searchRadiusCircle.addTo(searchLayer);
+
+        const radiusEnabled = elements.mapFilterRadius;
+
+        if (radiusEnabled) {
+            radiusEnabled.checked = true;
+        }
+
+        map.setView(
+            [searchLocation.lat, searchLocation.lng],
+            Math.max(map.getZoom(), 12)
+        );
+
+        applyFilters();
+    }
+
+    async function searchAddress() {
+        const input = elements.globalSearchInput;
+        const query = input?.value?.trim();
+
+        if (!query) {
+            return;
+        }
+
+        const button = elements.mapFilterLocationBtn;
+
+        if (button) {
+            button.disabled = true;
+        }
+
+        try {
+            const params = new URLSearchParams({
+                sok: query,
+                treffPerSide: "1",
+                fuzzy: "true"
+            });
+
+            const response = await fetch(
+                `https://ws.geonorge.no/adresser/v1/sok?${params.toString()}`,
+                {
+                    headers: {
+                        Accept: "application/json"
+                    }
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(`Address search failed: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const address = data.adresser?.[0];
+
+            if (!address?.代表spunkt) {
+                // Geonorge normally returns representasjonspunkt for an address.
+                // Handle missing coordinates below as a failed search.
+                if (!address?.representasjonspunkt) {
+                    throw new Error("No matching address was found.");
+                }
+            }
+
+            const point = address.representasjonspunkt;
+
+            if (!point ||
+                !Number.isFinite(Number(point.lat)) ||
+                !Number.isFinite(Number(point.lon))) {
+                throw new Error("The address has no valid coordinates.");
+            }
+
+            const label = [
+                address.adressetekst,
+                address.postnummer,
+                address.poststed
+            ].filter(Boolean).join(", ");
+
+            setSearchLocation(point.lat, point.lon, label || query);
+        } catch (error) {
+            console.error("Address search failed:", error);
+
+            if (elements.mapFilterDistanceNote) {
+                elements.mapFilterDistanceNote.textContent =
+                    "Address not found. Try a more specific Norwegian address.";
+            }
+        } finally {
+            if (button) {
+                button.disabled = false;
+            }
+        }
+    }
+
+    function wireAddressSearch() {
+        elements.mapFilterLocationBtn?.addEventListener("click", searchAddress);
+
+        elements.globalSearchInput?.addEventListener("keydown", event => {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                searchAddress();
             }
         });
     }
+
+    // ------------------------------------------------------------
+    // Filter controls
+    // ------------------------------------------------------------
+
+    function wireFilterControls() {
+        document.querySelectorAll(
+            ".map-filter-kind, .map-filter-priority"
+        ).forEach(input => {
+            input.addEventListener("change", applyFilters);
+        });
+
+        [
+            elements.mapFilterCategory,
+            elements.mapFilterRegion,
+            elements.mapFilterNeedStatus,
+            elements.mapFilterResourceStatus,
+            elements.mapFilterRadius
+        ].forEach(element => {
+            element?.addEventListener("change", applyFilters);
+        });
+
+        elements.mapFilterResetBtn?.addEventListener("click", () => {
+            document.querySelectorAll(
+                ".map-filter-kind, .map-filter-priority"
+            ).forEach(input => {
+                input.checked = true;
+            });
+
+            if (elements.mapFilterCategory) {
+                elements.mapFilterCategory.value = "";
+            }
+
+            if (elements.mapFilterRegion) {
+                elements.mapFilterRegion.value = "";
+            }
+
+            if (elements.mapFilterNeedStatus) {
+                elements.mapFilterNeedStatus.value = "";
+            }
+
+            if (elements.mapFilterResourceStatus) {
+                elements.mapFilterResourceStatus.value = "";
+            }
+
+            if (elements.mapFilterRadius) {
+                elements.mapFilterRadius.checked = false;
+            }
+
+            if (searchLayer) {
+                searchLayer.clearLayers();
+            }
+
+            searchLocation = null;
+            searchRadiusCircle = null;
+
+            updateDistanceNote(false);
+            applyFilters();
+        });
+
+        elements.mapFilterToggle?.addEventListener("click", () => {
+            const filterBox = elements.mapFilterBox;
+
+            if (!filterBox) {
+                return;
+            }
+
+            const isHidden = filterBox.style.display === "none";
+            filterBox.style.display = isHidden ? "" : "none";
+            elements.mapFilterToggle.setAttribute(
+                "aria-expanded",
+                String(isHidden)
+            );
+        });
+    }
+
+    // ------------------------------------------------------------
+    // Initialization
+    // ------------------------------------------------------------
 
     function init() {
-        var mapElement = getElement('leafletMap');
+        const mapElement = getElement("leafletMap");
 
-        if (!mapElement || typeof L === 'undefined') return;
+        if (!mapElement || typeof L === "undefined") {
+            console.error("Map initialization failed: map element or Leaflet is missing.");
+            return;
+        }
 
-        var map = L.map(mapElement, {
-            zoomControl: true
-        }).setView(DEFAULT_CENTER, DEFAULT_ZOOM);
+        cacheElements();
+        installMarkerStyles();
 
-        L.tileLayer(
-            'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-            {
-                maxZoom: 19,
-                attribution: '&copy; OpenStreetMap contributors'
-            }
-        ).addTo(map);
+        map = L.map(mapElement).setView(
+            CONFIG.initialCenter,
+            CONFIG.initialZoom
+        );
 
-        setTimeout(function () {
-            map.invalidateSize();
-        }, 0);
+        L.tileLayer(CONFIG.tileUrl, {
+            attribution: CONFIG.tileAttribution,
+            maxZoom: CONFIG.maxZoom
+        }).addTo(map);
 
-        window.addEventListener('resize', function () {
-            map.invalidateSize();
-        });
+        markerLayer = L.layerGroup().addTo(map);
+        searchLayer = L.layerGroup().addTo(map);
 
-        wireFilterControls(map);
-        wireAddressSearch(map);
+        wireFilterControls();
+        wireAddressSearch();
 
-        map.on('moveend', function () {
-            scheduleLoad(map);
-        });
+        map.on("moveend", scheduleLoad);
 
-        loadMarkers(map);
+        loadMarkers();
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init);
     } else {
         init();
     }

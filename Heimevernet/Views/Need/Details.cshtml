@@ -5,14 +5,17 @@
 
     var (badgeClass, badgeText) = Model.Priority switch
     {
-        Heimevernet.Models.NeedPriority.Urgent =>
-            ("bg-danger", "Urgent"),
+        Heimevernet.Models.NeedPriority.Low =>
+            ("bg-primary", "Low"),
 
-        Heimevernet.Models.NeedPriority.Planned =>
-            ("bg-warning text-dark", "Planned"),
+        Heimevernet.Models.NeedPriority.Medium =>
+            ("bg-info text-dark", "Medium"),
+
+        Heimevernet.Models.NeedPriority.Critical =>
+            ("bg-danger", "Critical"),
 
         _ =>
-            ("bg-success", "Low Priority")
+            ("bg-secondary", "Unknown")
     };
 }
 

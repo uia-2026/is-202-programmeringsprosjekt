@@ -33,7 +33,7 @@ public class NeedCreateViewModel
     public string Region { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Please select a priority.")]
-    public NeedPriority Priority { get; set; } = NeedPriority.Planned;
+    public NeedPriority Priority { get; set; } = NeedPriority.Low;
 
     [DataType(DataType.DateTime)]
     [Heimevernet.ViewModels.Validation.FutureDate(ErrorMessage = "Deadline must be in the future.")]

@@ -1,204 +1,598 @@
+
 @{
     ViewData["Title"] = "Map";
     ViewData["MainClass"] = "app-main--full";
 }
 
 @section Styles {
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <link rel="stylesheet"
+          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin="" />
+
     <style>
-        .map-page-full { flex: 1; position: relative; min-height: 0; }
-        #leafletMap { position: absolute; inset: 0; }
+        .map-page-full {
+            flex: 1;
+            position: relative;
+            min-height: 0;
+        }
+
+        #leafletMap {
+            position: absolute;
+            inset: 0;
+        }
+
+        /* Legend */
 
         .map-legend-box {
-            position: absolute; top: 70px; left: 16px; z-index: 500;
-            background: #fcfcfe; border: 1px solid #e0eaf5; border-radius: 10px;
-            padding: 10px 14px; font-size: 12px; color: #1d385a;
-            box-shadow: 0 4px 14px rgba(10, 30, 60, .12); min-width: 160px;
+            position: absolute;
+            top: 70px;
+            left: 16px;
+            z-index: 500;
+            background: #fcfcfe;
+            border: 1px solid #e0eaf5;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 12px;
+            color: #1d385a;
+            box-shadow: 0 4px 14px rgba(10, 30, 60, .12);
+            min-width: 170px;
         }
-        .map-legend-box .legend-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
-        .map-legend-box .legend-dot { width: 11px; height: 11px; border-radius: 50%; flex: none; }
+
+        .map-legend-box .legend-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 4px 0;
+        }
+
+        .legend-marker {
+            width: 22px;
+            height: 22px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: none;
+            color: #fff;
+            font-size: 10px;
+            font-weight: 800;
+            border: 2px solid #fff;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, .3);
+            box-sizing: border-box;
+        }
+
+        .legend-need {
+            transform: rotate(45deg);
+            border-radius: 2px;
+        }
+
+        .legend-need span {
+            transform: rotate(-45deg);
+        }
+
+        .legend-need-low {
+            background: #2563eb;
+        }
+
+        .legend-need-medium {
+            background: #ca8a04;
+        }
+
+        .legend-need-critical {
+            background: #dc2626;
+        }
+
+        .legend-resource {
+            background: #16a34a;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        .legend-resource-busy {
+            background: #64748b;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        /* Empty state and result limit */
 
         .map-empty-note {
-            position: absolute; bottom: 16px; left: 16px; z-index: 500;
-            background: #fcfcfe; border: 1px solid #e0eaf5; border-radius: 8px;
-            padding: 8px 12px; font-size: 11.5px; color: #6b7a90;
-            box-shadow: 0 4px 14px rgba(10, 30, 60, .1); display: none;
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            z-index: 500;
+            background: #fcfcfe;
+            border: 1px solid #e0eaf5;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 11.5px;
+            color: #6b7a90;
+            box-shadow: 0 4px 14px rgba(10, 30, 60, .1);
+            display: none;
         }
+
+        .map-cap-note {
+            position: absolute;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 500;
+            background: #fff7e6;
+            border: 1px solid #f0d69a;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 12px;
+            color: #785514;
+            box-shadow: 0 4px 14px rgba(10, 30, 60, .1);
+            display: none;
+            max-width: calc(100% - 32px);
+            text-align: center;
+        }
+
+        /* Filter panel */
 
         .map-filter-box {
-            position: absolute; top: 16px; right: 16px; z-index: 500;
-            background: #fcfcfe; border: 1px solid #e0eaf5; border-radius: 10px;
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            z-index: 500;
+            background: #fcfcfe;
+            border: 1px solid #e0eaf5;
+            border-radius: 10px;
             box-shadow: 0 4px 14px rgba(10, 30, 60, .12);
-            font-size: 12px; color: #1d385a; width: 230px;
-            max-height: calc(100% - 32px); overflow-y: auto;
+            font-size: 12px;
+            color: #1d385a;
+            width: 250px;
+            max-height: calc(100% - 32px);
+            overflow-y: auto;
         }
+
         .map-filter-toggle {
-            display: flex; align-items: center; justify-content: space-between;
-            width: 100%; background: none; border: none; cursor: pointer;
-            padding: 10px 14px; font-size: 13px; font-weight: 600; color: #1d385a;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 10px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #1d385a;
         }
-        .map-filter-toggle-icon { font-size: 11px; transition: transform .15s ease; }
-        .map-filter-box.collapsed .map-filter-toggle-icon { transform: rotate(-90deg); }
-        .map-filter-box.collapsed .map-filter-body { display: none; }
-        .map-filter-body { padding: 0 14px 14px; border-top: 1px solid #e0eaf5; }
-        .map-filter-group { margin-top: 10px; }
+
+        .map-filter-toggle-icon {
+            font-size: 11px;
+            transition: transform .15s ease;
+        }
+
+        .map-filter-box.collapsed .map-filter-toggle-icon {
+            transform: rotate(-90deg);
+        }
+
+        .map-filter-box.collapsed .map-filter-body {
+            display: none;
+        }
+
+        .map-filter-body {
+            padding: 0 14px 14px;
+            border-top: 1px solid #e0eaf5;
+        }
+
+        .map-filter-group {
+            margin-top: 10px;
+        }
+
         .map-filter-label {
-            display: block; font-size: 11px; font-weight: 700; letter-spacing: .03em;
-            color: #6b7a90; text-transform: uppercase; margin-bottom: 4px;
+            display: block;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .03em;
+            color: #6b7a90;
+            text-transform: uppercase;
+            margin-bottom: 4px;
         }
-        .map-filter-checks { display: flex; flex-direction: column; gap: 3px; }
-        .map-filter-checks label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #1d385a; cursor: pointer; }
+
+        .map-filter-checks {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .map-filter-checks label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #1d385a;
+            cursor: pointer;
+        }
+
+        .map-filter-checks input {
+            margin: 0;
+        }
+
         .map-filter-select {
-            width: 100%; font-size: 12px; color: #1d385a; padding: 5px 6px;
-            border: 1px solid #e0eaf5; border-radius: 6px; background: #fff;
+            width: 100%;
+            font-size: 12px;
+            color: #1d385a;
+            padding: 5px 6px;
+            border: 1px solid #e0eaf5;
+            border-radius: 6px;
+            background: #fff;
         }
-        .map-filter-distance-row { display: flex; gap: 6px; align-items: center; }
+
+        .map-filter-distance-row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
         .map-filter-location-btn {
-            flex: none; font-size: 11px; font-weight: 600; color: #1d385a;
-            background: #eef3fa; border: 1px solid #e0eaf5; border-radius: 6px;
-            padding: 5px 8px; cursor: pointer;
+            flex: none;
+            font-size: 11px;
+            font-weight: 600;
+            color: #1d385a;
+            background: #eef3fa;
+            border: 1px solid #e0eaf5;
+            border-radius: 6px;
+            padding: 5px 8px;
+            cursor: pointer;
         }
-        .map-filter-location-btn.active { background: #1d385a; color: #fff; }
-        .map-filter-distance-note { font-size: 10.5px; color: #6b7a90; margin-top: 4px; }
+
+        .map-filter-location-btn:hover {
+            background: #dce7f5;
+        }
+
+        .map-filter-location-btn:disabled {
+            opacity: .6;
+            cursor: wait;
+        }
+
+        .map-filter-distance-note {
+            font-size: 10.5px;
+            color: #6b7a90;
+            margin-top: 4px;
+        }
+
         .map-filter-reset {
-            display: block; width: 100%; text-align: center; margin-top: 12px;
-            background: none; border: 1px solid #e0eaf5; border-radius: 6px;
-            padding: 6px 10px; font-size: 11.5px; color: #1d385a; cursor: pointer;
+            display: block;
+            width: 100%;
+            text-align: center;
+            margin-top: 12px;
+            background: none;
+            border: 1px solid #e0eaf5;
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 11.5px;
+            color: #1d385a;
+            cursor: pointer;
         }
+
+        .map-filter-reset:hover {
+            background: #eef3fa;
+        }
+
+        /* Popups */
 
         .map-popup-kind {
-            font-size: 10.5px; font-weight: 700; letter-spacing: .04em;
-            color: #6b7a90; text-transform: uppercase; margin-bottom: 2px;
-        }
-        .map-popup-title { font-weight: 600; margin-bottom: 2px; }
-        .map-popup-row { font-size: 12px; color: #44525f; margin: 1px 0; }
-        .map-popup-badge {
-            display: inline-block; color: #fff; font-size: 11px; font-weight: 600;
-            padding: 2px 8px; border-radius: 999px; margin: 4px 0;
-        }
-        .map-popup-action {
-            display: block; text-align: center; background: #1d385a; color: #fff;
-            border-radius: 6px; padding: 6px 10px; font-size: 12px; font-weight: 600;
-            text-decoration: none; margin-top: 8px;
-        }
-        .map-popup-toggle {
-            display: block; width: 100%; text-align: center; background: none; border: none;
-            color: #1d385a; font-size: 11.5px; padding: 6px 0 0; cursor: pointer;
-        }
-        .map-popup-extra {
-            margin-top: 6px; padding-top: 6px; border-top: 1px solid #e0eaf5;
-        }
-                .app-search-suggestions {
-            position: absolute; top: 100%; left: 0; right: 0; z-index: 1000;
-            background: #fcfcfe; border: 1px solid #e0eaf5; border-top: none;
-            border-radius: 0 0 8px 8px; box-shadow: 0 8px 20px rgba(10, 30, 60, .15);
-            max-height: 260px; overflow-y: auto;
-        }
-        .app-search-suggestion-item {
-            padding: 8px 14px; font-size: 13px; color: #1d385a; cursor: pointer;
-        }
-        .app-search-suggestion-item:hover { background: #eef3fa; }
-        .app-search-suggestion-empty {
-            padding: 8px 14px; font-size: 12.5px; color: #6b7a90; font-style: italic;
+            font-size: 10.5px;
+            font-weight: 700;
+            letter-spacing: .04em;
+            color: #6b7a90;
+            text-transform: uppercase;
+            margin-bottom: 2px;
         }
 
+        .map-popup-title {
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .map-popup-row {
+            font-size: 12px;
+            color: #44525f;
+            margin: 4px 0;
+            overflow-wrap: anywhere;
+        }
+
+        .map-popup-badge {
+            display: inline-block;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 999px;
+            margin: 4px 0;
+        }
+
+        .map-popup-action {
+            display: block;
+            text-align: center;
+            background: #1d385a;
+            color: #fff;
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            margin-top: 8px;
+        }
+
+        .map-popup-toggle {
+            display: block;
+            width: 100%;
+            text-align: center;
+            background: none;
+            border: none;
+            color: #1d385a;
+            font-size: 11.5px;
+            padding: 6px 0 0;
+            cursor: pointer;
+        }
+
+        .map-popup-extra {
+            margin-top: 6px;
+            padding-top: 6px;
+            border-top: 1px solid #e0eaf5;
+        }
+
+        /* Global search suggestions */
+
+        .app-search-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: #fcfcfe;
+            border: 1px solid #e0eaf5;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 8px 20px rgba(10, 30, 60, .15);
+            max-height: 260px;
+            overflow-y: auto;
+        }
+
+        .app-search-suggestion-item {
+            padding: 8px 14px;
+            font-size: 13px;
+            color: #1d385a;
+            cursor: pointer;
+        }
+
+        .app-search-suggestion-item:hover {
+            background: #eef3fa;
+        }
+
+        .app-search-suggestion-empty {
+            padding: 8px 14px;
+            font-size: 12.5px;
+            color: #6b7a90;
+            font-style: italic;
+        }
+
+        @@media (max-width: 600px) {
+            .map-legend-box {
+                top: 64px;
+                left: 8px;
+                padding: 8px 10px;
+                min-width: 145px;
+                font-size: 11px;
+            }
+
+            .map-filter-box {
+                top: 8px;
+                right: 8px;
+                width: 220px;
+                max-height: calc(100% - 16px);
+            }
+
+            .map-empty-note {
+                bottom: 8px;
+                left: 8px;
+                max-width: calc(100% - 16px);
+            }
+        }
     </style>
 }
 
 <div class="map-page-full">
     <div id="leafletMap"></div>
 
-    <div class="map-legend-box">
-        <div class="legend-row"><span class="legend-dot" style="background:#e4483c;"></span>Urgent need</div>
-        <div class="legend-row"><span class="legend-dot" style="background:#f0a93b;"></span>Planned need</div>
-        <div class="legend-row"><span class="legend-dot" style="background:#2e9e5b;"></span>Available resource</div>
-        <div class="legend-row"><span class="legend-dot" style="background:#3b7dd8;"></span>Public actor</div>
+    <div class="map-legend-box" aria-label="Map legend">
+        <div class="legend-row">
+            <span class="legend-marker legend-need legend-need-low">
+                <span>L</span>
+            </span>
+            Low priority need
+        </div>
+
+        <div class="legend-row">
+            <span class="legend-marker legend-need legend-need-medium">
+                <span>M</span>
+            </span>
+            Medium priority need
+        </div>
+
+        <div class="legend-row">
+            <span class="legend-marker legend-need legend-need-critical">
+                <span>!</span>
+            </span>
+            Critical priority need
+        </div>
+
+        <div class="legend-row">
+            <span class="legend-marker legend-resource">+</span>
+            Available resource
+        </div>
+
+        <div class="legend-row">
+            <span class="legend-marker legend-resource-busy">+</span>
+            Busy resource
+        </div>
+    </div>
+
+    <div id="mapCapNote" class="map-cap-note" role="status">
+        Too many results to show at once. Zoom in to see more.
     </div>
 
     <div class="map-filter-box" id="mapFilterBox">
-        <button type="button" class="map-filter-toggle" id="mapFilterToggle" aria-expanded="true">
+        <button type="button"
+                class="map-filter-toggle"
+                id="mapFilterToggle"
+                aria-expanded="true"
+                aria-controls="mapFilterBody">
             <span>Filters</span>
-            <span class="map-filter-toggle-icon">▾</span>
+            <span class="map-filter-toggle-icon" aria-hidden="true">▾</span>
         </button>
-        <div class="map-filter-body" id="mapFilterBody">
 
+        <div class="map-filter-body" id="mapFilterBody">
             <div class="map-filter-group">
-                <label class="map-filter-label">Type</label>
+                <span class="map-filter-label">Type</span>
+
                 <div class="map-filter-checks">
                     <label>
-                        <input type="checkbox" class="map-filter-kind" value="Need" checked />
+                        <input type="checkbox"
+                               class="map-filter-kind"
+                               value="Need"
+                               checked />
                         Needs
                     </label>
+
                     <label>
-                        <input type="checkbox" class="map-filter-kind" value="Resource" checked />
+                        <input type="checkbox"
+                               class="map-filter-kind"
+                               value="Resource"
+                               checked />
                         Resources
                     </label>
                 </div>
             </div>
 
             <div class="map-filter-group">
-                <label class="map-filter-label" for="mapFilterCategory">Category</label>
+                <span class="map-filter-label">Need priority</span>
+
+                <div class="map-filter-checks">
+                    <label>
+                        <input type="checkbox"
+                               class="map-filter-priority"
+                               value="Low"
+                               checked />
+                        Low
+                    </label>
+
+                    <label>
+                        <input type="checkbox"
+                               class="map-filter-priority"
+                               value="Medium"
+                               checked />
+                        Medium
+                    </label>
+                    
+                    <label>
+                        <input type="checkbox"
+                               class="map-filter-priority"
+                               value="Critical"
+                               checked />
+                        Critical
+                    </label>
+                </div>
+            </div>
+
+            <div class="map-filter-group">
+                <label class="map-filter-label" for="mapFilterCategory">
+                    Category
+                </label>
+
                 <select id="mapFilterCategory" class="map-filter-select">
                     <option value="">All categories</option>
                 </select>
             </div>
 
             <div class="map-filter-group">
-                <label class="map-filter-label" for="mapFilterRegion">Region</label>
+                <label class="map-filter-label" for="mapFilterRegion">
+                    Region
+                </label>
+
                 <select id="mapFilterRegion" class="map-filter-select">
                     <option value="">All regions</option>
                 </select>
             </div>
 
             <div class="map-filter-group">
-                <label class="map-filter-label">Need priority</label>
-                <div class="map-filter-checks">
-                    <label><input type="checkbox" class="map-filter-priority" value="urgent" checked /> Urgent</label>
-                    <label><input type="checkbox" class="map-filter-priority" value="planned" checked /> Planned</label>
-                </div>
-            </div>
+                <label class="map-filter-label" for="mapFilterNeedStatus">
+                    Need status
+                </label>
 
-            <div class="map-filter-group">
-                <label class="map-filter-label" for="mapFilterNeedStatus">Need status</label>
                 <select id="mapFilterNeedStatus" class="map-filter-select">
                     <option value="">All statuses</option>
+                    <option value="New">New</option>
+                    <option value="UnderReview">Under review</option>
+                    <option value="Assigned">Assigned</option>
+                    <option value="Resolved">Resolved</option>
                 </select>
             </div>
 
             <div class="map-filter-group">
-                <label class="map-filter-label" for="mapFilterResourceStatus">Resource status</label>
+                <label class="map-filter-label" for="mapFilterResourceStatus">
+                    Resource status
+                </label>
+
                 <select id="mapFilterResourceStatus" class="map-filter-select">
                     <option value="">All statuses</option>
+                    <option value="Available">Available</option>
+                    <option value="Busy">Busy</option>
                 </select>
             </div>
 
             <div class="map-filter-group">
-                <label class="map-filter-label">Distance</label>
+                <label class="map-filter-label" for="mapFilterRadius">
+                    Distance from location
+                </label>
+
                 <div class="map-filter-distance-row">
-                    <button type="button" id="mapFilterLocationBtn" class="map-filter-location-btn">Use my location</button>
-                    <select id="mapFilterRadius" class="map-filter-select" disabled>
-                        <option value="">Any distance</option>
+                    <select id="mapFilterRadius"
+                            class="map-filter-select"
+                            disabled>
                         <option value="5">Within 5 km</option>
-                        <option value="10">Within 10 km</option>
+                        <option value="10" selected>Within 10 km</option>
                         <option value="25">Within 25 km</option>
                         <option value="50">Within 50 km</option>
                     </select>
                 </div>
-                <div class="map-filter-distance-note" id="mapFilterDistanceNote"></div>
+
+                <button type="button"
+                        id="mapFilterLocationBtn"
+                        class="map-filter-location-btn"
+                        style="width:100%; margin-top:6px;">
+                    Use my location
+                </button>
+
+                <div class="map-filter-distance-note"
+                     id="mapFilterDistanceNote"
+                     role="status">
+                    Use your location to filter markers by distance.
+                </div>
             </div>
 
-            <button type="button" id="mapFilterResetBtn" class="map-filter-reset">Reset filters</button>
+            <button type="button"
+                    id="mapFilterResetBtn"
+                    class="map-filter-reset">
+                Reset filters
+            </button>
         </div>
     </div>
 
-    <div class="map-empty-note" id="mapEmptyNote">
-        No needs or resources have coordinates yet.
+    <div class="map-empty-note" id="mapEmptyNote" role="status">
+        No needs or resources in this area.
     </div>
 </div>
 
 @section Scripts {
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+
     <script src="~/js/map.js" asp-append-version="true"></script>
 }

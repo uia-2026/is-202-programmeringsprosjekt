@@ -15,11 +15,8 @@ public enum UserRole
 /// </summary>
 public enum NeedPriority
 {
-    Urgent,
-    Planned,
     Low,
     Medium,
-    High,
     Critical
 }
 
