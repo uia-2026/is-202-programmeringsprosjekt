@@ -1,4 +1,4 @@
- (function () {
+(function () {
     'use strict';
 
     var MARKER_COLORS = {
@@ -9,7 +9,6 @@
         default: '#1d385a'
     };
 
-    // MapMarkerKind is serialized as "Need" or "Resource".
     var MARKER_KIND = {
         NEED: 'Need',
         RESOURCE: 'Resource'
@@ -23,6 +22,18 @@
     var markersLayer = null;
     var filterCenter = null;
     var searchMarker = null;
+
+    var loadTimer = null;
+    var requestSeq = 0;
+    var hasLoadedMarkers = false;
+
+    function getElement(id) {
+        return document.getElementById(id);
+    }
+
+    function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+    }
 
     function formatDate(isoString) {
         if (!isoString) return '';
@@ -51,13 +62,11 @@
             .replace(/'/g, '&#39;');
     }
 
-    function getElement(id) {
-        return document.getElementById(id);
-    }
-
     function getMarkerColor(marker) {
         if (marker.kind === MARKER_KIND.NEED) {
-            return marker.isUrgent ? MARKER_COLORS.red : MARKER_COLORS.yellow;
+            return marker.isUrgent
+                ? MARKER_COLORS.red
+                : MARKER_COLORS.yellow;
         }
 
         if (
@@ -145,8 +154,8 @@
             var distance = distanceKm(
                 filterCenter.lat,
                 filterCenter.lng,
-                marker.latitude,
-                marker.longitude
+                Number(marker.latitude),
+                Number(marker.longitude)
             );
 
             html += '<div class="map-popup-row"><strong>Distance:</strong> ' +
@@ -216,9 +225,11 @@
 
         if (markers.length === 0) {
             if (note) {
-                note.textContent = allMarkers.length === 0
-                    ? 'No needs or resources have coordinates yet.'
-                    : 'No needs or resources match your current filters.';
+                note.textContent = !hasLoadedMarkers
+                    ? 'Loading map data...'
+                    : allMarkers.length === 0
+                        ? 'No needs or resources in this area.'
+                        : 'No needs or resources match your current filters.';
 
                 note.style.display = 'block';
             }
@@ -229,15 +240,13 @@
         if (note) note.style.display = 'none';
 
         markers.forEach(function (marker) {
-            var color = getMarkerColor(marker);
-
             var circle = L.circleMarker(
                 [Number(marker.latitude), Number(marker.longitude)],
                 {
                     radius: 9,
                     color: '#ffffff',
                     weight: 2,
-                    fillColor: color,
+                    fillColor: getMarkerColor(marker),
                     fillOpacity: 0.95
                 }
             );
@@ -257,7 +266,7 @@
         var resourceStatusSelect = getElement('mapFilterResourceStatus');
 
         function uniqueSorted(values) {
-            var seen = {};
+            var seen = Object.create(null);
             var result = [];
 
             values.forEach(function (value) {
@@ -273,12 +282,25 @@
         function fillSelect(select, values) {
             if (!select) return;
 
+            var current = select.value;
+
+            if (current && values.indexOf(current) === -1) {
+                values.push(current);
+                values.sort();
+            }
+
+            while (select.options.length > 1) {
+                select.remove(1);
+            }
+
             values.forEach(function (value) {
                 var option = document.createElement('option');
                 option.value = value;
                 option.textContent = value;
                 select.appendChild(option);
             });
+
+            select.value = current;
         }
 
         fillSelect(
@@ -322,28 +344,18 @@
         var kindBoxes = document.querySelectorAll('.map-filter-kind:checked');
         var priorityBoxes = document.querySelectorAll('.map-filter-priority:checked');
 
-        var kinds = Array.prototype.map.call(kindBoxes, function (checkbox) {
-            return checkbox.value;
-        });
-
-        var priorities = Array.prototype.map.call(priorityBoxes, function (checkbox) {
-            return checkbox.value;
-        });
-
-        var categorySelect = getElement('mapFilterCategory');
-        var regionSelect = getElement('mapFilterRegion');
-        var needStatusSelect = getElement('mapFilterNeedStatus');
-        var resourceStatusSelect = getElement('mapFilterResourceStatus');
-        var radiusSelect = getElement('mapFilterRadius');
-
         return {
-            kinds: kinds,
-            priorities: priorities,
-            category: categorySelect ? categorySelect.value : '',
-            region: regionSelect ? regionSelect.value : '',
-            needStatus: needStatusSelect ? needStatusSelect.value : '',
-            resourceStatus: resourceStatusSelect ? resourceStatusSelect.value : '',
-            radius: radiusSelect ? parseFloat(radiusSelect.value || '0') : 0
+            kinds: Array.prototype.map.call(kindBoxes, function (checkbox) {
+                return checkbox.value;
+            }),
+            priorities: Array.prototype.map.call(priorityBoxes, function (checkbox) {
+                return checkbox.value;
+            }),
+            category: getElement('mapFilterCategory')?.value || '',
+            region: getElement('mapFilterRegion')?.value || '',
+            needStatus: getElement('mapFilterNeedStatus')?.value || '',
+            resourceStatus: getElement('mapFilterResourceStatus')?.value || '',
+            radius: parseFloat(getElement('mapFilterRadius')?.value || '0')
         };
     }
 
@@ -404,6 +416,70 @@
         });
 
         renderMarkers(map, filtered);
+    }
+
+    function scheduleLoad(map) {
+        clearTimeout(loadTimer);
+
+        loadTimer = setTimeout(function () {
+            loadMarkers(map);
+        }, 250);
+    }
+
+    function loadMarkers(map) {
+        var bounds = map.getBounds();
+
+        var params = new URLSearchParams({
+            south: clamp(bounds.getSouth(), -90, 90),
+            north: clamp(bounds.getNorth(), -90, 90),
+            west: clamp(bounds.getWest(), -180, 180),
+            east: clamp(bounds.getEast(), -180, 180)
+        });
+
+        var sequence = ++requestSeq;
+
+        fetch('/Map/Data?' + params.toString())
+            .then(function (response) {
+                if (!response.ok) {
+                    throw new Error(
+                        'Map data request failed: ' + response.status
+                    );
+                }
+
+                return response.json();
+            })
+            .then(function (data) {
+                if (sequence !== requestSeq) return;
+
+                var markers = Array.isArray(data.markers)
+                    ? data.markers
+                    : [];
+
+                allMarkers = markers.filter(hasValidCoordinates);
+                hasLoadedMarkers = true;
+
+                populateFilterOptions(allMarkers);
+                applyFilters(map);
+
+                var capNote = getElement('mapCapNote');
+
+                if (capNote) {
+                    capNote.style.display = data.truncated ? 'block' : 'none';
+                }
+            })
+            .catch(function (error) {
+                if (sequence !== requestSeq) return;
+
+                console.error('Could not load map data', error);
+
+                var note = getElement('mapEmptyNote');
+
+                if (note) {
+                    note.textContent =
+                        'Could not load map data. Please reload the page.';
+                    note.style.display = 'block';
+                }
+            });
     }
 
     function wireFilterControls(map) {
@@ -701,7 +777,6 @@
 
             if (debounceTimer) clearTimeout(debounceTimer);
 
-            // Invalidate any previous request when the user changes the query.
             requestNumber++;
 
             if (query.length < 3) {
@@ -753,49 +828,11 @@
         wireFilterControls(map);
         wireAddressSearch(map);
 
-        fetch('/Map/Data')
-            .then(function (response) {
-                if (!response.ok) {
-                    throw new Error(
-                        'Map data request failed: ' + response.status
-                    );
-                }
+        map.on('moveend', function () {
+            scheduleLoad(map);
+        });
 
-                return response.json();
-            })
-            .then(function (markers) {
-                allMarkers = (Array.isArray(markers) ? markers : [])
-                    .filter(hasValidCoordinates);
-
-                populateFilterOptions(allMarkers);
-                applyFilters(map);
-
-                var bounds = allMarkers.map(function (marker) {
-                    return [
-                        Number(marker.latitude),
-                        Number(marker.longitude)
-                    ];
-                });
-
-                if (bounds.length > 1) {
-                    map.fitBounds(bounds, {
-                        padding: [40, 40]
-                    });
-                } else if (bounds.length === 1) {
-                    map.setView(bounds[0], 12);
-                }
-            })
-            .catch(function (error) {
-                console.error('Could not load map data', error);
-
-                var note = getElement('mapEmptyNote');
-
-                if (note) {
-                    note.textContent =
-                        'Could not load map data. Please reload the page.';
-                    note.style.display = 'block';
-                }
-            });
+        loadMarkers(map);
     }
 
     if (document.readyState === 'loading') {

@@ -1,3 +1,4 @@
+using Heimevernet.Infrastructure.Geo;
 using Heimevernet.Models;
 using Heimevernet.ViewModels.Map;
 using Heimevernet.ViewModels.Need;
@@ -40,5 +41,5 @@ public interface INeedService
     /// <returns>The mapped <see cref="NeedViewModel"/> or null.</returns>
     Task<NeedViewModel?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<MapMarkerViewModel>> GetMapMarkersAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<MapMarkerViewModel>> GetMapMarkersAsync(GeoBox box, int limit, CancellationToken cancellationToken = default);
 }

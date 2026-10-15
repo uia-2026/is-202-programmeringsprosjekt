@@ -1,3 +1,4 @@
+using Heimevernet.Infrastructure.Geo;
 using Heimevernet.ViewModels.Map;
 using Heimevernet.ViewModels.Resource;
 
@@ -38,7 +39,7 @@ public interface IResourceService
         int userId,
         CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<MapMarkerViewModel>> GetMapMarkersAsync(CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<MapMarkerViewModel>> GetOwnMapMarkersAsync(int userId, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<MapMarkerViewModel>> GetAvailableMapMarkersAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<MapMarkerViewModel>> GetMapMarkersAsync(
+            GeoBox box, int? ownerUserId, bool availableOnly, int limit,
+            CancellationToken cancellationToken = default);
 }

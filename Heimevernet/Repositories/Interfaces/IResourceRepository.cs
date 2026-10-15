@@ -1,4 +1,5 @@
 using Heimevernet.DTOs.Map;
+using Heimevernet.Infrastructure.Geo;
 using Heimevernet.Models;
 
 namespace Heimevernet.Repositories.Interfaces;
@@ -37,10 +38,6 @@ public interface IResourceRepository
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<MapMarkerDto>> GetMapMarkersAsync(
-        CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<MapMarkerDto>> GetOwnMapMarkersAsync(
-        int userId,
-        CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<MapMarkerDto>> GetAvailableMapMarkersAsync(
-        CancellationToken cancellationToken = default);
+            GeoBox box, int? ownerUserId, bool availableOnly, int limit,
+            CancellationToken cancellationToken = default);
 }

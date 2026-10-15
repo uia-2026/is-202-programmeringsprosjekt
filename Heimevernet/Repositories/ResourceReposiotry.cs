@@ -1,5 +1,6 @@
 using Heimevernet.Data;
 using Heimevernet.DTOs.Map;
+using Heimevernet.Infrastructure.Geo;
 using Heimevernet.Models;
 using Heimevernet.Repositories.Interfaces;
 using Heimevernet.ViewModels.Map;
@@ -66,71 +67,26 @@ public class ResourceRepository : IResourceRepository
     }
 
     public async Task<IReadOnlyList<MapMarkerDto>> GetMapMarkersAsync(
-    CancellationToken cancellationToken = default)
-    {
-        return await _context.Resources
-            .AsNoTracking()
-            .Select(r => new MapMarkerDto(
-                r.Id,
-                MapMarkerKind.Resource,
-                r.Title,
-                r.Category.Name,
-                r.Description,
-                r.Region,
-                null,
-                false,
-                r.Status.ToString(),
-                r.AvailableFrom,
-                r.ContactPoint,
-                r.Latitude,
-                r.Longitude))
-            .ToListAsync(cancellationToken);
-    }
-
-    public async Task<IReadOnlyList<MapMarkerDto>> GetOwnMapMarkersAsync(
-        int userId,
+        GeoBox box, int? ownerUserId, bool availableOnly, int limit,
         CancellationToken cancellationToken = default)
     {
-        return await _context.Resources
+        var query = _context.Resources
             .AsNoTracking()
-            .Where(r => r.UserId == userId)
-            .Select(r => new MapMarkerDto(
-                r.Id,
-                MapMarkerKind.Resource,
-                r.Title,
-                r.Category.Name,
-                r.Description,
-                r.Region,
-                null,
-                false,
-                r.Status.ToString(),
-                r.AvailableFrom,
-                r.ContactPoint,
-                r.Latitude,
-                r.Longitude))
-            .ToListAsync(cancellationToken);
-    }
+            .Where(r => r.Latitude >= box.MinLat && r.Latitude <= box.MaxLat
+                     && r.Longitude >= box.MinLng && r.Longitude <= box.MaxLng);
 
-    public async Task<IReadOnlyList<MapMarkerDto>> GetAvailableMapMarkersAsync(
-        CancellationToken cancellationToken = default)
-    {
-        return await _context.Resources
-            .AsNoTracking()
-            .Where(r => r.Status == ResourceStatus.Available)
+        if (ownerUserId is { } owner)
+            query = query.Where(r => r.UserId == owner);
+
+        if (availableOnly)
+            query = query.Where(r => r.Status == ResourceStatus.Available);
+
+        return await query
+            .OrderByDescending(r => r.CreatedAt)
+            .Take(limit)
             .Select(r => new MapMarkerDto(
-                r.Id,
-                MapMarkerKind.Resource,
-                r.Title,
-                r.Category.Name,
-                r.Description,
-                r.Region,
-                null,
-                false,
-                r.Status.ToString(),
-                r.AvailableFrom,
-                r.ContactPoint,
-                r.Latitude,
-                r.Longitude))
+                r.Id, MapMarkerKind.Resource, r.Title, r.Category.Name, r.Description, r.Region,
+                null, false, r.Status.ToString(), r.AvailableFrom, r.ContactPoint, r.Latitude, r.Longitude))
             .ToListAsync(cancellationToken);
     }
 }

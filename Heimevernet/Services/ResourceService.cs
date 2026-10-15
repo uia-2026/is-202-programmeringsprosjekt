@@ -1,3 +1,4 @@
+using Heimevernet.Infrastructure.Geo;
 using Heimevernet.Mappers;
 using Heimevernet.Mappers.Interfaces;
 using Heimevernet.Repositories.Interfaces;
@@ -70,27 +71,12 @@ public class ResourceService : IResourceService
 
         return resource.Id;
     }
+
     public async Task<IReadOnlyList<MapMarkerViewModel>> GetMapMarkersAsync(
+        GeoBox box, int? ownerUserId, bool availableOnly, int limit,
         CancellationToken cancellationToken = default)
     {
-        var dtos = await _resourceRepository.GetMapMarkersAsync(cancellationToken);
-        return _mapMarkerMapper.ToViewModels(dtos);
-    }
-
-    public async Task<IReadOnlyList<MapMarkerViewModel>> GetOwnMapMarkersAsync(
-        int userId,
-        CancellationToken cancellationToken = default)
-    {
-        var dtos = await _resourceRepository.GetOwnMapMarkersAsync(
-            userId, cancellationToken);
-
-        return _mapMarkerMapper.ToViewModels(dtos);
-    }
-
-    public async Task<IReadOnlyList<MapMarkerViewModel>> GetAvailableMapMarkersAsync(
-        CancellationToken cancellationToken = default)
-    {
-        var dtos = await _resourceRepository.GetAvailableMapMarkersAsync(cancellationToken);
+        var dtos = await _resourceRepository.GetMapMarkersAsync(box, ownerUserId, availableOnly, limit, cancellationToken);
         return _mapMarkerMapper.ToViewModels(dtos);
     }
 }

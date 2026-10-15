@@ -1,3 +1,4 @@
+using Heimevernet.Infrastructure.Geo;
 using Heimevernet.Mappers;
 using Heimevernet.Mappers.Interfaces;
 using Heimevernet.Repositories.Interfaces;
@@ -89,9 +90,9 @@ public class NeedService : INeedService
     }
 
     public async Task<IReadOnlyList<MapMarkerViewModel>> GetMapMarkersAsync(
-        CancellationToken cancellationToken = default)
+        GeoBox box, int limit, CancellationToken cancellationToken = default)
     {
-        var dtos = await _needRepository.GetMapMarkersAsync(cancellationToken);
+        var dtos = await _needRepository.GetMapMarkersAsync(box, limit, cancellationToken);
         return _mapMarkerMapper.ToViewModels(dtos);
     }
 }
