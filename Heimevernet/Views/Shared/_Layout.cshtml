@@ -12,48 +12,89 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/Heimevernet.styles.css" asp-append-version="true" />
+
+    @await RenderSectionAsync("Styles", required: false)
 </head>
 
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand fw-semibold" asp-controller="Home" asp-action="Index">
-                    Heimevernet
-                </a>
+    <div class="app-shell">
 
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse"
-                        aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
+        <header class="app-topbar">
 
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+            <a class="app-topbar-brand" asp-controller="Home" asp-action="Index">
+                Heimevernet
+            </a>
 
-                    <ul class="navbar-nav flex-grow-1">
+            <div class="app-topbar-search">
+                <input type="search" id="globalSearchInput" placeholder= "Search for needs, resources, locations..." autocomplete="off" />
+            </div>
 
-                        @{
-                            var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
-                            var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
-                            var isAuthenticated = User.Identity?.IsAuthenticated == true;
-                            var isPublicActor = User.IsInRole("PublicActor");
-                            var isResourceProvider = User.IsInRole("ResourceProvider");
+            @{
+                var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+                var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+                var isAuthenticated = User.Identity?.IsAuthenticated == true;
+                var isPublicActor = User.IsInRole("PublicActor");
+                var isResourceProvider = User.IsInRole("ResourceProvider");
+                var displayName = User.Identity?.Name ?? string.Empty;
+                var initials = displayName.Length > 0 ? displayName.Substring(0, 1).ToUpper() : "?";
+                var roleLabel = isPublicActor ? "Public Actor" : isResourceProvider ? "Resource Provider" : string.Empty;
 
-                            string ActiveClass(string controller, string? action = null)
-                            {
-                                if (currentController != controller)
-                                    return string.Empty;
+                string ActiveClass(string controller, string? action = null)
+                {
+                    if (currentController != controller)
+                        return string.Empty;
 
-                                if (action != null && currentAction != action)
-                                    return string.Empty;
+                    if (action != null && currentAction != action)
+                        return string.Empty;
 
-                                return "active";
-                            }
-                        }
+                    return "active";
+                }
+            }
+
+            @if (isAuthenticated)
+            {
+                <div class ="app-user-card">
+                   <a class ="app-user-identity @ActiveClass("Account", "Index")" asp-controller="Account" asp-action="Index">
+                       <div class="app-user-avatar">@initials</div>
+                       <div class="app-user-meta">
+                           <div class="app-user-name">@displayName</div>
+                           <div class="app-user-role">@roleLabel</div>
+                        </div>
+                    </a>
+                    <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                        <button type="submit" class="app-user-logout" title= "Log out">
+                            Log out
+                        </button>
+                    </form>
+                </div>
+                     
+                        
+
+            }
+            else
+            {
+                <div class="app-user-card">
+                    <a class="nav-link @ActiveClass("Account", "Login")" asp-controller="Account" asp-action="Login">
+                        Log in
+                    </a>
+                    <a class="nav-link @ActiveClass("Account", "Register")" asp-controller="Account" asp-action="Register">
+                        Register
+                    </a>
+                </div>
+            }
+
+        </header>
+
+        <div class="app-body">
+
+            <aside class="app-sidebar">
+                <nav class="app-sidebar-nav">
+                    <ul class="navbar-nav">
 
                         @if (isAuthenticated)
                         {
                             <li class="nav-item">
-                                <a class="nav-link @ActiveClass("Home", "Index")" asp-controller="Home" asp-action="Index">
+                                <a class="nav-link @ActiveClass("Map")" asp-controller="Map" asp-action="Index">
                                     Map
                                 </a>
                             </li>
@@ -68,8 +109,7 @@
                             </li>
 
                             <li class="nav-item">
-                                <a class="nav-link @ActiveClass("Resource", "Index")" asp-controller="Resource"
-                                   asp-action="Index">
+                                <a class="nav-link @ActiveClass("Resource", "Index")" asp-controller="Resource" asp-action="Index">
                                     Resources
                                 </a>
                             </li>
@@ -84,15 +124,13 @@
                         @if (isPublicActor)
                         {
                             <li class="nav-item">
-                                <a class="nav-link @ActiveClass("Need", "Create")" asp-controller="Need"
-                                   asp-action="Create">
+                                <a class="nav-link @ActiveClass("Need", "Create")" asp-controller="Need" asp-action="Create">
                                     Register Need
                                 </a>
                             </li>
 
                             <li class="nav-item">
-                                <a class="nav-link @ActiveClass("Resource", "PrintByRegion")" asp-controller="Resource"
-                                   asp-action="PrintByRegion">
+                                <a class="nav-link @ActiveClass("Resource", "PrintByRegion")" asp-controller="Resource" asp-action="PrintByRegion">
                                     Print Resource List
                                 </a>
                             </li>
@@ -101,77 +139,40 @@
                         @if (isResourceProvider)
                         {
                             <li class="nav-item">
-                                <a class="nav-link @ActiveClass("Resource", "Create")" asp-controller="Resource"
-                                   asp-action="Create">
+                                <a class="nav-link @ActiveClass("Resource", "Create")" asp-controller="Resource" asp-action="Create">
                                     Register Resource
                                 </a>
                             </li>
 
                             <li class="nav-item">
-                                <a class="nav-link @ActiveClass("Resource", "MyResources")" asp-controller="Resource"
-                                   asp-action="MyResources">
+                                <a class="nav-link @ActiveClass("Resource", "MyResources")" asp-controller="Resource" asp-action="MyResources">
                                     My Resources
                                 </a>
                             </li>
                         }
 
                     </ul>
+                </nav>
+            </aside>
 
-                    <ul class="navbar-nav align-items-sm-center">
+            <div class="app-content">
 
-                        @if (isAuthenticated)
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link @ActiveClass("Account", "Index")" asp-controller="Account"
-                                   asp-action="Index">
-                                    My Account
-                                </a>
-                            </li>
+                <main class="app-main @ViewData["MainClass"]" role="main">
+                    @RenderBody()
+                </main>
 
-                            <li class="nav-item">
-                                <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
-                                    <button type="submit" class="btn btn-link nav-link">
-                                        Log out
-                                    </button>
-                                </form>
-                            </li>
-                        }
-                        else
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link @ActiveClass("Account", "Login")" asp-controller="Account"
-                                   asp-action="Login">
-                                    Log in
-                                </a>
-                            </li>
+                <footer class="border-top footer text-muted">
+                    <div class="container">
+                        &copy; 2026 - Heimevernet -
+                        <a asp-controller="Home" asp-action="Privacy">Privacy</a>
+                    </div>
+                </footer>
 
-                            <li class="nav-item">
-                                <a class="nav-link @ActiveClass("Account", "Register")" asp-controller="Account"
-                                   asp-action="Register">
-                                    Register
-                                </a>
-                            </li>
-                        }
-
-                    </ul>
-
-                </div>
             </div>
-        </nav>
-    </header>
 
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
-
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - Heimevernet -
-            <a asp-controller="Home" asp-action="Privacy">Privacy</a>
         </div>
-    </footer>
+
+    </div>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
@@ -180,5 +181,4 @@
     @await RenderSectionAsync("Scripts", required: false)
 
 </body>
-
 </html>
