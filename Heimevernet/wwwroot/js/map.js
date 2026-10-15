@@ -1,58 +1,101 @@
-(function () {
+ (function () {
+    'use strict';
+
     var MARKER_COLORS = {
         red: '#e4483c',
         yellow: '#f0a93b',
         green: '#2e9e5b',
-        blue: '#3b7dd8'
+        blue: '#3b7dd8',
+        default: '#1d385a'
     };
 
-    // Centered on Agder / Kristiansand, where the seeded dev data lives.
+    // MapMarkerKind is serialized as "Need" or "Resource".
+    var MARKER_KIND = {
+        NEED: 'Need',
+        RESOURCE: 'Resource'
+    };
+
     var DEFAULT_CENTER = [58.35, 7.6];
     var DEFAULT_ZOOM = 9;
     var detailsCounter = 0;
 
     var allMarkers = [];
     var markersLayer = null;
-    var filterCenter = null; // { lat, lng } set by "Use my location" or address search
+    var filterCenter = null;
     var searchMarker = null;
 
     function formatDate(isoString) {
         if (!isoString) return '';
-        var d = new Date(isoString);
-        if (isNaN(d.getTime())) return isoString;
-        return d.toLocaleString('en-GB', {
-            day: '2-digit', month: '2-digit', year: 'numeric',
-            hour: '2-digit', minute: '2-digit'
+
+        var date = new Date(isoString);
+
+        if (isNaN(date.getTime())) return isoString;
+
+        return date.toLocaleString('en-GB', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
         });
     }
 
     function escapeHtml(value) {
         if (value === null || value === undefined) return '';
+
         return String(value)
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;');
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function getElement(id) {
+        return document.getElementById(id);
+    }
+
+    function getMarkerColor(marker) {
+        if (marker.kind === MARKER_KIND.NEED) {
+            return marker.isUrgent ? MARKER_COLORS.red : MARKER_COLORS.yellow;
+        }
+
+        if (
+            marker.kind === MARKER_KIND.RESOURCE &&
+            marker.status === 'Available'
+        ) {
+            return MARKER_COLORS.green;
+        }
+
+        return MARKER_COLORS.default;
     }
 
     window.toggleMapPopupDetails = function (detailsId) {
-        var panel = document.getElementById(detailsId);
-        var button = document.getElementById(detailsId + '-toggle');
+        var panel = getElement(detailsId);
+        var button = getElement(detailsId + '-toggle');
+
         if (!panel || !button) return;
 
         var isHidden = panel.style.display === 'none';
+
         panel.style.display = isHidden ? 'block' : 'none';
         button.textContent = isHidden ? 'Hide details' : 'Show details';
     };
 
     function distanceKm(lat1, lon1, lat2, lon2) {
-        var R = 6371;
+        var earthRadiusKm = 6371;
         var dLat = (lat2 - lat1) * Math.PI / 180;
         var dLon = (lon2 - lon1) * Math.PI / 180;
-        var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+
+        var a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) *
+            Math.cos(lat2 * Math.PI / 180) *
             Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
         var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c;
+
+        return earthRadiusKm * c;
     }
 
     function priorityBucket(priority) {
@@ -61,165 +104,300 @@
             case 'High':
             case 'Critical':
                 return 'urgent';
+
             case 'Planned':
             case 'Medium':
             case 'Low':
-                return 'planned';
             default:
                 return 'planned';
         }
     }
 
     function buildPopupHtml(marker) {
-        var whenLabel = marker.kind === 'need' ? 'Deadline' : 'Available from';
-        var kindLabel = marker.kind === 'need'
-            ? (marker.priority || '').toUpperCase() + ' NEED'
+        var isNeed = marker.kind === MARKER_KIND.NEED;
+        var whenLabel = isNeed ? 'Deadline' : 'Available from';
+
+        var kindLabel = isNeed
+            ? (marker.priority || 'Planned').toUpperCase() + ' NEED'
             : (marker.status || '').toUpperCase() + ' RESOURCE';
-        var detailsUrl = marker.kind === 'need'
-            ? '/Need/Details?id=' + marker.id
-            : '/Resource/Details?id=' + marker.id;
-        var detailsId = 'map-popup-details-' + (detailsCounter++);
 
+        var detailsUrl = isNeed
+            ? '/Need/Details?id=' + encodeURIComponent(marker.id)
+            : '/Resource/Details?id=' + encodeURIComponent(marker.id);
+
+        var detailsId = 'map-popup-details-' + detailsCounter++;
+        var markerColor = getMarkerColor(marker);
         var html = '';
-        html += '<div class="map-popup-kind">' + escapeHtml(kindLabel) + '</div>';
-        html += '<div class="map-popup-title">' + escapeHtml(marker.title) + '</div>';
 
-        if (marker.priority) {
-            html += '<span class="map-popup-badge" style="background:' + (MARKER_COLORS[marker.markerColor] || '#1d385a') + '">' +
+        html += '<div class="map-popup-kind">' +
+            escapeHtml(kindLabel) + '</div>';
+
+        html += '<div class="map-popup-title">' +
+            escapeHtml(marker.title) + '</div>';
+
+        if (isNeed && marker.priority) {
+            html += '<span class="map-popup-badge" style="background:' +
+                markerColor + '">' +
                 escapeHtml(marker.priority) + ' priority</span>';
         }
 
         if (filterCenter) {
-            var distance = distanceKm(filterCenter.lat, filterCenter.lng, marker.latitude, marker.longitude);
-            html += '<div class="map-popup-row"><strong>Distance:</strong> ' + distance.toFixed(1) + ' km away</div>';
+            var distance = distanceKm(
+                filterCenter.lat,
+                filterCenter.lng,
+                marker.latitude,
+                marker.longitude
+            );
+
+            html += '<div class="map-popup-row"><strong>Distance:</strong> ' +
+                distance.toFixed(1) + ' km away</div>';
         }
 
-        html += '<div class="map-popup-row"><strong>Type:</strong> ' + escapeHtml(marker.category) + '</div>';
+        html += '<div class="map-popup-row"><strong>Type:</strong> ' +
+            escapeHtml(marker.category) + '</div>';
+
         if (marker.region) {
-            html += '<div class="map-popup-row"><strong>Region:</strong> ' + escapeHtml(marker.region) + '</div>';
+            html += '<div class="map-popup-row"><strong>Region:</strong> ' +
+                escapeHtml(marker.region) + '</div>';
         }
+
         if (marker.when) {
-            html += '<div class="map-popup-row"><strong>' + whenLabel + ':</strong> ' + formatDate(marker.when) + '</div>';
+            html += '<div class="map-popup-row"><strong>' +
+                whenLabel + ':</strong> ' +
+                escapeHtml(formatDate(marker.when)) + '</div>';
         }
-        html += '<div class="map-popup-row"><strong>Status:</strong> ' + escapeHtml(marker.status) + '</div>';
 
-        html += '<a class="map-popup-action" href="' + detailsUrl + '">View details</a>';
+        html += '<div class="map-popup-row"><strong>Status:</strong> ' +
+            escapeHtml(marker.status) + '</div>';
 
-        html += '<button type="button" id="' + detailsId + '-toggle" class="map-popup-toggle" ' +
-            'onclick="toggleMapPopupDetails(\'' + detailsId + '\')">Show details</button>';
+        html += '<a class="map-popup-action" href="' +
+            detailsUrl + '">View details</a>';
 
-        html += '<div class="map-popup-extra" id="' + detailsId + '" style="display:none;">';
+        html += '<button type="button" id="' + detailsId +
+            '-toggle" class="map-popup-toggle" ' +
+            'onclick="toggleMapPopupDetails(\'' + detailsId +
+            '\')">Show details</button>';
+
+        html += '<div class="map-popup-extra" id="' + detailsId +
+            '" style="display:none;">';
+
         if (marker.description) {
-            html += '<div class="map-popup-row">' + escapeHtml(marker.description) + '</div>';
+            html += '<div class="map-popup-row">' +
+                escapeHtml(marker.description) + '</div>';
         }
+
         if (marker.contactInfo) {
-            html += '<div class="map-popup-row"><strong>Contact:</strong> ' + escapeHtml(marker.contactInfo) + '</div>';
+            html += '<div class="map-popup-row"><strong>Contact:</strong> ' +
+                escapeHtml(marker.contactInfo) + '</div>';
         }
+
         html += '</div>';
 
         return html;
+    }
+
+    function hasValidCoordinates(marker) {
+        return Number.isFinite(Number(marker.latitude)) &&
+            Number.isFinite(Number(marker.longitude)) &&
+            Number(marker.latitude) >= -90 &&
+            Number(marker.latitude) <= 90 &&
+            Number(marker.longitude) >= -180 &&
+            Number(marker.longitude) <= 180;
     }
 
     function renderMarkers(map, markers) {
         if (!markersLayer) {
             markersLayer = L.layerGroup().addTo(map);
         }
+
         markersLayer.clearLayers();
 
-        var note = document.getElementById('mapEmptyNote');
+        var note = getElement('mapEmptyNote');
 
         if (markers.length === 0) {
             if (note) {
                 note.textContent = allMarkers.length === 0
                     ? 'No needs or resources have coordinates yet.'
                     : 'No needs or resources match your current filters.';
+
                 note.style.display = 'block';
             }
+
             return;
         }
+
         if (note) note.style.display = 'none';
 
         markers.forEach(function (marker) {
-            var color = MARKER_COLORS[marker.markerColor] || '#1d385a';
+            var color = getMarkerColor(marker);
 
-            var circle = L.circleMarker([marker.latitude, marker.longitude], {
-                radius: 9,
-                color: '#ffffff',
-                weight: 2,
-                fillColor: color,
-                fillOpacity: 0.95
+            var circle = L.circleMarker(
+                [Number(marker.latitude), Number(marker.longitude)],
+                {
+                    radius: 9,
+                    color: '#ffffff',
+                    weight: 2,
+                    fillColor: color,
+                    fillOpacity: 0.95
+                }
+            );
+
+            circle.bindPopup(buildPopupHtml(marker), {
+                minWidth: 220
             });
 
-            circle.bindPopup(buildPopupHtml(marker), { minWidth: 220 });
             circle.addTo(markersLayer);
         });
     }
 
     function populateFilterOptions(markers) {
-        var categorySel = document.getElementById('mapFilterCategory');
-        var regionSel = document.getElementById('mapFilterRegion');
-        var needStatusSel = document.getElementById('mapFilterNeedStatus');
-        var resourceStatusSel = document.getElementById('mapFilterResourceStatus');
+        var categorySelect = getElement('mapFilterCategory');
+        var regionSelect = getElement('mapFilterRegion');
+        var needStatusSelect = getElement('mapFilterNeedStatus');
+        var resourceStatusSelect = getElement('mapFilterResourceStatus');
 
         function uniqueSorted(values) {
             var seen = {};
             var result = [];
-            values.forEach(function (v) {
-                if (v && !seen[v]) {
-                    seen[v] = true;
-                    result.push(v);
+
+            values.forEach(function (value) {
+                if (value && !seen[value]) {
+                    seen[value] = true;
+                    result.push(value);
                 }
             });
-            result.sort();
-            return result;
+
+            return result.sort();
         }
 
         function fillSelect(select, values) {
             if (!select) return;
-            values.forEach(function (v) {
-                var opt = document.createElement('option');
-                opt.value = v;
-                opt.textContent = v;
-                select.appendChild(opt);
+
+            values.forEach(function (value) {
+                var option = document.createElement('option');
+                option.value = value;
+                option.textContent = value;
+                select.appendChild(option);
             });
         }
 
-        fillSelect(categorySel, uniqueSorted(markers.map(function (m) { return m.category; })));
-        fillSelect(regionSel, uniqueSorted(markers.map(function (m) { return m.region; })));
-        fillSelect(needStatusSel, uniqueSorted(markers.filter(function (m) { return m.kind === 'need'; }).map(function (m) { return m.status; })));
-        fillSelect(resourceStatusSel, uniqueSorted(markers.filter(function (m) { return m.kind === 'resource'; }).map(function (m) { return m.status; })));
+        fillSelect(
+            categorySelect,
+            uniqueSorted(markers.map(function (marker) {
+                return marker.category;
+            }))
+        );
+
+        fillSelect(
+            regionSelect,
+            uniqueSorted(markers.map(function (marker) {
+                return marker.region;
+            }))
+        );
+
+        fillSelect(
+            needStatusSelect,
+            uniqueSorted(markers
+                .filter(function (marker) {
+                    return marker.kind === MARKER_KIND.NEED;
+                })
+                .map(function (marker) {
+                    return marker.status;
+                }))
+        );
+
+        fillSelect(
+            resourceStatusSelect,
+            uniqueSorted(markers
+                .filter(function (marker) {
+                    return marker.kind === MARKER_KIND.RESOURCE;
+                })
+                .map(function (marker) {
+                    return marker.status;
+                }))
+        );
     }
 
     function getFilterState() {
         var kindBoxes = document.querySelectorAll('.map-filter-kind:checked');
         var priorityBoxes = document.querySelectorAll('.map-filter-priority:checked');
 
-        var kinds = Array.prototype.map.call(kindBoxes, function (cb) { return cb.value; });
-        var priorities = Array.prototype.map.call(priorityBoxes, function (cb) { return cb.value; });
+        var kinds = Array.prototype.map.call(kindBoxes, function (checkbox) {
+            return checkbox.value;
+        });
 
-        var category = document.getElementById('mapFilterCategory').value;
-        var region = document.getElementById('mapFilterRegion').value;
-        var needStatus = document.getElementById('mapFilterNeedStatus').value;
-        var resourceStatus = document.getElementById('mapFilterResourceStatus').value;
-        var radius = parseFloat(document.getElementById('mapFilterRadius').value || '0');
+        var priorities = Array.prototype.map.call(priorityBoxes, function (checkbox) {
+            return checkbox.value;
+        });
 
-        return { kinds: kinds, priorities: priorities, category: category, region: region, needStatus: needStatus, resourceStatus: resourceStatus, radius: radius };
+        var categorySelect = getElement('mapFilterCategory');
+        var regionSelect = getElement('mapFilterRegion');
+        var needStatusSelect = getElement('mapFilterNeedStatus');
+        var resourceStatusSelect = getElement('mapFilterResourceStatus');
+        var radiusSelect = getElement('mapFilterRadius');
+
+        return {
+            kinds: kinds,
+            priorities: priorities,
+            category: categorySelect ? categorySelect.value : '',
+            region: regionSelect ? regionSelect.value : '',
+            needStatus: needStatusSelect ? needStatusSelect.value : '',
+            resourceStatus: resourceStatusSelect ? resourceStatusSelect.value : '',
+            radius: radiusSelect ? parseFloat(radiusSelect.value || '0') : 0
+        };
     }
 
     function applyFilters(map) {
         var state = getFilterState();
 
         var filtered = allMarkers.filter(function (marker) {
-            if (state.kinds.indexOf(marker.kind) === -1) return false;
-            if (marker.kind === 'need' && marker.priority && state.priorities.indexOf(priorityBucket(marker.priority)) === -1) return false;
-            if (state.category && marker.category !== state.category) return false;
-            if (state.region && marker.region !== state.region) return false;
-            if (marker.kind === 'need' && state.needStatus && marker.status !== state.needStatus) return false;
-            if (marker.kind === 'resource' && state.resourceStatus && marker.status !== state.resourceStatus) return false;
+            if (state.kinds.indexOf(marker.kind) === -1) {
+                return false;
+            }
+
+            if (
+                marker.kind === MARKER_KIND.NEED &&
+                marker.priority &&
+                state.priorities.indexOf(priorityBucket(marker.priority)) === -1
+            ) {
+                return false;
+            }
+
+            if (state.category && marker.category !== state.category) {
+                return false;
+            }
+
+            if (state.region && marker.region !== state.region) {
+                return false;
+            }
+
+            if (
+                marker.kind === MARKER_KIND.NEED &&
+                state.needStatus &&
+                marker.status !== state.needStatus
+            ) {
+                return false;
+            }
+
+            if (
+                marker.kind === MARKER_KIND.RESOURCE &&
+                state.resourceStatus &&
+                marker.status !== state.resourceStatus
+            ) {
+                return false;
+            }
 
             if (state.radius && filterCenter) {
-                var d = distanceKm(filterCenter.lat, filterCenter.lng, marker.latitude, marker.longitude);
-                if (d > state.radius) return false;
+                var distance = distanceKm(
+                    filterCenter.lat,
+                    filterCenter.lng,
+                    Number(marker.latitude),
+                    Number(marker.longitude)
+                );
+
+                if (distance > state.radius) {
+                    return false;
+                }
             }
 
             return true;
@@ -229,90 +407,163 @@
     }
 
     function wireFilterControls(map) {
-        var box = document.getElementById('mapFilterBox');
-        var toggleBtn = document.getElementById('mapFilterToggle');
-        var locationBtn = document.getElementById('mapFilterLocationBtn');
-        var radiusSel = document.getElementById('mapFilterRadius');
-        var distanceNote = document.getElementById('mapFilterDistanceNote');
-        var resetBtn = document.getElementById('mapFilterResetBtn');
+        var box = getElement('mapFilterBox');
+        var toggleButton = getElement('mapFilterToggle');
+        var locationButton = getElement('mapFilterLocationBtn');
+        var radiusSelect = getElement('mapFilterRadius');
+        var distanceNote = getElement('mapFilterDistanceNote');
+        var resetButton = getElement('mapFilterResetBtn');
 
-        if (toggleBtn && box) {
-            toggleBtn.addEventListener('click', function () {
+        if (toggleButton && box) {
+            toggleButton.addEventListener('click', function () {
                 box.classList.toggle('collapsed');
-                toggleBtn.setAttribute('aria-expanded', !box.classList.contains('collapsed'));
+
+                toggleButton.setAttribute(
+                    'aria-expanded',
+                    String(!box.classList.contains('collapsed'))
+                );
             });
         }
 
-        var changeTargets = document.querySelectorAll(
-            '.map-filter-kind, .map-filter-priority, #mapFilterCategory, #mapFilterRegion, #mapFilterNeedStatus, #mapFilterResourceStatus, #mapFilterRadius'
-        );
-        changeTargets.forEach(function (el) {
-            el.addEventListener('change', function () { applyFilters(map); });
+        document.querySelectorAll(
+            '.map-filter-kind, .map-filter-priority, ' +
+            '#mapFilterCategory, #mapFilterRegion, ' +
+            '#mapFilterNeedStatus, #mapFilterResourceStatus, ' +
+            '#mapFilterRadius'
+        ).forEach(function (element) {
+            element.addEventListener('change', function () {
+                applyFilters(map);
+            });
         });
 
-        if (locationBtn) {
-            locationBtn.addEventListener('click', function () {
+        if (locationButton) {
+            locationButton.addEventListener('click', function () {
                 if (!navigator.geolocation) {
-                    if (distanceNote) distanceNote.textContent = "Your browser doesn't support location.";
+                    if (distanceNote) {
+                        distanceNote.textContent =
+                            "Your browser doesn't support location.";
+                    }
+
                     return;
                 }
-                locationBtn.textContent = 'Locating…';
-                navigator.geolocation.getCurrentPosition(function (pos) {
-                    if (searchMarker) { map.removeLayer(searchMarker); searchMarker = null; }
-                    filterCenter = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                    locationBtn.textContent = 'Location set';
-                    locationBtn.classList.add('active');
-                    if (radiusSel) radiusSel.disabled = false;
-                    if (distanceNote) distanceNote.textContent = 'Centered on your current location.';
-                    applyFilters(map);
-                }, function () {
-                    locationBtn.textContent = 'Use my location';
-                    if (distanceNote) distanceNote.textContent = "Couldn't get your location — check your browser's permission for this site.";
-                });
+
+                locationButton.textContent = 'Locating…';
+
+                navigator.geolocation.getCurrentPosition(
+                    function (position) {
+                        if (searchMarker) {
+                            map.removeLayer(searchMarker);
+                            searchMarker = null;
+                        }
+
+                        filterCenter = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+
+                        locationButton.textContent = 'Location set';
+                        locationButton.classList.add('active');
+
+                        if (radiusSelect) radiusSelect.disabled = false;
+
+                        if (distanceNote) {
+                            distanceNote.textContent =
+                                'Centered on your current location.';
+                        }
+
+                        applyFilters(map);
+                    },
+                    function () {
+                        locationButton.textContent = 'Use my location';
+
+                        if (distanceNote) {
+                            distanceNote.textContent =
+                                "Couldn't get your location. Check your browser's permissions.";
+                        }
+                    },
+                    {
+                        enableHighAccuracy: false,
+                        timeout: 10000,
+                        maximumAge: 60000
+                    }
+                );
             });
         }
 
-        if (resetBtn) {
-            resetBtn.addEventListener('click', function () {
-                document.querySelectorAll('.map-filter-kind, .map-filter-priority').forEach(function (cb) { cb.checked = true; });
-                document.getElementById('mapFilterCategory').value = '';
-                document.getElementById('mapFilterRegion').value = '';
-                document.getElementById('mapFilterNeedStatus').value = '';
-                document.getElementById('mapFilterResourceStatus').value = '';
-                if (radiusSel) { radiusSel.value = ''; radiusSel.disabled = true; }
+        if (resetButton) {
+            resetButton.addEventListener('click', function () {
+                document.querySelectorAll(
+                    '.map-filter-kind, .map-filter-priority'
+                ).forEach(function (checkbox) {
+                    checkbox.checked = true;
+                });
+
+                [
+                    'mapFilterCategory',
+                    'mapFilterRegion',
+                    'mapFilterNeedStatus',
+                    'mapFilterResourceStatus'
+                ].forEach(function (id) {
+                    var element = getElement(id);
+                    if (element) element.value = '';
+                });
+
+                if (radiusSelect) {
+                    radiusSelect.value = '';
+                    radiusSelect.disabled = true;
+                }
+
                 filterCenter = null;
-                if (locationBtn) { locationBtn.textContent = 'Use my location'; locationBtn.classList.remove('active'); }
+
+                if (locationButton) {
+                    locationButton.textContent = 'Use my location';
+                    locationButton.classList.remove('active');
+                }
+
                 if (distanceNote) distanceNote.textContent = '';
-                if (searchMarker) { map.removeLayer(searchMarker); searchMarker = null; }
-                var searchInput = document.getElementById('globalSearchInput');
+
+                if (searchMarker) {
+                    map.removeLayer(searchMarker);
+                    searchMarker = null;
+                }
+
+                var searchInput = getElement('globalSearchInput');
                 if (searchInput) searchInput.value = '';
+
                 applyFilters(map);
             });
         }
     }
 
     function wireAddressSearch(map) {
-        var input = document.getElementById('globalSearchInput');
+        var input = getElement('globalSearchInput');
+
         if (!input) return;
 
         var wrapper = input.parentElement;
-        if (wrapper && !wrapper.style.position) wrapper.style.position = 'relative';
+
+        if (wrapper && !wrapper.style.position) {
+            wrapper.style.position = 'relative';
+        }
 
         var suggestionsBox = document.createElement('div');
         suggestionsBox.className = 'app-search-suggestions';
         suggestionsBox.style.display = 'none';
+
         if (wrapper) wrapper.appendChild(suggestionsBox);
 
         var debounceTimer = null;
         var currentResults = [];
+        var requestNumber = 0;
 
         function hideSuggestions() {
             suggestionsBox.style.display = 'none';
-            suggestionsBox.innerHTML = '';
+            suggestionsBox.replaceChildren();
         }
 
         function selectAddress(index) {
             var item = currentResults[index];
+
             if (!item) return;
 
             input.value = item.label;
@@ -321,24 +572,44 @@
             if (searchMarker) {
                 map.removeLayer(searchMarker);
             }
-            searchMarker = L.circleMarker([item.lat, item.lon], {
-                radius: 8,
-                color: '#1d385a',
-                weight: 3,
-                fillColor: '#ffffff',
-                fillOpacity: 1
-            }).addTo(map);
-            searchMarker.bindPopup('Search center: ' + escapeHtml(item.label));
 
-            filterCenter = { lat: item.lat, lng: item.lon };
+            searchMarker = L.circleMarker(
+                [item.lat, item.lon],
+                {
+                    radius: 8,
+                    color: MARKER_COLORS.default,
+                    weight: 3,
+                    fillColor: '#ffffff',
+                    fillOpacity: 1
+                }
+            ).addTo(map);
 
-            var radiusSel = document.getElementById('mapFilterRadius');
-            var locationBtn = document.getElementById('mapFilterLocationBtn');
-            var distanceNote = document.getElementById('mapFilterDistanceNote');
+            searchMarker.bindPopup(
+                'Search center: ' + escapeHtml(item.label)
+            );
 
-            if (radiusSel) { radiusSel.disabled = false; radiusSel.value = '10'; }
-            if (locationBtn) locationBtn.classList.add('active');
-            if (distanceNote) distanceNote.textContent = 'Centered on: ' + item.label;
+            filterCenter = {
+                lat: item.lat,
+                lng: item.lon
+            };
+
+            var radiusSelect = getElement('mapFilterRadius');
+            var locationButton = getElement('mapFilterLocationBtn');
+            var distanceNote = getElement('mapFilterDistanceNote');
+
+            if (radiusSelect) {
+                radiusSelect.disabled = false;
+                radiusSelect.value = '10';
+            }
+
+            if (locationButton) {
+                locationButton.classList.add('active');
+                locationButton.textContent = 'Location set';
+            }
+
+            if (distanceNote) {
+                distanceNote.textContent = 'Centered on: ' + item.label;
+            }
 
             map.flyTo([item.lat, item.lon], 13);
             applyFilters(map);
@@ -346,7 +617,7 @@
 
         function renderSuggestions(items) {
             currentResults = items;
-            suggestionsBox.innerHTML = '';
+            suggestionsBox.replaceChildren();
 
             if (items.length === 0) {
                 var empty = document.createElement('div');
@@ -358,7 +629,11 @@
                     var row = document.createElement('div');
                     row.className = 'app-search-suggestion-item';
                     row.textContent = item.label;
-                    row.addEventListener('click', function () { selectAddress(index); });
+
+                    row.addEventListener('click', function () {
+                        selectAddress(index);
+                    });
+
                     suggestionsBox.appendChild(row);
                 });
             }
@@ -367,30 +642,56 @@
         }
 
         function fetchResults(query) {
-            var url = 'https://ws.geonorge.no/adresser/v1/sok?sok=' + encodeURIComponent(query) + '&treffPerSide=6&fuzzy=true';
+            var currentRequest = ++requestNumber;
+
+            var url =
+                'https://ws.geonorge.no/adresser/v1/sok?sok=' +
+                encodeURIComponent(query) +
+                '&treffPerSide=6&fuzzy=true';
 
             fetch(url)
                 .then(function (response) {
-                    if (!response.ok) throw new Error('Address search failed: ' + response.status);
+                    if (!response.ok) {
+                        throw new Error(
+                            'Address search failed: ' + response.status
+                        );
+                    }
+
                     return response.json();
                 })
                 .then(function (data) {
+                    if (currentRequest !== requestNumber) return;
+
                     var addresses = (data && data.adresser) || [];
-                    var items = addresses.map(function (a) {
-                        var label = a.adressetekst || '';
-                        if (a.postnummer || a.poststed) {
-                            label += ', ' + (a.postnummer || '') + ' ' + (a.poststed || '');
-                        }
-                        return {
-                            label: label.trim(),
-                            lat: a.representasjonspunkt.lat,
-                            lon: a.representasjonspunkt.lon
-                        };
-                    });
+
+                    var items = addresses
+                        .filter(function (address) {
+                            return address.representasjonspunkt &&
+                                Number.isFinite(Number(address.representasjonspunkt.lat)) &&
+                                Number.isFinite(Number(address.representasjonspunkt.lon));
+                        })
+                        .map(function (address) {
+                            var label = address.adressetekst || '';
+
+                            if (address.postnummer || address.poststed) {
+                                label += ', ' +
+                                    (address.postnummer || '') + ' ' +
+                                    (address.poststed || '');
+                            }
+
+                            return {
+                                label: label.trim(),
+                                lat: Number(address.representasjonspunkt.lat),
+                                lon: Number(address.representasjonspunkt.lon)
+                            };
+                        });
+
                     renderSuggestions(items);
                 })
-                .catch(function (err) {
-                    console.error('Address search failed', err);
+                .catch(function (error) {
+                    if (currentRequest !== requestNumber) return;
+
+                    console.error('Address search failed', error);
                     renderSuggestions([]);
                 });
         }
@@ -400,59 +701,100 @@
 
             if (debounceTimer) clearTimeout(debounceTimer);
 
+            // Invalidate any previous request when the user changes the query.
+            requestNumber++;
+
             if (query.length < 3) {
                 hideSuggestions();
                 return;
             }
 
-            debounceTimer = setTimeout(function () { fetchResults(query); }, 300);
+            debounceTimer = setTimeout(function () {
+                fetchResults(query);
+            }, 300);
         });
 
-        input.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') hideSuggestions();
+        input.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') hideSuggestions();
         });
 
-        document.addEventListener('click', function (e) {
-            if (!wrapper || !wrapper.contains(e.target)) hideSuggestions();
+        document.addEventListener('click', function (event) {
+            if (!wrapper || !wrapper.contains(event.target)) {
+                hideSuggestions();
+            }
         });
     }
 
     function init() {
-        var mapEl = document.getElementById('leafletMap');
-        if (!mapEl || typeof L === 'undefined') return;
+        var mapElement = getElement('leafletMap');
 
-        var map = L.map(mapEl, { zoomControl: true }).setView(DEFAULT_CENTER, DEFAULT_ZOOM);
+        if (!mapElement || typeof L === 'undefined') return;
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
+        var map = L.map(mapElement, {
+            zoomControl: true
+        }).setView(DEFAULT_CENTER, DEFAULT_ZOOM);
 
-        setTimeout(function () { map.invalidateSize(); }, 0);
-        window.addEventListener('resize', function () { map.invalidateSize(); });
+        L.tileLayer(
+            'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap contributors'
+            }
+        ).addTo(map);
+
+        setTimeout(function () {
+            map.invalidateSize();
+        }, 0);
+
+        window.addEventListener('resize', function () {
+            map.invalidateSize();
+        });
 
         wireFilterControls(map);
         wireAddressSearch(map);
 
         fetch('/Map/Data')
             .then(function (response) {
-                if (!response.ok) throw new Error('Map data request failed: ' + response.status);
+                if (!response.ok) {
+                    throw new Error(
+                        'Map data request failed: ' + response.status
+                    );
+                }
+
                 return response.json();
             })
             .then(function (markers) {
-                allMarkers = markers || [];
+                allMarkers = (Array.isArray(markers) ? markers : [])
+                    .filter(hasValidCoordinates);
+
                 populateFilterOptions(allMarkers);
                 applyFilters(map);
 
-                var bounds = allMarkers.map(function (m) { return [m.latitude, m.longitude]; });
+                var bounds = allMarkers.map(function (marker) {
+                    return [
+                        Number(marker.latitude),
+                        Number(marker.longitude)
+                    ];
+                });
+
                 if (bounds.length > 1) {
-                    map.fitBounds(bounds, { padding: [40, 40] });
+                    map.fitBounds(bounds, {
+                        padding: [40, 40]
+                    });
                 } else if (bounds.length === 1) {
                     map.setView(bounds[0], 12);
                 }
             })
-            .catch(function (err) {
-                console.error('Could not load map data', err);
+            .catch(function (error) {
+                console.error('Could not load map data', error);
+
+                var note = getElement('mapEmptyNote');
+
+                if (note) {
+                    note.textContent =
+                        'Could not load map data. Please reload the page.';
+                    note.style.display = 'block';
+                }
             });
     }
 

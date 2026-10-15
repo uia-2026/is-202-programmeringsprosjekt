@@ -1,6 +1,8 @@
 using Heimevernet.Data;
+using Heimevernet.DTOs.Map;
 using Heimevernet.Models;
 using Heimevernet.Repositories.Interfaces;
+using Heimevernet.ViewModels.Map;
 using Microsoft.EntityFrameworkCore;
 
 namespace Heimevernet.Repositories;
@@ -61,5 +63,74 @@ public class ResourceRepository : IResourceRepository
         await _context.Resources.AddAsync(
             resource,
             cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<MapMarkerDto>> GetMapMarkersAsync(
+    CancellationToken cancellationToken = default)
+    {
+        return await _context.Resources
+            .AsNoTracking()
+            .Select(r => new MapMarkerDto(
+                r.Id,
+                MapMarkerKind.Resource,
+                r.Title,
+                r.Category.Name,
+                r.Description,
+                r.Region,
+                null,
+                false,
+                r.Status.ToString(),
+                r.AvailableFrom,
+                r.ContactPoint,
+                r.Latitude,
+                r.Longitude))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<MapMarkerDto>> GetOwnMapMarkersAsync(
+        int userId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.Resources
+            .AsNoTracking()
+            .Where(r => r.UserId == userId)
+            .Select(r => new MapMarkerDto(
+                r.Id,
+                MapMarkerKind.Resource,
+                r.Title,
+                r.Category.Name,
+                r.Description,
+                r.Region,
+                null,
+                false,
+                r.Status.ToString(),
+                r.AvailableFrom,
+                r.ContactPoint,
+                r.Latitude,
+                r.Longitude))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<MapMarkerDto>> GetAvailableMapMarkersAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.Resources
+            .AsNoTracking()
+            .Where(r => r.Status == ResourceStatus.Available)
+            .Select(r => new MapMarkerDto(
+                r.Id,
+                MapMarkerKind.Resource,
+                r.Title,
+                r.Category.Name,
+                r.Description,
+                r.Region,
+                null,
+                false,
+                r.Status.ToString(),
+                r.AvailableFrom,
+                r.ContactPoint,
+                r.Latitude,
+                r.Longitude))
+            .ToListAsync(cancellationToken);
     }
 }

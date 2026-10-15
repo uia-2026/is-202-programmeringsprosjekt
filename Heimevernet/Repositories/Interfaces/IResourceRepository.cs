@@ -1,3 +1,4 @@
+using Heimevernet.DTOs.Map;
 using Heimevernet.Models;
 
 namespace Heimevernet.Repositories.Interfaces;
@@ -33,5 +34,13 @@ public interface IResourceRepository
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
     Task AddAsync(
         Resource resource,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<MapMarkerDto>> GetMapMarkersAsync(
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<MapMarkerDto>> GetOwnMapMarkersAsync(
+        int userId,
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<MapMarkerDto>> GetAvailableMapMarkersAsync(
         CancellationToken cancellationToken = default);
 }

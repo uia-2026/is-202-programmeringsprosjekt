@@ -1,3 +1,4 @@
+using Heimevernet.ViewModels.Map;
 using Heimevernet.ViewModels.Resource;
 
 namespace Heimevernet.Services.Interfaces;
@@ -36,4 +37,8 @@ public interface IResourceService
         ResourceCreateViewModel model,
         int userId,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<MapMarkerViewModel>> GetMapMarkersAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<MapMarkerViewModel>> GetOwnMapMarkersAsync(int userId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<MapMarkerViewModel>> GetAvailableMapMarkersAsync(CancellationToken cancellationToken = default);
 }
