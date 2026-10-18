@@ -30,3 +30,8 @@ TestResults/
 **/coverage*.xml
 **/*cobertura*
 *.trx
+
+# Documentation stuff
+docs/.vitepress/dist 
+docs/.vitepress/cache 
+node_modules/

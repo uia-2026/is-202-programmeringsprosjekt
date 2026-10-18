@@ -1,60 +1,42 @@
-# Arkitektur
+# Architecture
 
-Dette dokumentet beskriver arkitekturen som faktisk brukes i prosjektet.
-Løsningen består av en ASP.NET Core MVC-webapplikasjon, en migrator og en
-MariaDB-database. .NET Aspire AppHost orkestrerer komponentene lokalt.
+## Components
 
-## Komponentoversikt
+![Aspire orchestration of Web, Migrator and MariaDB](./assets/architecture.png)
 
-| Komponent | Ansvar |
-|---|---|
-| **AppHost** | Orkestrerer og starter Web, Migrator og MariaDB lokalt via .NET Aspire. |
-| **Web** (`Heimevernet`) | ASP.NET Core MVC-applikasjonen som viser sider, mottar GET/POST og returnerer Razor Views. |
-| **Migrator** (`Heimevernet.Migrator`) | Kjører EF Core-migreringer og legger inn nødvendig seed-data ved oppstart. |
-| **MariaDB** | Lagrer brukere, behov, ressurser, kategorier, matcher og vedlegg. Databasen startes som container av AppHost. |
-| **Nettleser** | Brukergrensesnittet som sender HTTP-forespørsler til Web-applikasjonen. |
+_Figure 1: Components started and ordered by the Aspire AppHost._
 
-## Arkitekturdiagram
+| Component           | Role                                                                                                                                                                     |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **AppHost**         | Defines the local infrastructure in C#: a MariaDB container, the Migrator and the Web application, including their startup dependencies.                                 |
+| **MariaDB**         | Runs the `mariadb:11` container with a persistent data volume. The root password is supplied through the `mariadb-password` secret parameter, and the host port is 3307. |
+| **Migrator**        | Console project that applies EF Core migrations and seeds reference data in every environment and development data in Development only, then exits.                      |
+| **Web**             | ASP.NET Core MVC application that handles HTTP requests and renders the user interface.                                                                                  |
+| **ServiceDefaults** | Provides shared Aspire configuration, including health checks and telemetry.                                                                                             |
 
-```mermaid
-flowchart LR
-    Browser[Nettleser]
+### How the components communicate
 
-    subgraph Aspire["AppHost – .NET Aspire orkestrering"]
-        Web[Web – ASP.NET Core MVC]
-        Migrator[Migrator – migrering og seed-data]
-        DB[(MariaDB)]
-    end
-
-    Browser -->|HTTP GET/POST| Web
-    Web -->|EF Core / connection string| DB
-    Migrator -->|migrerer og seeder| DB
-    Aspire -.->|starter og konfigurerer| Web
-    Aspire -.->|starter og venter på| Migrator
-    Aspire -.->|starter| DB
-    Web -.->|venter på migrator| Migrator
-```
-
-Diagrammet er laget i Mermaid slik at det kan leses direkte på GitHub og holdes
-oppdatert sammen med kildekoden.
-
-## Hvordan komponentene kommuniserer
-
-- **AppHost** oppretter MariaDB-ressursen og referanser til Web og Migrator.
-- **Aspire service discovery** gir Web og Migrator riktig connection string via
-  `WithReference(mariadb)`, i stedet for at connection string hardkodes i
-  `appsettings.json`.
-- **Migrator** venter på at MariaDB er klar med `WaitFor(mariadb)`, kjører
-  migreringer og legger inn seed-data.
-- **Web** venter på MariaDB og på at Migrator er ferdig med
-  `WaitForCompletion(migrator)`. Dermed er tabeller og seed-data klare før
-  applikasjonen tar imot trafikk.
+The AppHost defines the infrastructure and startup dependencies for local development.
 
 ```csharp
-var mariadb = builder.AddMySql("mariadb", password: mariadbPassword, port: 3307)
+var builder = DistributedApplication.CreateBuilder(args);
+
+var mariadbPassword = builder.AddParameter(
+    "mariadb-password",
+    secret: true);
+
+var mariadb = builder.AddMySql(
+        "mariadb",
+        password: mariadbPassword,
+        port: 3307)
+    .WithEnvironment("DOTNET_ENVIRONMENT", "Development")
+    .WithImage("mariadb", "11")
+    .WithDataVolume()
     .AddDatabase("heimevernetdb");
 
-var migrator = builder.AddProject<Projects.Heimevernet_Migrator>("migrator")
+var migrator = builder
+    .AddProject<Projects.Heimevernet_Migrator>("migrator")
+    .WithEnvironment("DOTNET_ENVIRONMENT", "Development")
     .WithReference(mariadb)
     .WaitFor(mariadb);
 
@@ -62,99 +44,151 @@ builder.AddProject<Projects.Heimevernet>("heimevernet")
     .WithReference(mariadb)
     .WaitFor(mariadb)
     .WaitForCompletion(migrator);
+
+builder.Build().Run();
 ```
+
+- `WithReference(mariadb)` provides database connection configuration to the dependent projects. They retrieve it using `GetConnectionString("heimevernetdb")`.
+- `WaitFor(mariadb)` ensures the database resource is available before the dependent project starts.
+- `WaitForCompletion(migrator)` makes the Web application wait for the Migrator to finish successfully.
+- `WithDataVolume()` preserves database data between application restarts.
+
+The application does not hardcode its database connection string. The AppHost supplies the connection configuration through Aspire.
+
+## Solution layout
+
+| Folder in the `Heimevernet` project          | Contents                                                                                                            |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `Controllers`                                | HTTP entry points. Bind request data, enforce access requirements and return views, redirects or other responses.   |
+| `Services` and `Services/Interfaces`         | Application logic, including `NeedService`, `ResourceService`, `AttachmentService`, `AuthService` and `MapService`. |
+| `Repositories` and `Repositories/Interfaces` | Data access through `AppDbContext`, with `UnitOfWork` coordinating persistence.                                     |
+| `Models`                                     | Domain entities and enums.                                                                                          |
+| `ViewModels`, `DTOs`                         | Types used for form input, view rendering and query projections.                                                    |
+| `Mappers`                                    | Conversions between entities and view models.                                                                       |
+| `Infrastructure/Storage`                     | S3-compatible file storage, configuration options and image-content validation.                                     |
+| `Extensions`                                 | Dependency injection registration and claim helpers.                                                                |
+| `Data`                                       | `AppDbContext` and EF Core migrations.                                                                              |
+| `Views`, `wwwroot`                           | Razor views, CSS and JavaScript modules, including map functionality.                                               |
+
+The solution also contains `Heimevernet.Migrator`, `Heimevernet.AppHost`, `Heimevernet.ServiceDefaults` and `Heimevernet.UnitTests`.
 
 ## Request flow
 
-En vanlig forespørsel går gjennom lagene på denne måten:
+![Request flow through the layers](./assets/request-flow.png){width=200}
+_Figure 2: Requests move down through the layers, and responses return up through them._
 
-```text
-Nettleser
-  ↓ HTTP GET/POST
-View (Razor)
-  ↓ skjema eller lenke
-Controller
-  ↓ model binding og validering
-Service
-  ↓ forretningslogikk
-Mapper
-  ↓ ViewModel ↔ domenemodell
-Repository
-  ↓ Entity Framework Core / AppDbContext
-MariaDB
+| Layer          | Responsibility                                                                                                                                                                |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **View**       | Renders Razor markup and collects user input.                                                                                                                                 |
+| **Controller** | Receives HTTP requests, binds view models, checks authorization, coordinates request-specific validation and calls services. Returns a view, redirect or other HTTP response. |
+| **Service**    | Coordinates application logic, including entity creation, mapping, ownership rules and persistence.                                                                           |
+| **Repository** | Queries and stages changes through Entity Framework Core. Repositories do not decide when the overall operation should be committed.                                          |
+| **Database**   | MariaDB persists application data.                                                                                                                                            |
+
+Repositories stage changes in the EF Core context. Services call `IUnitOfWork.CommitAsync()` when the operation is ready to be persisted. This keeps the commit decision outside individual repository methods and allows multiple staged changes to be saved together.
+
+A single database commit does not, by itself, guarantee atomicity across external services or file storage. Such operations require their own consistency and failure-handling considerations.
+
+#### Example: Retrieve map markers
+
+The map feature demonstrates how the application layers cooperate to retrieve data. The controller handles the HTTP request, the service coordinates marker retrieval, and the repository executes database queries filtered by the visible map area.
+
+**1. Controller: handle the request**
+
+`MapController` validates the query parameters, converts the requested geographical bounds into a `GeoBox`, and delegates retrieval to `MapService`.
+
+```csharp
+[HttpGet]
+public async Task<IActionResult> Data(
+    [FromQuery] MapBoundsRequest bounds,
+    CancellationToken cancellationToken)
+{
+    if (!ModelState.IsValid)
+        return BadRequest(ModelState);
+
+    var data = await _mapService.GetMarkersAsync(
+        User.GetUserId(),
+        User.GetRole(),
+        bounds.ToGeoBox(),
+        cancellationToken);
+
+    return Json(data);
+}
 ```
 
-Returflyten går motsatt vei:
+The controller handles HTTP-specific concerns and passes the current user's ID, role, and geographical bounds to the service.
 
-```text
-MariaDB → Repository → Service/Mapper → Controller → View → Nettleser
+**2. Service: coordinate marker retrieval**
+
+`MapService` retrieves needs and resources through their respective application services. Resource visibility depends on the user's role: resource providers can retrieve their own resources regardless of availability, while public actors see available resources.
+
+The service requests one additional marker per kind to detect whether the configured limit of 500 has been exceeded. It then returns at most 500 markers of each kind and indicates whether the results were truncated.
+
+**3. Repository: query the database**
+
+The need repository filters out resolved needs, restricts results to the requested geographical bounds, prioritizes critical needs, and projects the required fields directly into `MapMarkerDto`.
+
+```csharp
+return await _context.Needs
+    .AsNoTracking()
+    .Where(n => n.Status != NeedStatus.Resolved
+        && n.Latitude >= box.MinLat
+        && n.Latitude <= box.MaxLat
+        && n.Longitude >= box.MinLng
+        && n.Longitude <= box.MaxLng)
+    .OrderByDescending(n => n.Priority == NeedPriority.Critical)
+    .ThenByDescending(n => n.CreatedAt)
+    .Take(limit)
+    .Select(n => new MapMarkerDto(
+        n.Id,
+        MapMarkerKind.Need,
+        n.Title,
+        n.Category.Name,
+        n.Description,
+        n.Region,
+        n.Priority.ToString(),
+        n.Priority == NeedPriority.Critical,
+        n.Status.ToString(),
+        n.Deadline,
+        n.ContactPoint,
+        n.Latitude,
+        n.Longitude))
+    .ToListAsync(cancellationToken);
 ```
 
-### Ansvar per lag
+The query filters and projects data in the database, avoiding the need to load complete entities. `AsNoTracking()` eliminates unnecessary change-tracking overhead for this read-only operation. Ordering critical needs first makes them less likely to be excluded when the result limit is reached.
 
-- **View:** Viser dynamisk innhold og sender skjemaer eller lenker.
-- **Controller:** Mottar HTTP-requesten, håndterer model binding og validering,
-  kaller riktig service og returnerer en View eller redirect.
-- **Service:** Inneholder applikasjons- og forretningslogikk og koordinerer
-  mapper, repository og Unit of Work.
-- **Mapper:** Konverterer mellom domenemodeller som `Need` og `Resource` og
-  ViewModels som brukes av brukergrensesnittet.
-- **Repository:** Håndterer dataaksess gjennom EF Core og returnerer
-  domenemodeller, ikke ViewModels.
-- **Unit of Work:** Samler lagring og kaller `SaveChangesAsync()` når service-
-  laget har fullført operasjonen.
-- **Database:** MariaDB lagrer data permanent mellom forespørsler.
+The resulting marker data passes back through the service to the controller, which returns it as JSON for the browser.
 
-## Eksempel: opprette et behov
+This example illustrates the separation of responsibilities: the controller handles HTTP concerns, the service coordinates application logic and role-dependent behavior, and the repository performs data access.
 
-1. Brukeren åpner `Create` med GET og får et Razor-skjema.
-2. Brukeren fyller inn tittel, beskrivelse, kategori, posisjon og øvrige felt.
-3. POST-actionen i `NeedController` mottar `NeedCreateViewModel`.
-4. `ModelState.IsValid` kontrolleres. Ved feil returneres skjemaet med
-   valideringsmeldinger.
-5. Ved gyldige data bruker `NeedService` `NeedMapper` til å lage en `Need`-
-   entitet, sender den til `NeedRepository` og committer via `UnitOfWork`.
-6. Controlleren redirecter til oversikten.
-7. Oversikten henter data fra service/repository og mapper resultatet tilbake til
-   ViewModels før Razor View viser det til brukeren.
+## Cross-cutting concerns
 
-## Eksempel: opprette en ressurs
+| Concern                   | Approach                                                                                                                                                                                        |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Authentication            | Cookie authentication. See [Authentication](./features/authentication.md).                                                                                                                      |
+| Authorization             | A fallback policy requires authentication by default, while `[Authorize(Roles = "...")]` restricts specific actions. Hiding navigation links is not a substitute for server-side authorization. |
+| Validation                | Data annotations and `ModelState` validation, supplemented by server-side checks such as region resolution and file-content validation.                                                         |
+| Request forgery           | `[ValidateAntiForgeryToken]` on POST actions.                                                                                                                                                   |
+| Configuration and secrets | User Secrets for local development and environment variables in deployment, with options validated at startup where configured.                                                                 |
+| Error handling            | Exception handler page and HSTS outside Development.                                                                                                                                            |
+| File storage              | S3-compatible storage accessed through `IFileStorage`, with configured storage options and image-content checks.                                                                                |
 
-`ResourceController` følger samme mønster. GET viser skjemaet, og POST mottar
-`ResourceCreateViewModel`, validerer data, mapper til en `Resource`, lagrer via
-repository og Unit of Work og redirecter deretter til ressursoversikten.
+## Dependency injection
 
-Ressurser og behov inneholder geografiske koordinater. Kartet vises i
-brukergrensesnittet, mens koordinatene sendes som skjemadata til serveren og
-lagres sammen med entiteten.
+Dependency injection registrations are grouped into extension methods to keep service configuration centralized and reusable.
 
-## Arkitekturvalg
+- `AddPersistence()` registers the unit of work and repositories.
+- `AddFileStorage()` registers storage options, the S3 client and `IFileStorage`.
+- `AddApplicationServices()` registers application services and mappers.
+- `AddAppAuthentication()` registers cookie authentication, the fallback authorization policy and `AuthService` in the Web application.
 
-- **ASP.NET Core MVC:** Passer til server-renderte skjemaer, tydelig GET/POST-
-  flyt og Razor Views.
-- **ViewModels:** Hindrer at domenemodeller brukes direkte som input i alle
-  Views og gjør validering av brukerdata tydelig.
-- **Service- og repository-lag:** Holder HTTP-håndtering, forretningslogikk og
-  databaseaksess adskilt og gjør service- og mapper-kode enklere å teste.
-- **Mapper-lag:** Samler konvertering mellom ViewModels og domenemodeller i egne
-  klasser i stedet for å spre mapping i controllere.
-- **Unit of Work:** Gjør det mulig å samle flere databaseendringer før de
-  committes.
-- **.NET Aspire:** Forenkler lokal orkestrering av Web, Migrator og MariaDB og
-  holder connection strings utenfor vanlig kildekode.
-- **Migrator med idempotent seed-data:** Nye utviklere får tabeller og
-  eksempeldata automatisk ved oppstart uten å kjøre migreringer manuelt.
-- **Enums som tekst:** Statusverdier lagres som lesbar tekst i databasen, noe
-  som gjør dataene enklere å forstå ved inspeksjon.
+The Migrator and Web application can share persistence and storage registration where required, while authentication registration is specific to the Web application.
 
-## Kjente begrensninger
+## Known simplifications and limitations
 
-- Autentisering og autorisering er under utvikling. Controllerne bruker derfor
-  foreløpig ikke full claims-basert tilgangskontroll.
-- `userId` er foreløpig satt til en utviklingsverdi i opprettelsesflyten og må
-  kobles til innlogget bruker når autentisering er ferdig.
-- Vedleggsmodellen finnes, men filopplasting i opprettelsesskjemaet er ikke
-  ferdig implementert.
-
-Disse punktene beskriver nåværende status og skal ikke leses som ferdige
-funksjoner.
+- **Local database account:** Local development uses the MariaDB `root` user. The database is not intended to be exposed directly to external clients.
+- **TOTP secret storage:** The TOTP secret is stored unencrypted in the `users` table. Encrypting secrets at rest or using a dedicated secret-management mechanism would reduce the impact of a database compromise.
+- **Administration:** There is no admin role or category-management interface. Categories are maintained through migrations or seed code.
+- **Region resolution:** Region lookup depends on an external geocoding service. A lookup failure prevents the submitted form from being accepted when coordinates are supplied, so the application depends on that service for region resolution.
+- **File storage consistency:** Database transactions do not automatically include S3-compatible storage operations. Uploads and deletions need appropriate failure handling to avoid orphaned files or missing objects.
