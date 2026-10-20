@@ -1,149 +1,102 @@
-# Bruk av KI i prosjektet
+# Use of AI in the Project
 
-Dette dokumentet beskriver hvordan gruppen brukte kunstig intelligens (KI) som
-støtte gjennom prosjektet. KI ble brukt som et hjelpemiddel, mens gruppen selv
-vurderte forslagene, skrev om det som var nødvendig og testet løsningen.
+This document describes how the group used artificial intelligence (AI) as a support tool throughout the project. AI was used to assist the group, while the group members evaluated the suggestions, rewrote content where necessary, and tested the solution themselves.
 
-## Verktøy
+## Tools
 
-- Microsoft Copilot til idéutvikling, forklaringer og feilsøking.
-- GitHub Copilot til forslag mens vi skrev C#, Razor, SQL/EF Core og Markdown.
-- ChatGPT-lignende KI-assistent til planlegging, dokumentasjon og spørsmål om
-  ASP.NET Core, .NET Aspire, MariaDB og Docker.
+- Microsoft Copilot for brainstorming, explanations, and troubleshooting.
+- GitHub Copilot for code suggestions while writing C#, Razor, SQL/EF Core, and Markdown.
+- A ChatGPT-like AI assistant for planning, documentation, and questions about ASP.NET Core, .NET Aspire, MariaDB, and Docker.
 
-## Bruksområder
+## Areas of Use
 
-### Design- og planleggingsfase
+### Design and Planning Phase
 
-KI ble brukt til å diskutere mulige løsninger før implementasjonen startet.
-Vi brukte blant annet KI til å:
+AI was used to discuss possible solutions before implementation began. This included using AI to:
 
-- sammenligne ASP.NET Core MVC med andre mulige oppsett og begrunne hvorfor
-  MVC passet til skjemaer, controllere og Razor Views;
-- foreslå en lagdeling med Controller, ViewModel, Service, Mapper, Repository,
-  Unit of Work og database;
-- diskutere hvilke entiteter og relasjoner som trengtes for `Need`, `Resource`,
-  `Category`, `Attachment`, `Match` og `User`;
-- få forslag til hvordan et ER-diagram og et arkitekturdiagram kunne bygges;
-- planlegge request-flyten fra nettleser via controller og service til MariaDB.
+- Compare ASP.NET Core MVC with other possible approaches and explain why MVC was suitable for forms, controllers, and Razor Views.
+- Suggest a layered architecture consisting of Controller, ViewModel, Service, Mapper, Repository, Unit of Work, and database.
+- Discuss the entities and relationships required for `Need`, `Resource`, `Category`, `Attachment`, `Match`, and `User`.
+- Suggest approaches for creating an ER diagram and an architecture diagram.
+- Plan the request flow from the browser through the controller and service layers to MariaDB.
 
-KI-forslagene var utgangspunkt for diskusjon. Gruppen valgte selv hvilke
-forslag som passet med oppgaven og den faktiske koden.
+AI suggestions served as a starting point for discussion. The group independently decided which suggestions were appropriate for the assignment and the actual codebase.
 
-### Kodefase
+### Coding Phase
 
-KI ble brukt som støtte til å forstå og skrive deler av oppsettet, blant annet:
+AI was used to help understand and implement parts of the application, including:
 
-- grunnstruktur for MVC-controllere med GET- og POST-actions;
-- ViewModels med validering og binding av skjemafelt;
-- Razor Views, HTML og CSS for skjemaer og responsivt design;
-- EF Core-entiteter, relasjoner, enum-konvertering og repository-mønster;
-- .NET Aspire-oppsett for Web, Migrator og MariaDB;
-- `dotnet user-secrets` for databasepassord som ikke skal ligge i GitHub;
-- forklaring av feilmeldinger og forslag til feilsøking ved bygging og oppstart;
-- forslag til unit-tester for service- og mapper-lagene.
+- Basic structures for MVC controllers with GET and POST actions.
+- ViewModels with validation and form field binding.
+- Razor Views, HTML, and CSS for forms and responsive design.
+- EF Core entities, relationships, enum conversions, and the repository pattern.
+- .NET Aspire configuration for Web, Migrator, and MariaDB.
+- `dotnet user-secrets` for storing database passwords that should not be committed to GitHub.
+- Explanations of error messages and troubleshooting suggestions for build and startup issues.
+- Suggestions for unit tests covering the service and mapper layers.
 
-Kodeforslag ble ikke tatt som fasit. Gruppen tilpasset forslagene til prosjektets
-klassenavn, eksisterende arkitektur og krav, og kontrollerte at løsningen bygget
-og fungerte sammen med resten av prosjektet.
+Code suggestions were not accepted as authoritative. The group adapted them to the project's class names, existing architecture, and requirements, and checked that the solution built and worked with the rest of the project.
 
-### Dokumentasjonsfase
+### Documentation Phase
 
-KI ble brukt til å:
+AI was used to:
 
-- strukturere README-en og dokumentasjonen i `docs/`;
-- forklare arkitektur, request flow og databaseforbindelse med enklere språk;
-- forbedre formuleringer, overskrifter og Markdown-tabeller;
-- lage forslag til diagrammer i Mermaid-format;
-- finne dokumentasjonspunkter som måtte kontrolleres mot den faktiske koden.
+- Structure the README and the documentation in `docs/`.
+- Explain the architecture, request flow, and database connection in simpler language.
+- Improve wording, headings, and Markdown tables.
+- Generate draft diagrams in Mermaid format.
+- Identify documentation details that needed to be checked against the actual code.
 
-Dokumentasjonen ble gjennomgått og korrigert av gruppen. Testresultater i
-README skal fylles inn etter at applikasjonen er ferdig testet.
+The group reviewed and corrected the documentation. Test results in the README must be filled in after the application has been tested.
 
-## Konkrete eksempler på prompter
+## Specific Examples of Prompts
 
-Eksemplene under viser typen spørsmål vi brukte i arbeidet og hva KI ble brukt
-til. De er dokumentert for å vise arbeidsprosessen, ikke for å påstå at KI
-alene laget funksjonaliteten.
+The examples below illustrate the types of questions used during development and how AI supported the work. They document the working process and do not imply that AI independently implemented the functionality.
 
-### Eksempel 1 – arkitektur
+### Example 1 – Architecture
 
-> **Prompt:** Vi lager en ASP.NET Core MVC-applikasjon med Need og Resource.
-> Hvordan kan vi dele systemet i Controller, ViewModel, Service, Mapper,
-> Repository, Unit of Work og MariaDB? Forklar også dataflyten for en POST.
+> **Prompt:** We are building an ASP.NET Core MVC application with Need and Resource. How can we divide the system into Controller, ViewModel, Service, Mapper, Repository, Unit of Work, and MariaDB? Also explain the data flow for a POST request.
 >
-> **Resultat:** KI foreslo en lagdelt request flow. Gruppen brukte dette som
-> utgangspunkt, men tilpasset den til de faktiske klassene
-> `NeedController`, `NeedService`, `NeedMapper`, `NeedRepository` og
-> `AppDbContext`.
+> **Result:** AI suggested a layered request flow. The group used this as a starting point and adapted it to the actual classes: `NeedController`, `NeedService`, `NeedMapper`, `NeedRepository`, and `AppDbContext`.
 
-### Eksempel 2 – .NET Aspire og secrets
+### Example 2 – .NET Aspire and Secrets
 
-> **Prompt:** Hvordan kan et .NET Aspire AppHost bruke et databasepassord uten
-> at passordet lagres i `appsettings.json` eller pushes til GitHub?
+> **Prompt:** How can a .NET Aspire AppHost use a database password without storing it in `appsettings.json` or pushing it to GitHub?
 >
-> **Resultat:** KI foreslo en Aspire-parameter som secret og bruk av
-> `dotnet user-secrets`. Gruppen brukte dette som grunnlag for oppsettet og
-> dokumenterte kommandoen i README-en.
+> **Result:** AI suggested using an Aspire parameter as a secret and using `dotnet user-secrets`. The group used this as a basis for the configuration and documented the command in the README.
 
-### Eksempel 3 – GET og POST
+### Example 3 – GET and POST
 
-> **Prompt:** Vis et eksempel på en ASP.NET Core MVC-controller der GET viser et
-> skjema, POST validerer en ViewModel og ved ugyldige data viser skjemaet på
-> nytt med valideringsfeil.
+> **Prompt:** Show an example of an ASP.NET Core MVC controller where GET displays a form, POST validates a ViewModel, and invalid data causes the form to be displayed again with validation errors.
 >
-> **Resultat:** KI forklarte forskjellen mellom GET og POST, `ModelState.IsValid`
-> og redirect etter vellykket lagring. Gruppen tilpasset mønsteret til Need- og
-> Resource-controllerne og til de ViewModels som allerede finnes.
+> **Result:** AI explained the difference between GET and POST, `ModelState.IsValid`, and redirecting after successful persistence. The group adapted the pattern to the Need and Resource controllers and the existing ViewModels.
 
-### Eksempel 4 – EF Core og database
+### Example 4 – EF Core and Database
 
-> **Prompt:** Hvordan kan EF Core lagre enums som lesbare tekstverdier i en
-> MariaDB-database, og hvordan kan en unik kombinasjon av `NeedId` og
-> `ResourceId` håndheves?
+> **Prompt:** How can EF Core store enums as readable text values in a MariaDB database, and how can a unique combination of `NeedId` and `ResourceId` be enforced?
 >
-> **Resultat:** KI foreslo `HasConversion<string>()` og en unik indeks. Gruppen
-> kontrollerte forslaget mot `AppDbContext` og brukte det der det passet med
-> datamodellen.
+> **Result:** AI suggested `HasConversion<string>()` and a unique index. The group checked the suggestions against `AppDbContext` and used them where appropriate for the data model.
 
-### Eksempel 5 – dokumentasjon og diagram
+### Example 5 – Documentation and Diagrams
 
-> **Prompt:** Lag et enkelt Mermaid-arkitekturdiagram for nettleser, ASP.NET
-> Core MVC, Migrator og MariaDB, og vis hvilke komponenter AppHost starter.
+> **Prompt:** Create a simple Mermaid architecture diagram for the browser, ASP.NET Core MVC, Migrator, and MariaDB, and show which components AppHost starts.
 >
-> **Resultat:** KI laget et første diagramutkast. Gruppen fjernet generelle
-> eller misvisende deler og beholdt et diagram som beskriver prosjektets
-> faktiske AppHost-, Web-, Migrator- og MariaDB-komponenter.
+> **Result:** AI generated an initial diagram. The group removed generic or misleading elements and kept a diagram describing the project's actual AppHost, Web, Migrator, and MariaDB components.
 
-## Hva KI ikke gjorde
+## What AI Did Not Do
 
-- KI tok ikke selvstendige beslutninger om krav, arkitektur eller hvilke
-  funksjoner som skulle leveres.
-- KI hadde ikke tilgang til gruppens lokale kjøring, database eller
-  utviklingsmiljø og kunne derfor ikke bekrefte at forslagene fungerte.
-- KI skrev ikke den ferdige løsningen uten gjennomgang. Gruppen integrerte,
-  tilpasset og kvalitetssikret kode i prosjektet.
-- KI gjennomførte ikke den endelige testingen. Gruppen må selv kjøre
-  `dotnet test`, starte applikasjonen og gjennomføre de manuelle testene.
-- KI opprettet ikke testresultater. Resultater skal dokumenteres først når
-  testene faktisk er gjennomført.
-- KI fikk ikke legge inn hemmeligheter, passord eller personopplysninger i
-  repositoryet.
-- KI erstattet ikke code review eller samarbeidet i gruppen.
+- AI did not independently make decisions about requirements, architecture, or which features to deliver.
+- AI did not have access to the group's local runtime, database, or development environment and therefore could not confirm that its suggestions worked.
+- AI did not produce the final solution without review. The group integrated, adapted, and quality-checked the code.
+- AI did not perform the final testing. The group must run `dotnet test`, start the application, and carry out manual tests itself.
+- AI did not generate test results. Results must only be documented after the tests have actually been run.
+- AI was not used to commit secrets, passwords, or personal information to the repository.
+- AI did not replace code review or collaboration within the group.
 
-## Hvor mye ble tatt direkte vs. tilpasset
+## How Much Was Used Directly Versus Adapted
 
-Det finnes ikke en nøyaktig prosentandel for hele prosjektet. Generelt ble
-forklaringer, idéer og dokumentasjonsutkast ofte omskrevet og kontrollert mot
-koden. Kodeforslag ble brukt som utgangspunkt, men ble tilpasset med prosjektets
-egne navn, modeller, validering, feilhåndtering og struktur. Ingenting ble
-ansett som ferdig bare fordi KI foreslo det; gruppen måtte selv forstå, bygge og
-teste endringene.
+No exact percentage is available for the project as a whole. In general, explanations, ideas, and documentation drafts were frequently rewritten and checked against the code. Code suggestions were used as starting points but adapted to the project's own names, models, validation, error handling, and structure. Nothing was considered complete simply because AI had suggested it; the group had to understand, build, and test the changes itself.
 
-## Oppsummering
+## Summary
 
-KI ble brukt til planlegging, læring, dokumentasjon, feilsøking og inspirasjon.
-Den viktigste bruken var å få forslag og forklaringer raskere, ikke å overlate
-ansvaret for løsningen til KI. Gruppen har selv valgt arkitektur, tilpasset
-implementasjonen, vurdert sikkerhet og gjennomført kvalitetssikring. KI var et
-støtteverktøy, mens ansvar for kode og innhold ligger hos gruppen.
+AI was used for planning, learning, documentation, troubleshooting, and inspiration. Its main purpose was to help the group obtain suggestions and explanations more efficiently, not to transfer responsibility for the solution to AI. The group made the architectural decisions, adapted the implementation, evaluated security, and carried out quality assurance. AI was a support tool, while responsibility for the code and content remained with the group.
