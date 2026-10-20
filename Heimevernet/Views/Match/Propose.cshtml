@@ -1,0 +1,71 @@
+@model Heimevernet.ViewModels.Match.ProposeMatchViewModel
+
+@{
+    ViewData["Title"] = $"Propose Match - {Model.NeedTitle}";
+}
+
+<a asp-action="Details" asp-controller="Need" asp-route-id="@Model.NeedId" class="btn btn-link ps-0 mb-3">
+    <i class="bi bi-arrow-left"></i> Back to Need
+</a>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-body">
+
+                <h6 class="card-title mb-1">Propose a Resource</h6>
+                <p class="text-muted mb-3">
+                    For: <strong>@Model.NeedTitle</strong>
+                </p>
+
+                @if (!Model.Candidates.Any())
+                {
+                    <p class="text-muted mb-0">
+                        No matching resources found right now. Try again later as new resources are registered.
+                    </p>
+                }
+                else
+                {
+                    <div class="list-group list-group-flush">
+                        @foreach (var candidate in Model.Candidates)
+                        {
+                            <div class="list-group-item d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div class="fw-semibold">@candidate.Title</div>
+                                    <div class="small text-muted">
+                                        @candidate.CategoryName &middot; @candidate.Region
+                                    </div>
+                                    <div class="small text-muted">
+                                        Contact: @candidate.ContactPoint
+                                    </div>
+                                    <div class="small text-muted">
+                                        Available: @candidate.AvailableFrom.ToString("dd.MM.yyyy")
+                                        @(candidate.AvailableTo.HasValue ? $"- {candidate.AvailableTo.Value:dd.MM.yyyy}" : "and onward")
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(candidate.Description))
+                                    {
+                                        <div class="small mt-1">@candidate.Description</div>
+                                    }
+                                </div>
+                                <div class="text-end">
+                                    <div class="small fw-semibold mb-2">
+                                        @candidate.DistanceKm.ToString("0.0") km away
+                                    </div>
+                                    <form asp-action="Propose" asp-controller="Match" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="needId" value="@Model.NeedId" />
+                                        <input type="hidden" name="resourceId" value="@candidate.ResourceId" />
+                                        <button type="submit" class="btn btn-success btn-sm">
+                                            Propose this
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+
+            </div>
+        </div>
+    </div>
+</div>

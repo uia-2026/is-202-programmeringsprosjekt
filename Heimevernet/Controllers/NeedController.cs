@@ -18,6 +18,7 @@ public class NeedController : Controller
     private readonly ICategoryRepository _categoryRepository;
     private readonly IResourceService _resourceService;
     private readonly IRegionResolver _regionResolver;
+    private readonly IMatchService _matchService;
 
     private const double NearbyResourcesRadiusKm = 50;
     private const int NearbyResourcesMaxResults = 5;
@@ -26,12 +27,14 @@ public class NeedController : Controller
         INeedService needService,
         ICategoryRepository categoryRepository,
         IResourceService resourceService,
-        IRegionResolver regionResolver)
+        IRegionResolver regionResolver,
+        IMatchService matchService)
     {
         _needService = needService;
         _categoryRepository = categoryRepository;
         _resourceService = resourceService;
         _regionResolver = regionResolver;
+        _matchService = matchService;
     }
 
     /// <summary>
@@ -157,6 +160,10 @@ public class NeedController : Controller
 
         ViewBag.NearbyResources = nearbyResources;
         ViewBag.NearbyResourcesRadiusKm = NearbyResourcesRadiusKm;
+
+        // Only the Need's own owner can propose a Match for it (#40).
+        ViewBag.CanProposeMatch = User.Identity?.IsAuthenticated == true
+            && await _matchService.CanProposeAsync(id, User.GetUserId(), cancellationToken);
 
         return View(need);
     }

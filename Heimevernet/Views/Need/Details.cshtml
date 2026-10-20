@@ -145,6 +145,13 @@
                     Find Resources
                 </a>
 
+                @if (ViewBag.CanProposeMatch == true)
+                {
+                    <a asp-action="Propose" asp-controller="Match" asp-route-needId="@Model.Id" class="btn btn-primary w-100 mb-2">
+                        Propose Match
+                    </a>
+                }
+
                 <button class="btn btn-outline-secondary w-100" type="button">
                     Mark as Resolved
                 </button>
