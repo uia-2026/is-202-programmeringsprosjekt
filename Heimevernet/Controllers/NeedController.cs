@@ -129,6 +129,7 @@ public class NeedController : Controller
     /// closest" list — no category/priority scoring, that belongs to a future matching feature.
     /// </summary>
     [HttpGet]
+    [Authorize(Roles = "PublicActor,ResourceProvider")]
     public async Task<IActionResult> Details(int id, CancellationToken cancellationToken)
     {
         var need = await _needService.GetByIdAsync(id, cancellationToken);

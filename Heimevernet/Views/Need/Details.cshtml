@@ -1,3 +1,4 @@
+@using System.Globalization
 @model Heimevernet.ViewModels.Need.NeedViewModel
 
 @{
@@ -17,6 +18,18 @@
         _ =>
             ("bg-secondary", "Unknown")
     };
+
+    // Invariant culture so JavaScript always gets "." as decimal separator.
+    var lat = Model.Latitude.ToString(CultureInfo.InvariantCulture);
+    var lng = Model.Longitude.ToString(CultureInfo.InvariantCulture);
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <style>
+        #needMap { height: 260px; border-radius: 8px; }
+    </style>
 }
 
 <a asp-action="Index" class="btn btn-link ps-0 mb-3">
@@ -79,6 +92,11 @@
                         </span>
                     </dd>
 
+                    <dt class="col-sm-4">Created</dt>
+                    <dd class="col-sm-8">
+                        @Model.CreatedAt.ToString("dd.MM.yyyy, HH:mm") UTC
+                    </dd>
+
                 </dl>
 
                 @if (!string.IsNullOrWhiteSpace(Model.Description))
@@ -99,11 +117,29 @@
 
     <div class="col-12 col-lg-4 mt-3 mt-lg-0">
 
+        <div class="card shadow-sm mb-3">
+            <div class="card-body">
+                <h6 class="card-title">Location</h6>
+                <div id="needMap" data-lat="@lat" data-lng="@lng"></div>
+            </div>
+        </div>
+
         <div class="card shadow-sm">
 
             <div class="card-body">
 
                 <h6 class="card-title">Actions</h6>
+
+                @if (User.IsInRole("PublicActor"))
+                {
+                    @* Target is implemented in issue #40 (Match: Propose flow). *@
+                    <a asp-controller="Match"
+                       asp-action="Propose"
+                       asp-route-needId="@Model.Id"
+                       class="btn btn-primary w-100 mb-2">
+                        Propose match
+                    </a>
+                }
 
                 <a href="#nearby-resources" class="btn btn-success w-100 mb-2">
                     Find Resources
@@ -167,3 +203,25 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script>
+        (function () {
+            const el = document.getElementById('needMap');
+            const lat = parseFloat(el.dataset.lat);
+            const lng = parseFloat(el.dataset.lng);
+
+            // Read-only: centered on the need, marker not draggable, no click handler.
+            const map = L.map(el, { scrollWheelZoom: false }).setView([lat, lng], 13);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            L.marker([lat, lng], { draggable: false }).addTo(map);
+        })();
+    </script>
+}
