@@ -1,0 +1,133 @@
+@model Heimevernet.ViewModels.Resource.PrintByRegionViewModel
+
+@{
+    ViewData["Title"] = "Print Resource List";
+}
+
+@section Styles {
+    <style>
+        @@media print {
+            .app-topbar,
+            .app-sidebar,
+            .footer,
+            .no-print {
+                display: none !important;
+            }
+
+            .app-content,
+            .app-main {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+            }
+
+            .card {
+                box-shadow: none !important;
+                border: none !important;
+            }
+
+            table {
+                width: 100% !important;
+            }
+        }
+    </style>
+}
+
+<div class="no-print">
+    <a asp-action="Index" class="btn btn-link ps-0 mb-3">
+        <i class="bi bi-arrow-left"></i> Back to Resources
+    </a>
+</div>
+
+<div class="card shadow-sm no-print mb-3">
+    <div class="card-body">
+
+        <form method="get" asp-action="PrintByRegion" class="row g-2 align-items-end">
+
+            <div class="col-auto">
+                <label for="region" class="form-label mb-1">Region</label>
+                <select name="region" id="region" class="form-select">
+                    <option value="" selected="@(string.IsNullOrEmpty(Model.SelectedRegion))">All regions</option>
+                    @foreach (var region in Model.AvailableRegions)
+                    {
+                        <option value="@region" selected="@(region == Model.SelectedRegion)">@region</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-auto">
+                <button type="submit" class="btn btn-outline-secondary">Filter</button>
+            </div>
+
+            <div class="col-auto">
+                <button type="button" class="btn btn-success" onclick="window.print()">
+                    Print
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+
+        <h5 class="mb-1">
+            Available Resources
+            @if (!string.IsNullOrEmpty(Model.SelectedRegion))
+            {
+                <span class="text-muted">- @Model.SelectedRegion</span>
+            }
+            else
+            {
+                <span class="text-muted">- All regions</span>
+            }
+        </h5>
+
+        <p class="text-muted small mb-3">
+            @Model.Resources.Count() resource(s) listed
+        </p>
+
+        @if (!Model.Resources.Any())
+        {
+            <p class="text-muted mb-0">
+                No available resources found@(string.IsNullOrEmpty(Model.SelectedRegion) ? "." : $" in {Model.SelectedRegion}.")
+            </p>
+        }
+        else
+        {
+            <table class="table table-sm table-bordered align-middle">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Category</th>
+                        <th>Description</th>
+                        <th>Region</th>
+                        <th>Availability</th>
+                        <th>Status</th>
+                        <th>Contact</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var resource in Model.Resources)
+                    {
+                        <tr>
+                            <td>@resource.Title</td>
+                            <td>@resource.CategoryName</td>
+                            <td>@resource.Description</td>
+                            <td>@resource.Region</td>
+                            <td>
+                                @resource.AvailableFrom.ToString("dd.MM.yyyy")
+                                @(resource.AvailableTo.HasValue ? $"- {resource.AvailableTo.Value:dd.MM.yyyy}" : "and onward")
+                            </td>
+                            <td>@resource.Status</td>
+                            <td>@resource.ContactPoint</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+    </div>
+</div>
