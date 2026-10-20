@@ -1,22 +1,23 @@
+using System.Text.Json.Serialization;
+
 namespace Heimevernet.ViewModels.Map;
 
-public record MapMarkerViewModel(
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum MapMarkerKind { Need, Resource }
+
+public sealed record MapMarkerViewModel(
     int Id,
-    string Kind,
+    MapMarkerKind Kind,
     string Title,
     string Category,
     string? Description,
     string Region,
-    string Priority,
+    string? Priority,
+    bool IsUrgent,
     string Status,
-    string MarkerColor,
     DateTime? When,
     string ContactInfo,
     double Latitude,
-    double Longitude
-
-);
+    double Longitude);
 
 
-
-    

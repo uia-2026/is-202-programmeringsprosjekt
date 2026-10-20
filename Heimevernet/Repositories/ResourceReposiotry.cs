@@ -1,6 +1,9 @@
 using Heimevernet.Data;
+using Heimevernet.DTOs.Map;
+using Heimevernet.Infrastructure.Geo;
 using Heimevernet.Models;
 using Heimevernet.Repositories.Interfaces;
+using Heimevernet.ViewModels.Map;
 using Microsoft.EntityFrameworkCore;
 
 namespace Heimevernet.Repositories;
@@ -61,5 +64,29 @@ public class ResourceRepository : IResourceRepository
         await _context.Resources.AddAsync(
             resource,
             cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<MapMarkerDto>> GetMapMarkersAsync(
+        GeoBox box, int? ownerUserId, bool availableOnly, int limit,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Resources
+            .AsNoTracking()
+            .Where(r => r.Latitude >= box.MinLat && r.Latitude <= box.MaxLat
+                     && r.Longitude >= box.MinLng && r.Longitude <= box.MaxLng);
+
+        if (ownerUserId is { } owner)
+            query = query.Where(r => r.UserId == owner);
+
+        if (availableOnly)
+            query = query.Where(r => r.Status == ResourceStatus.Available);
+
+        return await query
+            .OrderByDescending(r => r.CreatedAt)
+            .Take(limit)
+            .Select(r => new MapMarkerDto(
+                r.Id, MapMarkerKind.Resource, r.Title, r.Category.Name, r.Description, r.Region,
+                null, false, r.Status.ToString(), r.AvailableFrom, r.ContactPoint, r.Latitude, r.Longitude))
+            .ToListAsync(cancellationToken);
     }
 }

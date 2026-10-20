@@ -99,7 +99,7 @@ public static class SeedData
                 Latitude = 58.1500,
                 Longitude = 7.9980,
                 Region = "Kristiansand",
-                Priority = NeedPriority.Urgent,
+                Priority = NeedPriority.Medium,
                 Deadline = DateTime.UtcNow.AddDays(1),
                 ContactPoint = publicActor.Email,
                 Status = NeedStatus.New
@@ -115,7 +115,7 @@ public static class SeedData
                 Latitude = 58.1550,
                 Longitude = 8.0100,
                 Region = "Kristiansand",
-                Priority = NeedPriority.Planned,
+                Priority = NeedPriority.Low,
                 Deadline = DateTime.UtcNow.AddDays(3),
                 ContactPoint = publicActor.Email,
                 Status = NeedStatus.New

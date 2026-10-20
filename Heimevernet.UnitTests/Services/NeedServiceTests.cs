@@ -1,4 +1,5 @@
 using Heimevernet.Mappers;
+using Heimevernet.Mappers.Interfaces;
 using Heimevernet.Models;
 using Heimevernet.Repositories.Interfaces;
 using Heimevernet.Services;
@@ -15,6 +16,7 @@ public class NeedServiceTests
 {
     private readonly Mock<INeedRepository> _needRepoMock;
     private readonly Mock<INeedMapper> _mapperMock;
+    private readonly Mock<IMapMarkerMapper> _mapMarkerMapperMock;
     private readonly Mock<IUnitOfWork> _uowMock;
     private readonly NeedService _sut;
 
@@ -22,8 +24,9 @@ public class NeedServiceTests
     {
         _needRepoMock = new Mock<INeedRepository>();
         _mapperMock = new Mock<INeedMapper>();
+        _mapMarkerMapperMock = new Mock<IMapMarkerMapper>();
         _uowMock = new Mock<IUnitOfWork>();
-        _sut = new NeedService(_needRepoMock.Object, _mapperMock.Object, _uowMock.Object);
+        _sut = new NeedService(_needRepoMock.Object, _mapperMock.Object, _mapMarkerMapperMock.Object, _uowMock.Object);
     }
 
     /// <summary>
@@ -38,7 +41,7 @@ public class NeedServiceTests
             Title = "Water",
             Region = "Agder",
             ContactPoint = "contact",
-            Priority = NeedPriority.Urgent
+            Priority = NeedPriority.Medium
         };
         var mappedNeed = new Need { Id = 1, Title = "Water" };
         _mapperMock.Setup(m => m.ToEntity(model, 42)).Returns(mappedNeed);
@@ -145,13 +148,13 @@ public class NeedServiceTests
     {
         var needs = new List<Need>
         {
-            new Need { Id = 1, Title = "A", Category = new Category { Name = "C1" }, Region = "R1", Priority = NeedPriority.Planned, Status = NeedStatus.New },
-            new Need { Id = 2, Title = "B", Category = new Category { Name = "C2" }, Region = "R2", Priority = NeedPriority.Urgent, Status = NeedStatus.Resolved }
+            new Need { Id = 1, Title = "A", Category = new Category { Name = "C1" }, Region = "R1", Priority = NeedPriority.Low, Status = NeedStatus.New },
+            new Need { Id = 2, Title = "B", Category = new Category { Name = "C2" }, Region = "R2", Priority = NeedPriority.Medium, Status = NeedStatus.Resolved }
         };
         var expected = new List<NeedSummaryViewModel>
         {
-            new NeedSummaryViewModel { Id = 1, Title = "A", CategoryName = "C1", Priority = NeedPriority.Planned, Status = NeedStatus.New },
-            new NeedSummaryViewModel { Id = 2, Title = "B", CategoryName = "C2", Priority = NeedPriority.Urgent, Status = NeedStatus.Resolved }
+            new NeedSummaryViewModel { Id = 1, Title = "A", CategoryName = "C1", Priority = NeedPriority.Low, Status = NeedStatus.New },
+            new NeedSummaryViewModel { Id = 2, Title = "B", CategoryName = "C2", Priority = NeedPriority.Medium, Status = NeedStatus.Resolved }
         };
         _needRepoMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(needs);
         _mapperMock.Setup(m => m.ToSummaryViewModels(needs)).Returns(expected);
@@ -161,7 +164,7 @@ public class NeedServiceTests
         Assert.Equal(2, result.Count);
         Assert.Equal("A", result[0].Title);
         Assert.Equal("C1", result[0].CategoryName);
-        Assert.Equal(NeedPriority.Urgent, result[1].Priority);
+        Assert.Equal(NeedPriority.Medium, result[1].Priority);
         _mapperMock.Verify(m => m.ToSummaryViewModels(needs), Times.Once);
     }
 

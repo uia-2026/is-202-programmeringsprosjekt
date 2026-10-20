@@ -27,7 +27,7 @@ public class NeedMapperTests
             Latitude = 58.1467,
             Longitude = 7.9956,
             Region = "  Kristiansand  ",
-            Priority = NeedPriority.Urgent,
+            Priority = NeedPriority.Medium,
             Deadline = deadline,
             ContactPoint = "  contact@example.com  "
         };
@@ -41,7 +41,7 @@ public class NeedMapperTests
         Assert.Equal(58.1467, result.Latitude);
         Assert.Equal(7.9956, result.Longitude);
         Assert.Equal("Kristiansand", result.Region);
-        Assert.Equal(NeedPriority.Urgent, result.Priority);
+        Assert.Equal(NeedPriority.Medium, result.Priority);
         Assert.Equal(deadline, result.Deadline);
         Assert.Equal("contact@example.com", result.ContactPoint);
     }
@@ -60,7 +60,7 @@ public class NeedMapperTests
             Latitude = 0,
             Longitude = 0,
             Region = "Region",
-            Priority = NeedPriority.Planned,
+            Priority = NeedPriority.Low,
             Deadline = null,
             ContactPoint = "contact"
         };
@@ -88,7 +88,7 @@ public class NeedMapperTests
             Latitude = 10.5,
             Longitude = 20.5,
             Region = "Oslo",
-            Priority = NeedPriority.Urgent,
+            Priority = NeedPriority.Medium,
             Deadline = deadline,
             ContactPoint = "john@example.com",
             Status = NeedStatus.Assigned,
@@ -104,7 +104,7 @@ public class NeedMapperTests
         Assert.Equal(10.5, result.Latitude);
         Assert.Equal(20.5, result.Longitude);
         Assert.Equal("Oslo", result.Region);
-        Assert.Equal(NeedPriority.Urgent, result.Priority);
+        Assert.Equal(NeedPriority.Medium, result.Priority);
         Assert.Equal(deadline, result.Deadline);
         Assert.Equal("john@example.com", result.ContactPoint);
         Assert.Equal(NeedStatus.Assigned, result.Status);
@@ -123,7 +123,7 @@ public class NeedMapperTests
             Title = "Summary Test",
             Category = new Category { Name = "Transport" },
             Region = "Bergen",
-            Priority = NeedPriority.Planned,
+            Priority = NeedPriority.Low,
             Status = NeedStatus.New
         };
 
@@ -133,7 +133,7 @@ public class NeedMapperTests
         Assert.Equal("Summary Test", result.Title);
         Assert.Equal("Transport", result.CategoryName);
         Assert.Equal("Bergen", result.Region);
-        Assert.Equal(NeedPriority.Planned, result.Priority);
+        Assert.Equal(NeedPriority.Low, result.Priority);
         Assert.Equal(NeedStatus.New, result.Status);
     }
 
@@ -166,8 +166,8 @@ public class NeedMapperTests
     {
         var needs = new[]
         {
-            new Need { Id = 1, Title = "A", Category = new Category { Name = "C1" }, Region = "R1", Priority = NeedPriority.Planned, Status = NeedStatus.New },
-            new Need { Id = 2, Title = "B", Category = new Category { Name = "C2" }, Region = "R2", Priority = NeedPriority.Urgent, Status = NeedStatus.Assigned }
+            new Need { Id = 1, Title = "A", Category = new Category { Name = "C1" }, Region = "R1", Priority = NeedPriority.Low, Status = NeedStatus.New },
+            new Need { Id = 2, Title = "B", Category = new Category { Name = "C2" }, Region = "R2", Priority = NeedPriority.Medium, Status = NeedStatus.Assigned }
         };
 
         var results = _sut.ToSummaryViewModels(needs).ToList();
@@ -175,7 +175,7 @@ public class NeedMapperTests
         Assert.Equal(2, results.Count);
         Assert.Equal("C1", results[0].CategoryName);
         Assert.Equal("C2", results[1].CategoryName);
-        Assert.Equal(NeedPriority.Urgent, results[1].Priority);
+        Assert.Equal(NeedPriority.Medium, results[1].Priority);
     }
 
     /// <summary>

@@ -191,5 +191,5 @@ fremtidig "oppdater status"-funksjon.
 
 **Merk:** `Enums.cs` inneholder også `UserRole` (`PublicActor`,
 `ResourceProvider` – med en kommentar om at `Admin` kanskje legges til
-senere), `NeedPriority` (`Urgent`, `Planned`) og `CategoryAppliesTo` (`Need`,
+senere), `NeedPriority` (`Medium`, `Critical`) og `CategoryAppliesTo` (`Need`,
 `Resource`, `Both`), men disse er ikke statusfelt i samme forstand.
