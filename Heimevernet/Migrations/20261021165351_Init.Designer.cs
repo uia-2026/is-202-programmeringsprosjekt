@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Heimevernet.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261009172559_RenameAttachmentFilePathToStorageKey")]
-    partial class RenameAttachmentFilePathToStorageKey
+    [Migration("20261021165351_Init")]
+    partial class Init
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -38,7 +38,8 @@ namespace Heimevernet.Migrations
 
                     b.Property<string>("StorageKey")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(512)
+                        .HasColumnType("varchar(512)");
 
                     b.Property<DateTime>("UploadedAt")
                         .HasColumnType("datetime(6)");
@@ -65,13 +66,18 @@ namespace Heimevernet.Migrations
 
                     b.Property<string>("AppliesTo")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
 
                     b.ToTable("Categories");
                 });
@@ -98,7 +104,8 @@ namespace Heimevernet.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
 
                     b.HasKey("Id");
 
@@ -125,7 +132,8 @@ namespace Heimevernet.Migrations
 
                     b.Property<string>("ContactPoint")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
@@ -134,7 +142,8 @@ namespace Heimevernet.Migrations
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("Description")
-                        .HasColumnType("longtext");
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
 
                     b.Property<double>("Latitude")
                         .HasColumnType("double");
@@ -144,19 +153,23 @@ namespace Heimevernet.Migrations
 
                     b.Property<string>("Priority")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
 
                     b.Property<string>("Region")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");
@@ -189,13 +202,15 @@ namespace Heimevernet.Migrations
 
                     b.Property<string>("ContactPoint")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("Description")
-                        .HasColumnType("longtext");
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
 
                     b.Property<double>("Latitude")
                         .HasColumnType("double");
@@ -205,15 +220,18 @@ namespace Heimevernet.Migrations
 
                     b.Property<string>("Region")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");
@@ -237,32 +255,38 @@ namespace Heimevernet.Migrations
 
                     b.Property<string>("ActorType")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("varchar(255)");
+                        .HasMaxLength(254)
+                        .HasColumnType("varchar(254)");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
 
                     b.Property<string>("Role")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<string>("TwoFactorSecret")
-                        .HasColumnType("longtext");
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
 
                     b.Property<string>("Username")
                         .IsRequired()
-                        .HasColumnType("varchar(255)");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
 
                     b.HasKey("Id");
 
