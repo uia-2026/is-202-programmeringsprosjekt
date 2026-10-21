@@ -5,13 +5,13 @@ namespace Heimevernet.ViewModels.Account;
 
 public class RegisterViewModel
 {
-    [Required, StringLength(50)]
+    [Required, StringLength(FieldLimits.Username)]
     public string Username { get; set; } = string.Empty;
 
-    [Required, EmailAddress]
+    [Required, EmailAddress, StringLength(FieldLimits.Email)]
     public string Email { get; set; } = string.Empty;
 
-    [Required, DataType(DataType.Password), StringLength(100, MinimumLength = 8)]
+    [Required, DataType(DataType.Password), StringLength(FieldLimits.PasswordHash)]
     public string Password { get; set; } = string.Empty;
 
     [Required, DataType(DataType.Password), Compare(nameof(Password))]
@@ -20,6 +20,6 @@ public class RegisterViewModel
     [Required]
     public UserRole Role { get; set; }
 
-    [Required, StringLength(100)]
+    [Required, StringLength(FieldLimits.ActorType)]
     public string ActorType { get; set; } = string.Empty;
 }
