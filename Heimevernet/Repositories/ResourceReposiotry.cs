@@ -1,5 +1,6 @@
 using Heimevernet.Data;
 using Heimevernet.DTOs.Map;
+using Heimevernet.DTOs.Resources;
 using Heimevernet.Infrastructure.Geo;
 using Heimevernet.Models;
 using Heimevernet.Repositories.Interfaces;
@@ -88,5 +89,66 @@ public class ResourceRepository : IResourceRepository
                 r.Id, MapMarkerKind.Resource, r.Title, r.Category.Name, r.Description, r.Region,
                 null, false, r.Status.ToString(), r.AvailableFrom, r.ContactPoint, r.Latitude, r.Longitude))
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<NearbyResourceDto>> GetCompatibleNearbyAsync(
+    int categoryId,
+    double latitude,
+    double longitude,
+    DateTime? deadline,
+    double radiusKm,
+    int maxResults,
+    CancellationToken cancellationToken = default)
+    {
+        if (radiusKm <= 0)
+            throw new ArgumentOutOfRangeException(nameof(radiusKm));
+
+        if (maxResults <= 0)
+            return [];
+
+        var box = GeoMath.BoundingBox(latitude, longitude, radiusKm);
+
+        var candidates = await _context.Resources
+            .AsNoTracking()
+            .Where(r =>
+                r.CategoryId == categoryId &&
+                r.Status == ResourceStatus.Available &&
+                (deadline == null ||
+                (r.AvailableFrom <= deadline &&
+                (r.AvailableTo == null || r.AvailableTo >= deadline))) &&
+                r.Latitude >= box.MinLat &&
+                r.Latitude <= box.MaxLat &&
+                r.Longitude >= box.MinLng &&
+                r.Longitude <= box.MaxLng)
+            .Select(r => new
+            {
+                r.Id,
+                r.Title,
+                CategoryName = r.Category.Name,
+                r.Region,
+                r.Status,
+                r.ContactPoint,
+                r.Latitude,
+                r.Longitude
+            })
+            .ToListAsync(cancellationToken);
+
+        return candidates
+            .Select(r => new NearbyResourceDto(
+                Id: r.Id,
+                Title: r.Title,
+                CategoryName: r.CategoryName,
+                Region: r.Region,
+                Status: r.Status.ToString(),
+                ContactPoint: r.ContactPoint,
+                DistanceKm: GeoMath.DistanceKm(
+                    latitude,
+                    longitude,
+                    r.Latitude,
+                    r.Longitude)))
+            .Where(r => r.DistanceKm <= radiusKm)
+            .OrderBy(r => r.DistanceKm)
+            .Take(maxResults)
+            .ToList();
     }
 }

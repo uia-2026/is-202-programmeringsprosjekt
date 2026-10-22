@@ -133,50 +133,32 @@ public class NeedController : Controller
     /// </summary>
     [HttpGet]
     [Authorize(Roles = "PublicActor,ResourceProvider")]
-    public async Task<IActionResult> Details(int id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Details(
+        int id,
+        CancellationToken cancellationToken)
     {
-        var need = await _needService.GetByIdAsync(id, cancellationToken);
+        var needViewModel = await _needService.GetByIdAsync(id, cancellationToken);
 
-        if (need == null)
+        if (needViewModel is null)
         {
             return NotFound();
         }
 
-        var resources = await _resourceService.GetAllAsync(cancellationToken);
+        var nearbyResources = await _resourceService.GetCompatibleNearbyAsync(
+            needViewModel,
+            NearbyResourcesRadiusKm,
+            NearbyResourcesMaxResults,
+            cancellationToken);
 
-        var nearbyResources = resources
-            .Select(r => new NearbyResourceViewModel(
-                Id: r.Id,
-                Title: r.Title,
-                CategoryName: r.CategoryName,
-                Region: r.Region,
-                Status: r.Status.ToString(),
-                ContactPoint: r.ContactPoint,
-                DistanceKm: DistanceKm(need.Latitude, need.Longitude, r.Latitude, r.Longitude)))
-            .Where(r => r.DistanceKm <= NearbyResourcesRadiusKm)
-            .OrderBy(r => r.DistanceKm)
-            .Take(NearbyResourcesMaxResults)
-            .ToList();
+        var model = new NeedDetailsViewModel
+        {
+            Need = needViewModel,
+            NearbyResources = nearbyResources,
+            NearbyResourcesRadiusKm = NearbyResourcesRadiusKm,
+            CanProposeMatch = await _matchService.CanProposeAsync(
+                id, User.GetUserId(), cancellationToken)
+        };
 
-        ViewBag.NearbyResources = nearbyResources;
-        ViewBag.NearbyResourcesRadiusKm = NearbyResourcesRadiusKm;
-
-        // Only the Need's own owner can propose a Match for it (#40).
-        ViewBag.CanProposeMatch = User.Identity?.IsAuthenticated == true
-            && await _matchService.CanProposeAsync(id, User.GetUserId(), cancellationToken);
-
-        return View(need);
-    }
-
-    private static double DistanceKm(double lat1, double lon1, double lat2, double lon2)
-    {
-        const double earthRadiusKm = 6371;
-        var dLat = (lat2 - lat1) * Math.PI / 180;
-        var dLon = (lon2 - lon1) * Math.PI / 180;
-        var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
-                Math.Cos(lat1 * Math.PI / 180) * Math.Cos(lat2 * Math.PI / 180) *
-                Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
-        var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
-        return earthRadiusKm * c;
+        return View(model);
     }
 }

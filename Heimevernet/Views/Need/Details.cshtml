@@ -1,10 +1,12 @@
 @using System.Globalization
-@model Heimevernet.ViewModels.Need.NeedViewModel
+@model Heimevernet.ViewModels.Need.NeedDetailsViewModel
 
 @{
-    ViewData["Title"] = Model.Title;
+    ViewData["Title"] = Model.Need.Title;
 
-    var (badgeClass, badgeText) = Model.Priority switch
+    var need = Model.Need;
+
+    var (badgeClass, badgeText) = need.Priority switch
     {
         Heimevernet.Models.NeedPriority.Low =>
             ("bg-primary", "Low"),
@@ -19,16 +21,22 @@
             ("bg-secondary", "Unknown")
     };
 
-    // Invariant culture so JavaScript always gets "." as decimal separator.
-    var lat = Model.Latitude.ToString(CultureInfo.InvariantCulture);
-    var lng = Model.Longitude.ToString(CultureInfo.InvariantCulture);
+    // Invariant culture ensures JavaScript receives "." as the decimal separator.
+    var lat = need.Latitude.ToString(CultureInfo.InvariantCulture);
+    var lng = need.Longitude.ToString(CultureInfo.InvariantCulture);
 }
 
 @section Styles {
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <link rel="stylesheet"
+          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin="" />
+
     <style>
-        #needMap { height: 260px; border-radius: 8px; }
+        #needMap {
+            height: 260px;
+            border-radius: 8px;
+        }
     </style>
 }
 
@@ -37,42 +45,30 @@
 </a>
 
 <div class="row">
-
     <div class="col-12 col-lg-8">
-
         <div class="card shadow-sm">
-
             <div class="card-body">
-
                 <span class="badge @badgeClass mb-2">
                     @badgeText
                 </span>
 
-                <h2 class="h4">@Model.Title</h2>
+                <h2 class="h4">@need.Title</h2>
 
                 <dl class="row mt-4">
-
                     <dt class="col-sm-4">Category</dt>
-                    <dd class="col-sm-8">
-                        @Model.CategoryName
-                    </dd>
+                    <dd class="col-sm-8">@need.CategoryName</dd>
 
                     <dt class="col-sm-4">Region</dt>
-                    <dd class="col-sm-8">
-                        @Model.Region
-                    </dd>
+                    <dd class="col-sm-8">@need.Region</dd>
 
                     <dt class="col-sm-4">Coordinates</dt>
-                    <dd class="col-sm-8">
-                        @Model.Latitude, @Model.Longitude
-                    </dd>
+                    <dd class="col-sm-8">@need.Latitude, @need.Longitude</dd>
 
                     <dt class="col-sm-4">Deadline</dt>
                     <dd class="col-sm-8">
-                        @if (Model.Deadline.HasValue)
+                        @if (need.Deadline.HasValue)
                         {
-                            @Model.Deadline.Value.ToString(
-                                "dddd dd.MM.yyyy, HH:mm")
+                            @need.Deadline.Value.ToString("dddd dd.MM.yyyy, HH:mm")
                         }
                         else
                         {
@@ -81,42 +77,31 @@
                     </dd>
 
                     <dt class="col-sm-4">Contact</dt>
-                    <dd class="col-sm-8">
-                        @Model.ContactPoint
-                    </dd>
+                    <dd class="col-sm-8">@need.ContactPoint</dd>
 
                     <dt class="col-sm-4">Status</dt>
                     <dd class="col-sm-8">
-                        <span class="badge bg-secondary">
-                            @Model.Status
-                        </span>
+                        <span class="badge bg-secondary">@need.Status</span>
                     </dd>
 
                     <dt class="col-sm-4">Created</dt>
                     <dd class="col-sm-8">
-                        @Model.CreatedAt.ToString("dd.MM.yyyy, HH:mm") UTC
+                        @need.CreatedAt.ToString("dd.MM.yyyy, HH:mm") UTC
                     </dd>
-
                 </dl>
 
-                @if (!string.IsNullOrWhiteSpace(Model.Description))
+                @if (!string.IsNullOrWhiteSpace(need.Description))
                 {
                     <hr />
 
                     <h6>Description</h6>
-
-                    <p class="mb-0">
-                        @Model.Description
-                    </p>
+                    <p class="mb-0">@need.Description</p>
                 }
-
             </div>
         </div>
-
     </div>
 
     <div class="col-12 col-lg-4 mt-3 mt-lg-0">
-
         <div class="card shadow-sm mb-3">
             <div class="card-body">
                 <h6 class="card-title">Location</h6>
@@ -125,72 +110,66 @@
         </div>
 
         <div class="card shadow-sm">
-
             <div class="card-body">
-
                 <h6 class="card-title">Actions</h6>
 
-                @if (User.IsInRole("PublicActor"))
+                @if (Model.CanProposeMatch)
                 {
-                    @* Target is implemented in issue #40 (Match: Propose flow). *@
                     <a asp-controller="Match"
                        asp-action="Propose"
-                       asp-route-needId="@Model.Id"
+                       asp-route-needId="@need.Id"
                        class="btn btn-primary w-100 mb-2">
-                        Propose match
-                    </a>
-                }
-
-                <a href="#nearby-resources" class="btn btn-success w-100 mb-2">
-                    Find Resources
-                </a>
-
-                @if (ViewBag.CanProposeMatch == true)
-                {
-                    <a asp-action="Propose" asp-controller="Match" asp-route-needId="@Model.Id" class="btn btn-primary w-100 mb-2">
                         Propose Match
                     </a>
                 }
 
+                <a href="#nearby-resources"
+                   class="btn btn-success w-100 mb-2">
+                    Find Resources
+                </a>
+
                 <button class="btn btn-outline-secondary w-100" type="button">
                     Mark as Resolved
                 </button>
-
             </div>
-
         </div>
-
     </div>
-
 </div>
 
 <div class="row mt-4" id="nearby-resources">
     <div class="col-12">
         <div class="card shadow-sm">
             <div class="card-body">
-
                 <h6 class="card-title mb-3">
                     Nearby Resources
-                    <span class="text-muted">(within @ViewBag.NearbyResourcesRadiusKm km)</span>
+                    <span class="text-muted">
+                        (within @Model.NearbyResourcesRadiusKm km)
+                    </span>
                 </h6>
 
-                @if (ViewBag.NearbyResources.Count > 0)
+                @if (Model.NearbyResources.Count > 0)
                 {
                     <div class="list-group list-group-flush">
-                        @foreach (var resource in ViewBag.NearbyResources)
+                        @foreach (var resource in Model.NearbyResources)
                         {
                             <div class="list-group-item d-flex justify-content-between align-items-start">
                                 <div>
                                     <div class="fw-semibold">@resource.Title</div>
+
                                     <div class="small text-muted">
                                         @resource.CategoryName &middot; @resource.Region
                                     </div>
+
                                     <div class="small text-muted">
                                         Contact: @resource.ContactPoint
                                     </div>
                                 </div>
+
                                 <div class="text-end">
-                                    <span class="badge bg-secondary mb-1">@resource.Status</span>
+                                    <span class="badge bg-secondary mb-1">
+                                        @resource.Status
+                                    </span>
+
                                     <div class="small fw-semibold">
                                         @resource.DistanceKm.ToString("0.0") km away
                                     </div>
@@ -202,10 +181,10 @@
                 else
                 {
                     <p class="text-muted mb-0">
-                        No resources found within @ViewBag.NearbyResourcesRadiusKm km of this need.
+                        No resources found within
+                        @Model.NearbyResourcesRadiusKm km of this need.
                     </p>
                 }
-
             </div>
         </div>
     </div>
@@ -213,22 +192,27 @@
 
 @section Scripts {
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+
     <script>
         (function () {
             const el = document.getElementById('needMap');
             const lat = parseFloat(el.dataset.lat);
             const lng = parseFloat(el.dataset.lng);
 
-            // Read-only: centered on the need, marker not draggable, no click handler.
-            const map = L.map(el, { scrollWheelZoom: false }).setView([lat, lng], 13);
+            const map = L.map(el, {
+                scrollWheelZoom: false
+            }).setView([lat, lng], 13);
 
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
                 attribution: '&copy; OpenStreetMap contributors'
             }).addTo(map);
 
-            L.marker([lat, lng], { draggable: false }).addTo(map);
+            L.marker([lat, lng], {
+                draggable: false
+            }).addTo(map);
         })();
     </script>
 }
