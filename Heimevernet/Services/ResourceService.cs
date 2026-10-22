@@ -4,6 +4,7 @@ using Heimevernet.Mappers.Interfaces;
 using Heimevernet.Repositories.Interfaces;
 using Heimevernet.Services.Interfaces;
 using Heimevernet.ViewModels.Map;
+using Heimevernet.ViewModels.Need;
 using Heimevernet.ViewModels.Resource;
 
 namespace Heimevernet.Services;
@@ -18,16 +19,19 @@ public class ResourceService : IResourceService
     private readonly IResourceMapper _resourceMapper;
     private readonly IMapMarkerMapper _mapMarkerMapper;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly INearbyResourceMapper _nearbyResourceMapper;
 
     public ResourceService(
         IResourceRepository resourceRepository,
         IResourceMapper resourceMapper,
         IMapMarkerMapper mapMarkerMapper,
+        INearbyResourceMapper nearbyResourceMapper,
         IUnitOfWork unitOfWork)
     {
         _resourceRepository = resourceRepository;
         _resourceMapper = resourceMapper;
         _mapMarkerMapper = mapMarkerMapper;
+        _nearbyResourceMapper = nearbyResourceMapper;
         _unitOfWork = unitOfWork;
     }
 
@@ -78,5 +82,26 @@ public class ResourceService : IResourceService
     {
         var dtos = await _resourceRepository.GetMapMarkersAsync(box, ownerUserId, availableOnly, limit, cancellationToken);
         return _mapMarkerMapper.ToViewModels(dtos);
+    }
+
+    public async Task<IReadOnlyList<NearbyResourceViewModel>>
+     GetCompatibleNearbyAsync(
+         NeedViewModel needViewModel,
+         double radiusKm,
+         int maxResults,
+         CancellationToken cancellationToken = default)
+    {
+        var dtos = await _resourceRepository.GetCompatibleNearbyAsync(
+            needViewModel.CategoryId,
+            needViewModel.Latitude,
+            needViewModel.Longitude,
+            needViewModel.Deadline,
+            radiusKm,
+            maxResults,
+            cancellationToken);
+
+        return dtos
+            .Select(_nearbyResourceMapper.ToViewModel)
+            .ToList();
     }
 }

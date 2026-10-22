@@ -1,6 +1,8 @@
 using Heimevernet.DTOs.Map;
+using Heimevernet.DTOs.Resources;
 using Heimevernet.Infrastructure.Geo;
 using Heimevernet.Models;
+using Heimevernet.ViewModels.Need;
 
 namespace Heimevernet.Repositories.Interfaces;
 
@@ -40,4 +42,13 @@ public interface IResourceRepository
     Task<IReadOnlyList<MapMarkerDto>> GetMapMarkersAsync(
             GeoBox box, int? ownerUserId, bool availableOnly, int limit,
             CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<NearbyResourceDto>> GetCompatibleNearbyAsync(
+        int categoryId,
+        double latitude,
+        double longitude,
+        DateTime? deadline,
+        double radiusKm,
+        int maxResults,
+        CancellationToken cancellationToken = default);
 }

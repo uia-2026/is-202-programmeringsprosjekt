@@ -46,6 +46,7 @@ public class NeedMapper : INeedMapper
             Title = need.Title,
             Description = need.Description,
             CategoryName = need.Category.Name,
+            CategoryId = need.CategoryId,
             Latitude = need.Latitude,
             Longitude = need.Longitude,
             Region = need.Region,
