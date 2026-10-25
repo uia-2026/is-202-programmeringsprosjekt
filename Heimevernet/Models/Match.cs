@@ -1,10 +1,12 @@
+using Heimevernet.Models.Interfaces;
+
 namespace Heimevernet.Models;
 
 /// <summary>
 /// Represents a pairing between a Need and a Resource.
 /// Contains status and metadata about which user created the match.
 /// </summary>
-public class Match
+public class Match : IVersioned
 {
     public int Id { get; set; }
 
@@ -20,4 +22,7 @@ public class Match
     public User MatchedByUser { get; set; } = null!;
 
     public DateTime MatchedAt { get; set; } = DateTime.UtcNow;
+
+    // Concurrency token for optimistic concurrency control
+    public int Version { get; set; }
 }

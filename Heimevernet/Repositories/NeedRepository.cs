@@ -64,4 +64,11 @@ public class NeedRepository : INeedRepository
                 n.Deadline, n.ContactPoint, n.Latitude, n.Longitude))
             .ToListAsync(cancellationToken);
     }
+
+    public void SetOriginalVersion(Need need, int version)
+    {
+        _context.Entry(need)
+            .Property(n => n.Version)
+            .OriginalValue = version;
+    }
 }

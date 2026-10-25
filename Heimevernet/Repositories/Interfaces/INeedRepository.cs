@@ -14,5 +14,6 @@ public interface INeedRepository
     Task<Need?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
     Task AddAsync(Need need, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<MapMarkerDto>> GetMapMarkersAsync(GeoBox box, int limit, CancellationToken cancellationToken = default);
+    void SetOriginalVersion(Need need, int version);
 }
 

@@ -1,10 +1,12 @@
+using Heimevernet.Models.Interfaces;
+
 namespace Heimevernet.Models;
 
 /// <summary>
 /// Domain model representing an available resource.
 /// Includes availability window, location, category and related attachments/matches.
 /// </summary>
-public class Resource
+public class Resource : IVersioned
 {
     public int Id { get; set; }
 
@@ -36,4 +38,7 @@ public class Resource
 
     public ICollection<Attachment> Attachments { get; set; } = new List<Attachment>();
     public ICollection<Match> Matches { get; set; } = new List<Match>();
+
+    // Concurrency token for optimistic concurrency control.
+    public int Version { get; set; }
 }

@@ -58,4 +58,13 @@ public interface IResourceRepository
         double radiusKm,
         int maxResults,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<Resource>> GetCandidateResourcesAsync(
+            int needId,
+            int categoryId,
+            DateTime? deadline,
+            DateTime now,
+            CancellationToken cancellationToken = default);
+
+    void SetOriginalVersion(Resource resource, int version);
 }

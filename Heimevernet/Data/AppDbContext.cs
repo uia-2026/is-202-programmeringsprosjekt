@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Heimevernet.Models;
+using Heimevernet.Models.Interfaces;
 
 namespace Heimevernet.Data;
 
@@ -91,5 +92,23 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<User>()
             .HasIndex(u => u.Email)
             .IsUnique();
+
+        // Concurrency tokens for optimistic concurrency control
+        modelBuilder.Entity<Need>().Property(n => n.Version).IsConcurrencyToken();
+        modelBuilder.Entity<Resource>().Property(r => r.Version).IsConcurrencyToken();
+        modelBuilder.Entity<Match>().Property(m => m.Version).IsConcurrencyToken();
+    }
+
+    // Override SaveChangesAsync to automatically increment the Version property of any modified IVersioned entities, to support optimistic concurrency control.
+    public override Task<int> SaveChangesAsync(
+    CancellationToken cancellationToken = default)
+    {
+        foreach (var entry in ChangeTracker.Entries<IVersioned>()
+                     .Where(e => e.State == EntityState.Modified))
+        {
+            entry.Entity.Version++;
+        }
+
+        return base.SaveChangesAsync(cancellationToken);
     }
 }

@@ -167,4 +167,10 @@ public class ResourceRepository : IResourceRepository
             .Take(maxResults)
             .ToList();
     }
+    public void SetOriginalVersion(Resource resource, int version)
+    {
+        _context.Entry(resource)
+            .Property(r => r.Version)
+            .OriginalValue = version;
+    }
 }
