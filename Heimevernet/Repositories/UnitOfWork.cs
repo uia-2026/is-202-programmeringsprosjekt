@@ -1,5 +1,8 @@
 using Heimevernet.Data;
+using Heimevernet.Exceptions;
 using Heimevernet.Repositories.Interfaces;
+using Microsoft.EntityFrameworkCore;
+using MySqlConnector;
 
 namespace Heimevernet.Repositories;
 
@@ -20,8 +23,20 @@ public class UnitOfWork : IUnitOfWork
     /// Commits any pending changes in the DbContext.
     /// </summary>
     /// <returns>A task that completes when changes are saved.</returns>
-    public async Task CommitAsync()
+    public async Task CommitAsync(CancellationToken cancellationToken = default)
     {
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            throw new ConcurrencyConflictException(ex);
+        }
+        catch (DbUpdateException ex)
+            when (ex.InnerException is MySqlException { Number: 1062 })
+        {
+            throw new DuplicateRecordException(ex);
+        }
     }
 }

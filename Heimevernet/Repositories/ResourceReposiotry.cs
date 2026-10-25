@@ -167,4 +167,32 @@ public class ResourceRepository : IResourceRepository
             .Take(maxResults)
             .ToList();
     }
+
+    public async Task<IReadOnlyList<Resource>> GetCandidateResourcesAsync(
+        int needId,
+        int categoryId,
+        DateTime? deadline,
+        DateTime now,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Resources
+            .AsNoTracking()
+            .Include(r => r.Category)
+            .Where(r => r.CategoryId == categoryId
+                     && r.Status == ResourceStatus.Available
+                     && (r.AvailableTo == null || r.AvailableTo >= now)
+                     && !r.Matches.Any(m => m.NeedId == needId));
+
+        if (deadline is { } d)
+            query = query.Where(r => r.AvailableFrom <= d);
+
+        return await query.ToListAsync(cancellationToken);
+    }
+
+    public void SetOriginalVersion(Resource resource, int version)
+    {
+        _context.Entry(resource)
+            .Property(r => r.Version)
+            .OriginalValue = version;
+    }
 }

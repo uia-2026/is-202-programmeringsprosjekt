@@ -9,5 +9,5 @@ public interface IUnitOfWork
     /// <summary>
     /// Persists any pending changes to the underlying store.
     /// </summary>
-    Task CommitAsync();
+    Task CommitAsync(CancellationToken cancellationToken = default);
 }

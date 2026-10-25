@@ -1,3 +1,5 @@
+using Heimevernet.Models.Interfaces;
+
 namespace Heimevernet.Models;
 
 
@@ -5,7 +7,7 @@ namespace Heimevernet.Models;
 /// Domain model representing a reported need.
 /// Contains metadata such as category, location, priority, status and related matches.
 /// </summary>
-public class Need
+public class Need : IVersioned
 {
     public int Id { get; set; }
 
@@ -36,4 +38,7 @@ public class Need
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<Match> Matches { get; set; } = new List<Match>();
+
+    // Concurrency token for optimistic concurrency control.
+    public int Version { get; set; }
 }
