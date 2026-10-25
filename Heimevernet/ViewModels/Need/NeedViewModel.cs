@@ -15,6 +15,8 @@ public class NeedViewModel
 
     public string CategoryName { get; set; } = string.Empty;
 
+    public int CategoryId { get; set; }
+
     public double Latitude { get; set; }
 
     public double Longitude { get; set; }
