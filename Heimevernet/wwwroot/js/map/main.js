@@ -11,14 +11,17 @@ if (!mapElement || typeof L === "undefined") {
 } else {
     cacheElements();
 
-    state.map = L.map(mapElement).setView(CONFIG.initialCenter, CONFIG.initialZoom);
+    state.map = L.map(mapElement, { zoomControl: false }).setView(CONFIG.initialCenter, CONFIG.initialZoom);
     L.tileLayer(CONFIG.tileUrl, {
         attribution: CONFIG.tileAttribution,
         maxZoom: CONFIG.maxZoom
     }).addTo(state.map);
+    L.control.zoom({ position: "bottomright" }).addTo(state.map);
 
     state.markerLayer = L.layerGroup().addTo(state.map);
     state.searchLayer = L.layerGroup().addTo(state.map);
+
+
 
     wireFilterControls();
     wireLocationControls();
