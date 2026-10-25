@@ -55,18 +55,18 @@
                     <label asp-for="ActorType" class="form-label">Organization or actor type</label>
                     <select asp-for="ActorType" class="form-select">
                         <option value="" disabled selected>Select type</option>
-                        <option value="Municipality">Municipality</option>
-                        <option value="Police">Police</option>
-                        <option value="Fire department">Fire department</option>
-                        <option value="Health service">Health service</option>
-                        <option value="Civil Defence (Sivilforsvaret)">Civil Defence (Sivilforsvaret)</option>
-                        <option value="Home Guard / Armed Forces">Home Guard / Armed Forces</option>
-                        <option value="Private person">Private person</option>
-                        <option value="Farmer">Farmer</option>
-                        <option value="Business / Contractor">Business / Contractor</option>
-                        <option value="Volunteer organization">Volunteer organization</option>
-                        <option value="Drone operator">Drone operator</option>
-                        <option value="Other">Other</option>
+                        <option value="Municipality" data-roles="PublicActor">Municipality</option>
+                        <option value="Police" data-roles="PublicActor">Police</option>
+                        <option value="Fire department" data-roles="PublicActor">Fire department</option>
+                        <option value="Health service" data-roles="PublicActor">Health service</option>
+                        <option value="Civil Defence (Sivilforsvaret)" data-roles="PublicActor ResourceProvider">Civil Defence (Sivilforsvaret)</option>
+                        <option value="Home Guard / Armed Forces" data-roles="PublicActor ResourceProvider">Home Guard / Armed Forces</option>
+                        <option value="Private person" data-roles="ResourceProvider">Private person</option>
+                        <option value="Farmer" data-roles="ResourceProvider">Farmer</option>
+                        <option value="Business / Contractor" data-roles="ResourceProvider">Business / Contractor</option>
+                        <option value="Volunteer organization" data-roles="PublicActor ResourceProvider">Volunteer organization</option>
+                        <option value="Drone operator" data-roles="ResourceProvider">Drone operator</option>
+                        <option value="Other" data-roles="PublicActor ResourceProvider">Other</option>
                     </select>
                     <span asp-validation-for="ActorType" class="text-danger small"></span>
                 </div>
@@ -127,18 +127,41 @@
                 ResourceProvider: 'Offer machinery, vehicles or help, so it can be matched to a need.'
             };
 
+            var roleOptionValues = {};
+            Array.prototype.forEach.call(select.options, function (opt) {
+                roleOptionValues[opt.text] = opt.value;
+            });
+
+            var actorTypeSelect = document.getElementById('ActorType');
+
+            function filterActorTypes(role) {
+                var currentValue = actorTypeSelect.value;
+                var stillVisible = false;
+                Array.prototype.forEach.call(actorTypeSelect.options, function (opt) {
+                    if (opt.value === '') return;
+                    var roles = (opt.getAttribute('data-roles') || '').split(' ');
+                    var visible = roles.indexOf(role) !== -1;
+                    opt.hidden = !visible;
+                    if (visible && opt.value === currentValue) stillVisible = true;
+                });
+                if (!stillVisible) actorTypeSelect.value = '';
+            }
+
             function setActive(value) {
-                select.value = value;
+                select.value = roleOptionValues[value];
                 tabPublicActor.classList.toggle('active', value === 'PublicActor');
                 tabResourceProvider.classList.toggle('active', value === 'ResourceProvider');
                 if (hints[value]) hint.textContent = hints[value];
+                filterActorTypes(value);
             }
 
             tabPublicActor.addEventListener('click', function () { setActive('PublicActor'); });
             tabResourceProvider.addEventListener('click', function () { setActive('ResourceProvider'); });
 
             var requestedRole = new URLSearchParams(window.location.search).get('role');
-            setActive(requestedRole === 'ResourceProvider' ? 'ResourceProvider' : (select.value || 'PublicActor'));
+            var defaultOption = select.options[select.selectedIndex];
+            var defaultRole = defaultOption ? defaultOption.text : 'PublicActor';
+            setActive(requestedRole === 'ResourceProvider' ? 'ResourceProvider' : defaultRole);
         })();
 
         document.querySelectorAll('.auth-password-toggle').forEach(function (btn) {
