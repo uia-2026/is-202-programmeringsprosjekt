@@ -29,6 +29,13 @@ public interface IResourceRepository
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Retrieves all resources with status Available, filtered at the database level.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token for the query.</param>
+    /// <returns>A read-only list of available <see cref="Resource"/> entities.</returns>
+    Task<IReadOnlyList<Resource>> GetAvailableAsync(
+        CancellationToken cancellationToken = default);
+    /// <summary>
     /// Adds a resource to the underlying data store.
     /// </summary>
     /// <param name="resource">The resource to add.</param>

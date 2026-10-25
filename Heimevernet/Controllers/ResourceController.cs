@@ -1,4 +1,5 @@
 using Heimevernet.Extensions;
+using Heimevernet.Models;
 using Heimevernet.Repositories.Interfaces;
 using Heimevernet.Services.Interfaces;
 using Heimevernet.ViewModels.Resource;
@@ -106,6 +107,37 @@ public class ResourceController : Controller
         resource.IsOwner = resource.UserId == User.GetUserId(); // display only, the service enforces ownership
 
         return View(resource);
+    }
+
+    /// <summary>
+    /// Print-friendly list of available Resources, filterable by region (#41).
+    /// Only Resources currently marked Available are listed - a Public Actor printing
+    /// this wants what can actually be requested right now, not resources already in use.
+    /// </summary>
+    [HttpGet]
+    [Authorize(Roles = "PublicActor")]
+    public async Task<IActionResult> PrintByRegion(string? region, CancellationToken cancellationToken)
+    {
+        var availableResources = await _resourceService.GetAvailableAsync(cancellationToken);
+
+        var availableRegions = availableResources
+            .Select(r => r.Region)
+            .Distinct()
+            .OrderBy(r => r)
+            .ToList();
+
+        var filtered = string.IsNullOrWhiteSpace(region)
+            ? availableResources
+            : availableResources.Where(r => r.Region == region).ToList();
+
+        var model = new PrintByRegionViewModel
+        {
+            SelectedRegion = region,
+            AvailableRegions = availableRegions,
+            Resources = filtered.OrderBy(r => r.Title).ToList()
+        };
+
+        return View(model);
     }
 
     /// <summary>Uploads a photo to a resource owned by the current user.</summary>
