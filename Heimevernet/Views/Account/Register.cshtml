@@ -1,89 +1,182 @@
 @model Heimevernet.ViewModels.Account.RegisterViewModel
 @{
-    ViewData["Title"] = "Register Account";
+    ViewData["Title"] = "Create Account";
+    Layout = "_AuthLayout";
 }
 
-<div class="row justify-content-center my-5">
-    <div class="col-12 col-sm-10 col-md-8 col-lg-6">
+<div class="auth-shell">
 
-        <div class="card shadow-none border border-dark rounded-0 bg-white">
-            <div class="card-body p-4 p-sm-5 text-dark">
-                <h1 class="h3 card-title text-center mb-4 fw-bold text-uppercase text-dark tracking-wide">Register
-                    Account</h1>
+    <div class="auth-hero">
+        <div class="auth-hero-brand">
+            <i class="bi bi-shield-fill"></i> Heimevernet
+        </div>
 
-                    <form asp-action="Register" method="post">
-                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3 small"></div>
+        <div class="auth-hero-tagline">
+            <span>Together we strengthen preparedness</span>
+        </div>
+    </div>
 
-                        <div class="mb-3">
-                            <label asp-for="Username" class="form-label fw-semibold text-dark small text-uppercase"></label>
-                            <input asp-for="Username"
-                                   class="form-control rounded-0 border-dark bg-white text-dark shadow-none"
-                                   placeholder="Enter username" />
-                            <span asp-validation-for="Username" class="text-danger small"></span>
+    <div class="auth-panel">
+        <div class="auth-card auth-card-wide">
+
+            <div class="auth-role-toggle">
+                <button type="button" id="roleTabPublicActor" class="active" data-role-value="PublicActor">
+                    Public actor
+                </button>
+                <button type="button" id="roleTabResourceProvider" data-role-value="ResourceProvider">
+                    Resource provider
+                </button>
+            </div>
+
+            <h1 class="auth-title">Create your account</h1>
+            <p class="auth-subtitle" id="roleHint">
+                Register needs for your municipality or agency and follow them to resolved.
+            </p>
+
+            <form asp-action="Register" method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3 small"></div>
+
+                <!-- Role is driven by the tabs above via JS; this is still the real posted field -->
+                <select asp-for="Role" asp-items="Html.GetEnumSelectList<Heimevernet.Models.UserRole>()" class="d-none" id="roleSelect"></select>
+
+                <div class="mb-3">
+                    <label asp-for="Username" class="form-label">Username</label>
+                    <input asp-for="Username" class="form-control" placeholder="Choose a username" />
+                    <span asp-validation-for="Username" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Email" class="form-label">Work email</label>
+                    <input asp-for="Email" class="form-control" placeholder="name@organization.no" />
+                    <span asp-validation-for="Email" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="ActorType" class="form-label">Organization or actor type</label>
+                    <select asp-for="ActorType" class="form-select">
+                        <option value="" disabled selected>Select type</option>
+                        <option value="Municipality" data-roles="PublicActor">Municipality</option>
+                        <option value="Police" data-roles="PublicActor">Police</option>
+                        <option value="Fire department" data-roles="PublicActor">Fire department</option>
+                        <option value="Health service" data-roles="PublicActor">Health service</option>
+                        <option value="Civil Defence (Sivilforsvaret)" data-roles="PublicActor ResourceProvider">Civil Defence (Sivilforsvaret)</option>
+                        <option value="Home Guard / Armed Forces" data-roles="PublicActor ResourceProvider">Home Guard / Armed Forces</option>
+                        <option value="Private person" data-roles="ResourceProvider">Private person</option>
+                        <option value="Farmer" data-roles="ResourceProvider">Farmer</option>
+                        <option value="Business / Contractor" data-roles="ResourceProvider">Business / Contractor</option>
+                        <option value="Volunteer organization" data-roles="PublicActor ResourceProvider">Volunteer organization</option>
+                        <option value="Drone operator" data-roles="ResourceProvider">Drone operator</option>
+                        <option value="Other" data-roles="PublicActor ResourceProvider">Other</option>
+                    </select>
+                    <span asp-validation-for="ActorType" class="text-danger small"></span>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="Password" class="form-label">Password</label>
+                        <div class="auth-password-wrap">
+                            <input asp-for="Password" class="form-control" placeholder="Create a password" type="password" id="registerPassword" />
+                            <button type="button" class="auth-password-toggle" data-toggle-target="registerPassword" aria-label= "Show password">
+                                <i class="bi bi-eye"></i>
+                            </button>
                         </div>
-
-                        <div class="mb-3">
-                            <label asp-for="Email" class="form-label fw-semibold text-dark small text-uppercase"></label>
-                            <input asp-for="Email" class="form-control rounded-0 border-dark bg-white text-dark shadow-none"
-                                   placeholder="name@example.com" />
-                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        <span asp-validation-for="Password" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="ConfirmPassword" class="form-label">Confirm password</label>
+                        <div class="auth-password-wrap">
+                            <input asp-for="ConfirmPassword" class="form-control" placeholder="Repeat your password" type="password" id="registerConfirmPassword" />
+                            <button type="button" class="auth-password-toggle" data-toggle-target="registerConfirmPassword" aria-label="Show password">
+                                <i class="bi bi-eye"></i>
+                            </button>
                         </div>
-
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-6">
-                                <label asp-for="Password"
-                                       class="form-label fw-semibold text-dark small text-uppercase"></label>
-                                <input asp-for="Password"
-                                       class="form-control rounded-0 border-dark bg-white text-dark shadow-none"
-                                       placeholder="Enter password" type="password" />
-                                <span asp-validation-for="Password" class="text-danger small"></span>
-                            </div>
-                            <div class="col-md-6">
-                                <label asp-for="ConfirmPassword"
-                                       class="form-label fw-semibold text-dark small text-uppercase"></label>
-                                <input asp-for="ConfirmPassword"
-                                       class="form-control rounded-0 border-dark bg-white text-dark shadow-none"
-                                       placeholder="Confirm password" type="password" />
-                                <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label asp-for="Role" class="form-label fw-semibold text-dark small text-uppercase"></label>
-                            <select asp-for="Role" class="form-select rounded-0 border-dark bg-white text-dark shadow-none"
-                                    asp-items="Html.GetEnumSelectList<Heimevernet.Models.UserRole>()">
-                            </select>
-                        </div>
-
-                        <div class="mb-3">
-                            <label asp-for="ActorType"
-                                   class="form-label fw-semibold text-dark small text-uppercase"></label>
-                            <input asp-for="ActorType"
-                                   class="form-control rounded-0 border-dark bg-white text-dark shadow-none"
-                                   placeholder="e.g. Municipality, Police, Private Person, Business" />
-                            <span asp-validation-for="ActorType" class="text-danger small"></span>
-                        </div>
-
-                        <div class="d-grid gap-2 mt-4">
-                            <button type="submit"
-                                    class="btn btn-dark rounded-0 fw-bold py-2 text-uppercase">Register</button>
-                        </div>
-
-                        <hr class="my-4 border-dark opacity-100">
-
-                        <div class="text-center">
-                            <a asp-action="Login" class="text-dark fw-semibold text-decoration-underline small">Already have
-                                an account? Log in</a>
-                            </div>
-                        </form>
+                        <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
                     </div>
                 </div>
 
-            </div>
-        </div>
+                <div class="d-grid mt-4">
+                    <button type="submit" class="btn auth-submit text-white">Create account</button>
+                </div>
+            </form>
 
-        @section Scripts {
-            @{
-                await Html.RenderPartialAsync("_ValidationScriptsPartial");
+            <hr class="my-4" />
+
+            <p class="auth-footer-link mb-0">
+                Already have an account? <a asp-action="Login">Log in</a>
+            </p>
+
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        (function () {
+            var select = document.getElementById('roleSelect');
+            var tabPublicActor = document.getElementById('roleTabPublicActor');
+            var tabResourceProvider = document.getElementById('roleTabResourceProvider');
+            var hint = document.getElementById('roleHint');
+
+            var hints = {
+                PublicActor: 'Register needs for your municipality or agency and follow them to resolved.',
+                ResourceProvider: 'Offer machinery, vehicles or help, so it can be matched to a need.'
+            };
+
+            var roleOptionValues = {};
+            Array.prototype.forEach.call(select.options, function (opt) {
+                roleOptionValues[opt.text] = opt.value;
+            });
+
+            var actorTypeSelect = document.getElementById('ActorType');
+
+            function filterActorTypes(role) {
+                var currentValue = actorTypeSelect.value;
+                var stillVisible = false;
+                Array.prototype.forEach.call(actorTypeSelect.options, function (opt) {
+                    if (opt.value === '') return;
+                    var roles = (opt.getAttribute('data-roles') || '').split(' ');
+                    var visible = roles.indexOf(role) !== -1;
+                    opt.hidden = !visible;
+                    if (visible && opt.value === currentValue) stillVisible = true;
+                });
+                if (!stillVisible) actorTypeSelect.value = '';
             }
-        }
+
+            function setActive(value) {
+                select.value = roleOptionValues[value];
+                tabPublicActor.classList.toggle('active', value === 'PublicActor');
+                tabResourceProvider.classList.toggle('active', value === 'ResourceProvider');
+                if (hints[value]) hint.textContent = hints[value];
+                filterActorTypes(value);
+            }
+
+            tabPublicActor.addEventListener('click', function () { setActive('PublicActor'); });
+            tabResourceProvider.addEventListener('click', function () { setActive('ResourceProvider'); });
+
+            var requestedRole = new URLSearchParams(window.location.search).get('role');
+            var defaultOption = select.options[select.selectedIndex];
+            var defaultRole = defaultOption ? defaultOption.text : 'PublicActor';
+            setActive(requestedRole === 'ResourceProvider' ? 'ResourceProvider' : defaultRole);
+        })();
+
+        document.querySelectorAll('.auth-password-toggle').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var input = document.getElementById(btn.getAttribute('data-toggle-target'));
+                if (!input) return;
+                var icon = btn.querySelector('i');
+                var isHidden = input.type === 'password';
+                input.type = isHidden ? 'text' : 'password';
+                if (icon) {
+                    icon.classList.toggle('bi-eye', !isHidden);
+                    icon.classList.toggle('bi-eye-slash', isHidden);
+                }
+                btn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+            });
+        });
+    </script>
+}
