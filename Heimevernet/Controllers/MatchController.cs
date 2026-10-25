@@ -22,20 +22,21 @@ public class MatchController : Controller
     }
 
     /// <summary>
-    /// Shows the candidate-resource picker for a given Need.
-    /// Only the Need's owner may access this page.
+    /// Shows candidate resources for a Need owned by the current user.
     /// </summary>
-    [HttpGet]
     [Authorize(Roles = "PublicActor")]
+    [HttpGet]
     public async Task<IActionResult> Propose(int needId, CancellationToken cancellationToken)
     {
         var need = await _needService.GetByIdAsync(needId, cancellationToken);
+
         if (need is null)
         {
             return NotFound();
         }
 
         var canPropose = await _matchService.CanProposeAsync(needId, User.GetUserId(), cancellationToken);
+
         if (!canPropose)
         {
             return Forbid();
@@ -54,11 +55,11 @@ public class MatchController : Controller
     }
 
     /// <summary>
-    /// Handles the submitted choice of Resource and creates the Match.
+    /// Validates the submitted choice and proposes a Resource for the Need.
     /// </summary>
+    [Authorize(Roles = "PublicActor")]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Roles = "PublicActor")]
     public async Task<IActionResult> Propose(int needId, int resourceId, CancellationToken cancellationToken)
     {
         var (result, _) = await _matchService.ProposeAsync(needId, resourceId, User.GetUserId(), cancellationToken);
@@ -66,29 +67,54 @@ public class MatchController : Controller
         switch (result)
         {
             case ProposeMatchResult.Success:
-                TempData["Success"] = "Resource proposed for this need. Waiting for the provider to accept.";
-                return RedirectToAction("Details", "Need", new { id = needId });
+                TempData["Success"] =
+                    "Resource proposed for this need. Waiting for the provider to accept.";
+
+                return RedirectToAction(
+                    "Details", "Need", new { id = needId });
 
             case ProposeMatchResult.NeedNotFound:
                 return NotFound();
 
-            case ProposeMatchResult.NotNeedOwner:
+            case ProposeMatchResult.UserIsNotNeedOwner:
                 return Forbid();
+
+            case ProposeMatchResult.NeedNotOpen:
+                TempData["Error"] =
+                    "This need is no longer open for proposals.";
+
+                return RedirectToAction(
+                    "Details", "Need", new { id = needId });
 
             case ProposeMatchResult.ResourceNotFound:
                 TempData["Error"] = "That resource no longer exists.";
-                return RedirectToAction(nameof(Propose), new { needId });
+
+                return RedirectToAction(
+                    nameof(Propose), new { needId });
 
             case ProposeMatchResult.ResourceNotAvailable:
                 TempData["Error"] = "That resource is no longer available.";
-                return RedirectToAction(nameof(Propose), new { needId });
 
-            case ProposeMatchResult.DuplicateMatch:
-                TempData["Error"] = "This resource has already been proposed for this need.";
-                return RedirectToAction(nameof(Propose), new { needId });
+                return RedirectToAction(
+                    nameof(Propose), new { needId });
+
+            case ProposeMatchResult.MatchAlreadyExists:
+                TempData["Error"] =
+                    "This resource has already been proposed for this need.";
+
+                return RedirectToAction(
+                    nameof(Propose), new { needId });
+
+            case ProposeMatchResult.ConcurrentChange:
+                TempData["Error"] =
+                    "The need or resource was modified by another request. Please try again.";
+
+                return RedirectToAction(
+                    nameof(Propose), new { needId });
 
             default:
-                return BadRequest();
+                return Problem(
+                    detail: "An unexpected result occurred while proposing the match.");
         }
     }
 }

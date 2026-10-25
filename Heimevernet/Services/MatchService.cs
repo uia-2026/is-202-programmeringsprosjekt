@@ -2,6 +2,8 @@ using Heimevernet.Models;
 using Heimevernet.Repositories.Interfaces;
 using Heimevernet.Services.Interfaces;
 using Heimevernet.ViewModels.Match;
+using Heimevernet.Exceptions;
+using Heimevernet.Mappers.Interfaces;
 
 namespace Heimevernet.Services;
 
@@ -16,51 +18,42 @@ public class MatchService : IMatchService
     private readonly IResourceRepository _resourceRepository;
     private readonly IMatchRepository _matchRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IMatchCandidateMapper _matchCandidateMapper;
 
     public MatchService(
         INeedRepository needRepository,
         IResourceRepository resourceRepository,
         IMatchRepository matchRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IMatchCandidateMapper matchCandidateMapper)
     {
         _needRepository = needRepository;
         _resourceRepository = resourceRepository;
         _matchRepository = matchRepository;
         _unitOfWork = unitOfWork;
+        _matchCandidateMapper = matchCandidateMapper;
     }
 
-    public async Task<IEnumerable<MatchCandidateViewModel>> GetCandidateResourcesAsync(int needId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<MatchCandidateViewModel>> GetCandidateResourcesAsync(
+        int needId,
+        CancellationToken cancellationToken = default)
     {
         var need = await _needRepository.GetByIdAsync(needId, cancellationToken);
-        if (need is null)
+
+        if (need is null || need.Status is not (NeedStatus.New or NeedStatus.UnderReview))
         {
-            return Enumerable.Empty<MatchCandidateViewModel>();
+            return Array.Empty<MatchCandidateViewModel>();
         }
 
-        var targetDate = need.Deadline ?? DateTime.UtcNow;
+        var resources = await _resourceRepository.GetCandidateResourcesAsync(
+            need.Id, need.CategoryId, need.Deadline, DateTime.UtcNow, cancellationToken);
 
-        var resources = await _resourceRepository.GetAllAsync(cancellationToken);
-
-        var candidates = resources
-            .Where(r => r.CategoryId == need.CategoryId)
-            .Where(r => r.Status == ResourceStatus.Available)
-            .Where(r => r.AvailableFrom <= targetDate && (r.AvailableTo == null || r.AvailableTo >= targetDate))
-            .Select(r => new MatchCandidateViewModel
-            {
-                ResourceId = r.Id,
-                Title = r.Title,
-                Description = r.Description,
-                CategoryName = r.Category.Name,
-                Region = r.Region,
-                ContactPoint = r.ContactPoint,
-                AvailableFrom = r.AvailableFrom,
-                AvailableTo = r.AvailableTo,
-                DistanceKm = DistanceKm(need.Latitude, need.Longitude, r.Latitude, r.Longitude)
-            })
+        return resources
+            .Select(r => _matchCandidateMapper.ToViewModel(
+                r, need.Latitude, need.Longitude))
             .OrderBy(c => c.DistanceKm)
+            .ThenBy(c => c.ResourceId)
             .ToList();
-
-        return candidates;
     }
 
     public async Task<bool> CanProposeAsync(int needId, int userId, CancellationToken cancellationToken = default)
@@ -69,9 +62,14 @@ public class MatchService : IMatchService
         return need is not null && need.UserId == userId;
     }
 
-    public async Task<(ProposeMatchResult Result, int? MatchId)> ProposeAsync(int needId, int resourceId, int userId, CancellationToken cancellationToken = default)
+    public async Task<(ProposeMatchResult Result, int? MatchId)> ProposeAsync(
+        int needId,
+        int resourceId,
+        int userId,
+        CancellationToken cancellationToken = default)
     {
         var need = await _needRepository.GetByIdAsync(needId, cancellationToken);
+
         if (need is null)
         {
             return (ProposeMatchResult.NeedNotFound, null);
@@ -79,10 +77,16 @@ public class MatchService : IMatchService
 
         if (need.UserId != userId)
         {
-            return (ProposeMatchResult.NotNeedOwner, null);
+            return (ProposeMatchResult.UserIsNotNeedOwner, null);
+        }
+
+        if (need.Status is not (NeedStatus.New or NeedStatus.UnderReview))
+        {
+            return (ProposeMatchResult.NeedNotOpen, null);
         }
 
         var resource = await _resourceRepository.GetByIdAsync(resourceId, cancellationToken);
+
         if (resource is null)
         {
             return (ProposeMatchResult.ResourceNotFound, null);
@@ -93,10 +97,14 @@ public class MatchService : IMatchService
             return (ProposeMatchResult.ResourceNotAvailable, null);
         }
 
-        var alreadyMatched = await _matchRepository.ExistsAsync(needId, resourceId, cancellationToken);
+        var alreadyMatched = await _matchRepository.ExistsAsync(
+            needId,
+            resourceId,
+            cancellationToken);
+
         if (alreadyMatched)
         {
-            return (ProposeMatchResult.DuplicateMatch, null);
+            return (ProposeMatchResult.MatchAlreadyExists, null);
         }
 
         var match = new Match
@@ -110,26 +118,19 @@ public class MatchService : IMatchService
 
         need.Status = NeedStatus.UnderReview;
 
-        await _unitOfWork.CommitAsync();
+        try
+        {
+            await _unitOfWork.CommitAsync(cancellationToken);
+        }
+        catch (DuplicateRecordException)
+        {
+            return (ProposeMatchResult.MatchAlreadyExists, null);
+        }
+        catch (ConcurrencyConflictException)
+        {
+            return (ProposeMatchResult.ConcurrentChange, null);
+        }
 
         return (ProposeMatchResult.Success, match.Id);
     }
-
-    private static double DistanceKm(double lat1, double lon1, double lat2, double lon2)
-    {
-        const double earthRadiusKm = 6371.0;
-
-        double dLat = DegreesToRadians(lat2 - lat1);
-        double dLon = DegreesToRadians(lon2 - lon1);
-
-        double a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
-                   Math.Cos(DegreesToRadians(lat1)) * Math.Cos(DegreesToRadians(lat2)) *
-                   Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
-
-        double c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
-
-        return earthRadiusKm * c;
-    }
-
-    private static double DegreesToRadians(double degrees) => degrees * Math.PI / 180.0;
 }

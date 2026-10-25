@@ -1,4 +1,3 @@
-using Heimevernet.Models;
 using Heimevernet.ViewModels.Match;
 
 namespace Heimevernet.Services.Interfaces;
@@ -7,10 +6,12 @@ public enum ProposeMatchResult
 {
     Success,
     NeedNotFound,
+    NeedNotOpen,
     ResourceNotFound,
     ResourceNotAvailable,
-    DuplicateMatch,
-    NotNeedOwner
+    MatchAlreadyExists,
+    UserIsNotNeedOwner,
+    ConcurrentChange
 }
 
 /// <summary>
@@ -22,7 +23,9 @@ public interface IMatchService
     /// Returns candidate Resources for a given Need, ranked by distance,
     /// filtered by category compatibility, availability status, and availability period.
     /// </summary>
-    Task<IEnumerable<MatchCandidateViewModel>> GetCandidateResourcesAsync(int needId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<MatchCandidateViewModel>> GetCandidateResourcesAsync(
+            int needId,
+            CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Returns true only if the Need exists and is owned by the given user.
