@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Heimevernet.Models;
+using Heimevernet.ViewModels.Validation;
 
 namespace Heimevernet.ViewModels.Need;
 
@@ -16,10 +17,10 @@ public class NeedCreateViewModel
         = Enumerable.Empty<Category>();
 
     [Required(ErrorMessage = "Title is required.")]
-    [StringLength(150, ErrorMessage = "Title cannot exceed 150 characters.")]
+    [StringLength(FieldLimits.Title, ErrorMessage = "Title cannot exceed {1} characters.")]
     public string Title { get; set; } = string.Empty;
 
-    [StringLength(1000, ErrorMessage = "Description cannot exceed 1000 characters.")]
+    [StringLength(FieldLimits.Description, ErrorMessage = "Description cannot exceed {1} characters.")]
     public string? Description { get; set; }
 
     [Range(-90, 90, ErrorMessage = "Latitude must be between -90 and 90.")]
@@ -29,17 +30,17 @@ public class NeedCreateViewModel
     public double Longitude { get; set; }
 
     [Required(ErrorMessage = "Bad location.")]
-    [StringLength(100, ErrorMessage = "Region cannot exceed 100 characters.")]
+    [StringLength(FieldLimits.Region, ErrorMessage = "Region cannot exceed {1} characters.")]
     public string Region { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Please select a priority.")]
     public NeedPriority Priority { get; set; } = NeedPriority.Low;
 
     [DataType(DataType.DateTime)]
-    [Heimevernet.ViewModels.Validation.FutureDate(ErrorMessage = "Deadline must be in the future.")]
+    [FutureDate(ErrorMessage = "Deadline must be in the future.")]
     public DateTime? Deadline { get; set; }
 
     [Required(ErrorMessage = "Contact point is required.")]
-    [StringLength(200, ErrorMessage = "Contact point cannot exceed 200 characters.")]
+    [StringLength(FieldLimits.ContactPoint, ErrorMessage = "Contact point cannot exceed {1} characters.")]
     public string ContactPoint { get; set; } = string.Empty;
 }

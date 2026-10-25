@@ -1,5 +1,6 @@
 using Heimevernet.Infrastructure.Geo;
 using Heimevernet.ViewModels.Map;
+using Heimevernet.ViewModels.Need;
 using Heimevernet.ViewModels.Resource;
 
 namespace Heimevernet.Services.Interfaces;
@@ -50,4 +51,11 @@ public interface IResourceService
     Task<IReadOnlyList<MapMarkerViewModel>> GetMapMarkersAsync(
             GeoBox box, int? ownerUserId, bool availableOnly, int limit,
             CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<NearbyResourceViewModel>>
+       GetCompatibleNearbyAsync(
+       NeedViewModel needViewModel,
+       double radiusKm,
+       int maxResults,
+       CancellationToken cancellationToken = default);
 }

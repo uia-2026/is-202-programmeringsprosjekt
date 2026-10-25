@@ -76,6 +76,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<INeedMapper, NeedMapper>();
         services.AddSingleton<IResourceMapper, ResourceMapper>();
         services.AddSingleton<IMapMarkerMapper, MapMarkerMapper>();
+        services.AddSingleton<INearbyResourceMapper, NearbyResourceMapper>();
 
         return services;
     }

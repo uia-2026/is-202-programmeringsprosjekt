@@ -24,37 +24,55 @@ public class AppDbContext : DbContext
         base.OnModelCreating(modelBuilder);
 
         // Store all enums as strings rather than integers, for readability in the DB
-        modelBuilder.Entity<User>()
-                 .Property(u => u.Role)
-                 .HasConversion<string>();
+        // and setup max lengths for string fields to match the FieldLimits constants, so that validation attributes and DB columns are in sync.
+        modelBuilder.Entity<User>(b =>
+        {
+            b.Property(u => u.Username).HasMaxLength(FieldLimits.Username);
+            b.Property(u => u.Email).HasMaxLength(FieldLimits.Email);
+            b.Property(u => u.PasswordHash).HasMaxLength(FieldLimits.PasswordHash);
+            b.Property(u => u.ActorType).HasMaxLength(FieldLimits.ActorType);
+            b.Property(u => u.TwoFactorSecret).HasMaxLength(FieldLimits.TwoFactorSecret);
+            b.Property(u => u.Role).HasConversion<string>().HasMaxLength(FieldLimits.EnumText);
+        });
 
-        modelBuilder.Entity<Category>()
-            .Property(c => c.AppliesTo)
-            .HasConversion<string>();
+        modelBuilder.Entity<Need>(b =>
+        {
+            b.Property(n => n.Title).HasMaxLength(FieldLimits.Title);
+            b.Property(n => n.Description).HasMaxLength(FieldLimits.Description);
+            b.Property(n => n.Region).HasMaxLength(FieldLimits.Region);
+            b.Property(n => n.ContactPoint).HasMaxLength(FieldLimits.ContactPoint);
+            b.Property(n => n.Priority).HasConversion<string>().HasMaxLength(FieldLimits.EnumText);
+            b.Property(n => n.Status).HasConversion<string>().HasMaxLength(FieldLimits.EnumText);
+        });
 
-        modelBuilder.Entity<Need>()
-            .Property(n => n.Priority)
-            .HasConversion<string>();
+        modelBuilder.Entity<Resource>(b =>
+        {
+            b.Property(r => r.Title).HasMaxLength(FieldLimits.Title);
+            b.Property(r => r.Description).HasMaxLength(FieldLimits.Description);
+            b.Property(r => r.Region).HasMaxLength(FieldLimits.Region);
+            b.Property(r => r.ContactPoint).HasMaxLength(FieldLimits.ContactPoint);
+            b.Property(r => r.Status).HasConversion<string>().HasMaxLength(FieldLimits.EnumText);
+        });
 
-        modelBuilder.Entity<Need>()
-            .Property(n => n.Status)
-            .HasConversion<string>();
+        modelBuilder.Entity<Category>(b =>
+        {
+            b.Property(c => c.Name).HasMaxLength(FieldLimits.CategoryName);
+            b.Property(c => c.AppliesTo).HasConversion<string>().HasMaxLength(FieldLimits.EnumText);
+            b.HasIndex(c => c.Name).IsUnique();
+        });
 
-        modelBuilder.Entity<Resource>()
-            .Property(r => r.Status)
-            .HasConversion<string>();
+        modelBuilder.Entity<Attachment>(b =>
+            b.Property(a => a.StorageKey).HasMaxLength(FieldLimits.StorageKey));
 
-        modelBuilder.Entity<Match>()
-            .Property(m => m.Status)
-            .HasConversion<string>();
+        modelBuilder.Entity<Match>(b =>
+            b.Property(m => m.Status).HasConversion<string>().HasMaxLength(FieldLimits.EnumText));
 
         // DB duplicate protection against the same need/resource pairing
         modelBuilder.Entity<Match>()
             .HasIndex(m => new { m.NeedId, m.ResourceId })
             .IsUnique();
 
-        // Avoid multiple cascade paths on Match (Need, Resource, MatchedByUser all -> Match)
-        // to prevent SQL Server/MariaDB "multiple cascade paths" errors on delete. 
+        // deleting a user must never silently delete matches or attachments that other people’s records depend on.
         modelBuilder.Entity<Match>()
             .HasOne(m => m.MatchedByUser)
             .WithMany(u => u.MatchesCreated)
