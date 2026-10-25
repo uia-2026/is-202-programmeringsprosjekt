@@ -56,6 +56,17 @@ public class ResourceService : IResourceService
             : _resourceMapper.ToViewModel(resource);
     }
 
+    public async Task<IReadOnlyList<ResourceViewModel>> GetAvailableAsync(
+    CancellationToken cancellationToken = default)
+    {
+        var resources =
+            await _resourceRepository.GetAvailableAsync(cancellationToken);
+
+        return resources
+            .Select(r => _resourceMapper.ToViewModel(r))
+            .ToList();
+    }
+
     public async Task<int> CreateAsync(
         ResourceCreateViewModel model,
         int userId,

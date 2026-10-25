@@ -53,6 +53,22 @@ public class ResourceRepository : IResourceRepository
     }
 
     /// <summary>
+    /// Retrieves all Available resources from the database, including Category, ordered by creation time.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token for the query.</param>
+    /// <returns>A read-only list of available <see cref="Resource"/> entities.</returns>
+    public async Task<IReadOnlyList<Resource>> GetAvailableAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.Resources
+            .Include(r => r.Category)
+            .Where(r => r.Status == ResourceStatus.Available)
+            .OrderByDescending(r => r.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
+
+
+    /// <summary>
     /// Adds a Resource entity to the context for insertion.
     /// </summary>
     /// <param name="resource">The resource entity to add.</param>

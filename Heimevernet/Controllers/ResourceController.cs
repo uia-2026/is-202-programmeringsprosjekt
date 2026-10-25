@@ -118,9 +118,7 @@ public class ResourceController : Controller
     [Authorize(Roles = "PublicActor")]
     public async Task<IActionResult> PrintByRegion(string? region, CancellationToken cancellationToken)
     {
-        var availableResources = (await _resourceService.GetAllAsync(cancellationToken))
-            .Where(r => r.Status == ResourceStatus.Available)
-            .ToList();
+        var availableResources = await _resourceService.GetAvailableAsync(cancellationToken);
 
         var availableRegions = availableResources
             .Select(r => r.Region)

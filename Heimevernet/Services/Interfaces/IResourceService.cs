@@ -29,6 +29,14 @@ public interface IResourceService
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Returns all Available resources, mapped to view models, filtered at the database level.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token for the operation.</param>
+    /// <returns>A read-only list of available <see cref="ResourceViewModel"/>.</returns>
+    Task<IReadOnlyList<ResourceViewModel>> GetAvailableAsync(
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Creates a new Resource from the provided create model for the specified user.
     /// </summary>
     /// <param name="model">The create view model containing resource details.</param>

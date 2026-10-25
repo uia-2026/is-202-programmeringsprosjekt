@@ -21,7 +21,9 @@
                 width: 100% !important;
             }
 
-            .card {
+            .card,
+            .pbr-card,
+            .pbr-filter-card {
                 box-shadow: none !important;
                 border: none !important;
             }
@@ -30,22 +32,148 @@
                 width: 100% !important;
             }
         }
+
+        .pbr-back-link {
+            color: #1d385a;
+            font-weight: 500;
+            text-decoration: none;
+        }
+
+        .pbr-back-link:hover {
+            color: #16293f;
+            text-decoration: underline;
+        }
+
+        .pbr-filter-card,
+        .pbr-card {
+            background: #ffffff;
+            border: 1px solid #e3e6ea;
+            border-radius: 16px;
+            box-shadow: 0 4px 16px rgba(29, 56, 90, 0.07);
+        }
+
+        .pbr-filter-card .form-label {
+            color: #1d385a;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .pbr-filter-card .form-select {
+            border-radius: 10px;
+            border: 1px solid #d6dde4;
+            min-width: 220px;
+        }
+
+        .pbr-filter-card .form-select:focus {
+            border-color: #1d385a;
+            box-shadow: 0 0 0 0.2rem rgba(29, 56, 90, 0.12);
+        }
+
+        .pbr-btn-outline {
+            border-radius: 10px;
+            border: 1px solid #1d385a;
+            color: #1d385a;
+            background: #ffffff;
+            font-weight: 500;
+            padding: 0.5rem 1.1rem;
+        }
+
+        .pbr-btn-outline:hover {
+            background: #1d385a;
+            color: #ffffff;
+        }
+
+        .pbr-btn-print {
+            border-radius: 10px;
+            border: none;
+            background: #1d385a;
+            color: #ffffff;
+            font-weight: 600;
+            padding: 0.5rem 1.2rem;
+        }
+
+        .pbr-btn-print:hover {
+            background: #16293f;
+            color: #ffffff;
+        }
+
+        .pbr-heading {
+            color: #1d385a;
+            font-weight: 700;
+        }
+
+        .pbr-count {
+            color: #6b7a90;
+        }
+
+        .pbr-table-wrap {
+            border: 1px solid #e3e6ea;
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .pbr-table {
+            margin-bottom: 0;
+        }
+
+        .pbr-table thead th {
+            background: #f3f6f9;
+            color: #1d385a;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            border-bottom: 1px solid #e3e6ea;
+        }
+
+        .pbr-table tbody tr:not(:last-child) td {
+            border-bottom: 1px solid #edf0f3;
+        }
+
+        .pbr-table tbody tr:hover {
+            background: #f8fafb;
+        }
+
+        .pbr-badge {
+            display: inline-block;
+            padding: 0.3rem 0.7rem;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        .pbr-badge-available {
+            background: #e5f3e7;
+            color: #2f7a3d;
+        }
+
+        .pbr-badge-default {
+            background: #eef1f4;
+            color: #5a6878;
+        }
+
+        .pbr-filter-card .card-body,
+        .pbr-card .card-body {
+            padding: 1.25rem 1.5rem;
+        }
     </style>
 }
 
 <div class="no-print">
-    <a asp-action="Index" class="btn btn-link ps-0 mb-3">
+    <a asp-action="Index" class="pbr-back-link btn btn-link ps-0 mb-3">
         <i class="bi bi-arrow-left"></i> Back to Resources
     </a>
 </div>
 
-<div class="card shadow-sm no-print mb-3">
+<div class="pbr-filter-card no-print mb-3">
     <div class="card-body">
 
         <form method="get" asp-action="PrintByRegion" class="row g-2 align-items-end">
 
             <div class="col-auto">
-                <label for="region" class="form-label mb-1">Region</label>
+                <label for="region" class="form-label mb-1">
+                    <i class="bi bi-geo-alt"></i> Region
+                </label>
                 <select name="region" id="region" class="form-select">
                     <option value="" selected="@(string.IsNullOrEmpty(Model.SelectedRegion))">All regions</option>
                     @foreach (var region in Model.AvailableRegions)
@@ -56,12 +184,14 @@
             </div>
 
             <div class="col-auto">
-                <button type="submit" class="btn btn-outline-secondary">Filter</button>
+                <button type="submit" class="btn pbr-btn-outline">
+                    <i class="bi bi-funnel"></i> Filter
+                </button>
             </div>
 
             <div class="col-auto">
-                <button type="button" class="btn btn-success" onclick="window.print()">
-                    Print
+                <button type="button" class="btn pbr-btn-print" onclick="window.print()">
+                    <i class="bi bi-printer"></i> Print
                 </button>
             </div>
 
@@ -70,63 +200,70 @@
     </div>
 </div>
 
-<div class="card shadow-sm">
+<div class="pbr-card">
     <div class="card-body">
 
-        <h5 class="mb-1">
+        <h5 class="mb-1 pbr-heading">
             Available Resources
             @if (!string.IsNullOrEmpty(Model.SelectedRegion))
             {
-                <span class="text-muted">- @Model.SelectedRegion</span>
+                <span class="pbr-count fw-normal">- @Model.SelectedRegion</span>
             }
             else
             {
-                <span class="text-muted">- All regions</span>
+                <span class="pbr-count fw-normal">- All regions</span>
             }
         </h5>
 
-        <p class="text-muted small mb-3">
+        <p class="pbr-count small mb-3">
             @Model.Resources.Count() resource(s) listed
         </p>
 
         @if (!Model.Resources.Any())
         {
-            <p class="text-muted mb-0">
+            <p class="pbr-count mb-0">
                 No available resources found@(string.IsNullOrEmpty(Model.SelectedRegion) ? "." : $" in {Model.SelectedRegion}.")
             </p>
         }
         else
         {
-            <table class="table table-sm table-bordered align-middle">
-                <thead>
-                    <tr>
-                        <th>Title</th>
-                        <th>Category</th>
-                        <th>Description</th>
-                        <th>Region</th>
-                        <th>Availability</th>
-                        <th>Status</th>
-                        <th>Contact</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var resource in Model.Resources)
-                    {
+            <div class="pbr-table-wrap">
+                <table class="table table-sm align-middle pbr-table">
+                    <thead>
                         <tr>
-                            <td>@resource.Title</td>
-                            <td>@resource.CategoryName</td>
-                            <td>@resource.Description</td>
-                            <td>@resource.Region</td>
-                            <td>
-                                @resource.AvailableFrom.ToString("dd.MM.yyyy")
-                                @(resource.AvailableTo.HasValue ? $"- {resource.AvailableTo.Value:dd.MM.yyyy}" : "and onward")
-                            </td>
-                            <td>@resource.Status</td>
-                            <td>@resource.ContactPoint</td>
+                            <th>Title</th>
+                            <th>Category</th>
+                            <th>Description</th>
+                            <th>Region</th>
+                            <th>Availability</th>
+                            <th>Status</th>
+                            <th>Contact</th>
                         </tr>
-                    }
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @foreach (var resource in Model.Resources)
+                        {
+                            <tr>
+                                <td>@resource.Title</td>
+                                <td>@resource.CategoryName</td>
+                                <td>@resource.Description</td>
+                                <td>@resource.Region</td>
+                                <td>
+                                    @resource.AvailableFrom.ToString("dd.MM.yyyy")
+                                    @(resource.AvailableTo.HasValue ? $"- {resource.AvailableTo.Value:dd.MM.yyyy}" : "and onward")
+                                </td>
+                                <td>
+                                    @{
+                                        var badgeClass = resource.Status.ToString() == "Available" ? "pbr-badge-available" : "pbr-badge-default";
+                                    }
+                                    <span class="pbr-badge @badgeClass">@resource.Status</span>
+                                </td>
+                                <td>@resource.ContactPoint</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
         }
 
     </div>
