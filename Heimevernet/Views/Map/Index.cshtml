@@ -17,36 +17,47 @@
 <div class="map-page-full">
     <div id="leafletMap"></div>
 
-    <div class="map-legend-box" aria-label="Map legend">
-        <div class="legend-row">
-            <span class="legend-marker legend-need legend-need-low">
-                <span>L</span>
-            </span>
-            Low priority need
-        </div>
+    <div class="map-legend-box" id="mapLegendBox" aria-label="Map legend">
+        <button type="button"
+                class="map-filter-toggle"
+                id="mapLegendToggle"
+                aria-expanded="true"
+                aria-controls="mapLegendBody">
+            <span>Legend</span>
+            <span class="map-filter-toggle-icon" aria-hidden="true">▾</span>
+        </button>
 
-        <div class="legend-row">
-            <span class="legend-marker legend-need legend-need-medium">
-                <span>M</span>
-            </span>
-            Medium priority need
-        </div>
+        <div class="map-filter-body" id="mapLegendBody">
+            <div class="legend-row">
+                <span class="legend-marker legend-need legend-need-low">
+                    <span>L</span>
+                </span>
+                Low priority need
+            </div>
 
-        <div class="legend-row">
-            <span class="legend-marker legend-need legend-need-critical">
-                <span>!</span>
-            </span>
-            Critical priority need
-        </div>
+            <div class="legend-row">
+                <span class="legend-marker legend-need legend-need-medium">
+                    <span>M</span>
+                </span>
+                Medium priority need
+            </div>
 
-        <div class="legend-row">
-            <span class="legend-marker legend-resource">R</span>
-            Available resource
-        </div>
+            <div class="legend-row">
+                <span class="legend-marker legend-need legend-need-critical">
+                    <span>!</span>
+                </span>
+                Critical priority need
+            </div>
 
-        <div class="legend-row">
-            <span class="legend-marker legend-resource-busy">R</span>
-            Busy resource
+            <div class="legend-row">
+                <span class="legend-marker legend-resource">R</span>
+                Available resource
+            </div>
+
+            <div class="legend-row">
+                <span class="legend-marker legend-resource-busy">R</span>
+                Busy resource
+            </div>
         </div>
     </div>
 
@@ -214,4 +225,17 @@
     <script type="module"
             src="~/js/map/main.js"
             asp-append-version="true"></script>
+
+    <script>
+        (function () {
+            var legendBox = document.getElementById('mapLegendBox');
+            var legendToggle = document.getElementById('mapLegendToggle');
+            if (!legendBox || !legendToggle) return;
+
+            legendToggle.addEventListener('click', function () {
+                var collapsed = legendBox.classList.toggle('collapsed');
+                legendToggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+            });
+        })();
+    </script>
 }
