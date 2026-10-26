@@ -5,5 +5,6 @@ public enum OwnedRecordMutationResult
     Success,
     NotFound,
     Forbidden,
-    Conflict
+    Conflict,
+    ValidationError
 }

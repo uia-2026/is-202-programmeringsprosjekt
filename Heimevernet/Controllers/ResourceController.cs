@@ -50,7 +50,7 @@ public class ResourceController : Controller
                 await _categoryRepository.GetAllAsync()
         };
 
-        ViewData["IsEdit"] = true;
+        ViewData["IsEdit"] = false;
         return View("Create", model);
     }
 
@@ -70,7 +70,7 @@ public class ResourceController : Controller
         if (!ModelState.IsValid)
         {
             model.AvailableCategories = await _categoryRepository.GetAllAsync();
-            ViewData["IsEdit"] = true;
+            ViewData["IsEdit"] = false;
             return View("Create", model);
         }
 
@@ -125,8 +125,9 @@ public class ResourceController : Controller
             AvailableCategories = await _categoryRepository.GetAllAsync()
         };
 
+        ViewData["IsEdit"] = true;
         ViewData["EditResourceId"] = id;
-        return View(model);
+        return View("Create", model);
     }
 
     [HttpPost]
@@ -139,7 +140,8 @@ public class ResourceController : Controller
         {
             model.AvailableCategories = await _categoryRepository.GetAllAsync();
             ViewData["EditResourceId"] = id;
-            return View(model);
+            ViewData["IsEdit"] = true;
+            return View("Create", model);
         }
 
         var (result, message) = await _resourceService.UpdateAsync(id, model, User.GetUserId(), cancellationToken);
@@ -158,6 +160,13 @@ public class ResourceController : Controller
 
             case OwnedRecordMutationResult.Conflict:
                 ModelState.AddModelError(string.Empty, message);
+                model.AvailableCategories = await _categoryRepository.GetAllAsync();
+                ViewData["EditResourceId"] = id;
+                ViewData["IsEdit"] = true;
+                return View("Create", model);
+
+            case OwnedRecordMutationResult.ValidationError:
+                ModelState.AddModelError(nameof(model.CategoryId), message);
                 model.AvailableCategories = await _categoryRepository.GetAllAsync();
                 ViewData["EditResourceId"] = id;
                 ViewData["IsEdit"] = true;
@@ -206,6 +215,12 @@ public class ResourceController : Controller
         }
 
         var (result, message) = await _resourceService.UpdateAsync(id, model, User.GetUserId(), cancellationToken);
+        if (result == OwnedRecordMutationResult.ValidationError)
+        {
+            ModelState.AddModelError(nameof(model.CategoryId), message);
+            return ValidationProblem(modelStateDictionary: ModelState, statusCode: UnprocessableEntityStatusCode);
+        }
+
         return ToApiResult(result, message);
     }
 

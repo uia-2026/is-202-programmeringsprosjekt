@@ -73,4 +73,5 @@ public interface IResourceRepository
             CancellationToken cancellationToken = default);
 
     void SetOriginalVersion(Resource resource, int version);
+    void MarkForConcurrencyCheck(Resource resource);
 }

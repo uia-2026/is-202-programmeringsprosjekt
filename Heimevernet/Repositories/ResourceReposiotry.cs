@@ -213,4 +213,11 @@ public class ResourceRepository : IResourceRepository
             .Property(r => r.Version)
             .OriginalValue = version;
     }
+
+    public void MarkForConcurrencyCheck(Resource resource)
+    {
+        _context.Entry(resource)
+            .Property(r => r.Version)
+            .IsModified = true;
+    }
 }

@@ -252,6 +252,8 @@
 
             var deadlineEl = document.getElementById('Deadline');
             var deadlineError = document.querySelector('[data-valmsg-for="Deadline"]');
+            var isEdit = @(isEdit ? "true" : "false");
+            var originalDeadline = deadlineEl ? deadlineEl.value : '';
 
             function clearDeadlineError() {
                 if (deadlineError) deadlineError.textContent = '';
@@ -280,7 +282,7 @@
                         return;
                     }
 
-                    if (selected <= now) {
+                    if (selected <= now && (!isEdit || val !== originalDeadline)) {
                         e.preventDefault();
                         showDeadlineError('Deadline must be in the future.');
                         deadlineEl.focus();

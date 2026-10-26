@@ -1,5 +1,6 @@
 using Heimevernet.Mappers;
 using Heimevernet.Mappers.Interfaces;
+using Heimevernet.Exceptions;
 using Heimevernet.Models;
 using Heimevernet.Repositories.Interfaces;
 using Heimevernet.Services;
@@ -16,6 +17,7 @@ namespace Heimevernet.UnitTests.Services;
 public class NeedServiceTests
 {
     private readonly Mock<INeedRepository> _needRepoMock;
+    private readonly Mock<ICategoryRepository> _categoryRepoMock;
     private readonly Mock<INeedMapper> _mapperMock;
     private readonly Mock<IMapMarkerMapper> _mapMarkerMapperMock;
     private readonly Mock<IUnitOfWork> _uowMock;
@@ -24,10 +26,13 @@ public class NeedServiceTests
     public NeedServiceTests()
     {
         _needRepoMock = new Mock<INeedRepository>();
+        _categoryRepoMock = new Mock<ICategoryRepository>();
+        _categoryRepoMock.Setup(r => r.GetByIdAsync(It.IsAny<int>()))
+            .ReturnsAsync((int id) => new Category { Id = id });
         _mapperMock = new Mock<INeedMapper>();
         _mapMarkerMapperMock = new Mock<IMapMarkerMapper>();
         _uowMock = new Mock<IUnitOfWork>();
-        _sut = new NeedService(_needRepoMock.Object, _mapperMock.Object, _mapMarkerMapperMock.Object, _uowMock.Object);
+        _sut = new NeedService(_needRepoMock.Object, _categoryRepoMock.Object, _mapperMock.Object, _mapMarkerMapperMock.Object, _uowMock.Object);
     }
 
     /// <summary>
@@ -315,6 +320,21 @@ public class NeedServiceTests
     }
 
     [Fact]
+    public async Task UpdateAsync_Returns_ValidationError_When_Category_Does_Not_Exist()
+    {
+        var need = new Need { Id = 10, UserId = 42, Status = NeedStatus.New, Matches = [] };
+        var model = new NeedCreateViewModel { CategoryId = 99, Title = "T", Region = "R", ContactPoint = "C" };
+        _needRepoMock.Setup(r => r.GetByIdForUpdateAsync(10, It.IsAny<CancellationToken>())).ReturnsAsync(need);
+        _categoryRepoMock.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((Category?)null);
+
+        var (result, _) = await _sut.UpdateAsync(10, model, 42);
+
+        Assert.Equal(OwnedRecordMutationResult.ValidationError, result);
+        _mapperMock.Verify(m => m.ApplyEditableFields(It.IsAny<Need>(), It.IsAny<NeedCreateViewModel>()), Times.Never);
+        _uowMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task DeleteAsync_Owner_Can_Delete_When_Allowed()
     {
         var need = new Need { Id = 10, UserId = 42, Matches = [] };
@@ -343,6 +363,33 @@ public class NeedServiceTests
 
         Assert.Equal(OwnedRecordMutationResult.Conflict, result);
         _needRepoMock.Verify(r => r.Remove(It.IsAny<Need>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_Returns_Conflict_When_Commit_Has_Concurrency_Conflict()
+    {
+        var need = new Need { Id = 10, UserId = 42, Status = NeedStatus.New, Matches = [] };
+        var model = new NeedCreateViewModel { CategoryId = 1, Title = "T", Region = "R", ContactPoint = "C" };
+        _needRepoMock.Setup(r => r.GetByIdForUpdateAsync(10, It.IsAny<CancellationToken>())).ReturnsAsync(need);
+        _uowMock.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new ConcurrencyConflictException(new Exception()));
+
+        var (result, _) = await _sut.UpdateAsync(10, model, 42);
+
+        Assert.Equal(OwnedRecordMutationResult.Conflict, result);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_Returns_Conflict_When_Commit_Has_Concurrency_Conflict()
+    {
+        var need = new Need { Id = 10, UserId = 42, Matches = [] };
+        _needRepoMock.Setup(r => r.GetByIdForUpdateAsync(10, It.IsAny<CancellationToken>())).ReturnsAsync(need);
+        _uowMock.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new ConcurrencyConflictException(new Exception()));
+
+        var (result, _) = await _sut.DeleteAsync(10, 42);
+
+        Assert.Equal(OwnedRecordMutationResult.Conflict, result);
     }
 
     [Fact]

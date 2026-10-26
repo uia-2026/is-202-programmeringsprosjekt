@@ -1,5 +1,6 @@
 using Heimevernet.Mappers;
 using Heimevernet.Mappers.Interfaces;
+using Heimevernet.Exceptions;
 using Heimevernet.Models;
 using Heimevernet.Repositories.Interfaces;
 using Heimevernet.Services;
@@ -16,6 +17,8 @@ namespace Heimevernet.UnitTests.Services;
 public class ResourceServiceTests
 {
     private readonly Mock<IResourceRepository> _repoMock;
+    private readonly Mock<ICategoryRepository> _categoryRepoMock;
+    private readonly Mock<IAttachmentService> _attachmentServiceMock;
     private readonly Mock<IResourceMapper> _mapperMock;
     private readonly Mock<IMapMarkerMapper> _mapMarkerMapperMock;
     private readonly Mock<INearbyResourceMapper> _mapNearbyResourceMapperMock;
@@ -25,11 +28,15 @@ public class ResourceServiceTests
     public ResourceServiceTests()
     {
         _repoMock = new Mock<IResourceRepository>();
+        _categoryRepoMock = new Mock<ICategoryRepository>();
+        _categoryRepoMock.Setup(r => r.GetByIdAsync(It.IsAny<int>()))
+            .ReturnsAsync((int id) => new Category { Id = id });
+        _attachmentServiceMock = new Mock<IAttachmentService>();
         _mapperMock = new Mock<IResourceMapper>();
         _mapMarkerMapperMock = new Mock<IMapMarkerMapper>();
         _mapNearbyResourceMapperMock = new Mock<INearbyResourceMapper>();
         _uowMock = new Mock<IUnitOfWork>();
-        _sut = new ResourceService(_repoMock.Object, _mapperMock.Object, _mapMarkerMapperMock.Object, _mapNearbyResourceMapperMock.Object, _uowMock.Object);
+        _sut = new ResourceService(_repoMock.Object, _categoryRepoMock.Object, _attachmentServiceMock.Object, _mapperMock.Object, _mapMarkerMapperMock.Object, _mapNearbyResourceMapperMock.Object, _uowMock.Object);
     }
 
     /// <summary>
@@ -270,16 +277,50 @@ public class ResourceServiceTests
     }
 
     [Fact]
-    public async Task DeleteAsync_Owner_Can_Delete_When_Allowed()
+    public async Task UpdateAsync_Returns_ValidationError_When_Category_Does_Not_Exist()
     {
         var resource = new Resource { Id = 7, UserId = 42, Matches = [] };
+        var model = new ResourceCreateViewModel { CategoryId = 99, Title = "T", Region = "R", ContactPoint = "C", AvailableFrom = DateTime.UtcNow };
         _repoMock.Setup(r => r.GetByIdForUpdateAsync(7, It.IsAny<CancellationToken>())).ReturnsAsync(resource);
+        _categoryRepoMock.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((Category?)null);
+
+        var (result, _) = await _sut.UpdateAsync(7, model, 42);
+
+        Assert.Equal(OwnedRecordMutationResult.ValidationError, result);
+        _mapperMock.Verify(m => m.ApplyEditableFields(It.IsAny<Resource>(), It.IsAny<ResourceCreateViewModel>()), Times.Never);
+        _uowMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_Owner_Can_Delete_When_Allowed()
+    {
+        var resource = new Resource
+        {
+            Id = 7,
+            UserId = 42,
+            Matches = [],
+            Attachments = [new Attachment { StorageKey = "resources/7/photo.jpg" }]
+        };
+        _repoMock.Setup(r => r.GetByIdForUpdateAsync(7, It.IsAny<CancellationToken>())).ReturnsAsync(resource);
+        var committed = false;
+        _uowMock.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>()))
+            .Callback(() => committed = true)
+            .Returns(Task.CompletedTask);
+        _attachmentServiceMock
+            .Setup(s => s.DeleteStorageObjectsAsync(It.IsAny<IEnumerable<string>>()))
+            .Callback<IEnumerable<string>>(keys =>
+            {
+                Assert.True(committed);
+                Assert.Equal(["resources/7/photo.jpg"], keys);
+            })
+            .Returns(Task.CompletedTask);
 
         var (result, _) = await _sut.DeleteAsync(7, 42);
 
         Assert.Equal(OwnedRecordMutationResult.Success, result);
         _repoMock.Verify(r => r.Remove(resource), Times.Once);
         _uowMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _attachmentServiceMock.Verify(s => s.DeleteStorageObjectsAsync(It.IsAny<IEnumerable<string>>()), Times.Once);
     }
 
     [Fact]
@@ -297,6 +338,34 @@ public class ResourceServiceTests
 
         Assert.Equal(OwnedRecordMutationResult.Conflict, result);
         _repoMock.Verify(r => r.Remove(It.IsAny<Resource>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_Returns_Conflict_When_Commit_Has_Concurrency_Conflict()
+    {
+        var resource = new Resource { Id = 7, UserId = 42, Matches = [] };
+        var model = new ResourceCreateViewModel { CategoryId = 1, Title = "T", Region = "R", ContactPoint = "C", AvailableFrom = DateTime.UtcNow };
+        _repoMock.Setup(r => r.GetByIdForUpdateAsync(7, It.IsAny<CancellationToken>())).ReturnsAsync(resource);
+        _uowMock.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new ConcurrencyConflictException(new Exception()));
+
+        var (result, _) = await _sut.UpdateAsync(7, model, 42);
+
+        Assert.Equal(OwnedRecordMutationResult.Conflict, result);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_Returns_Conflict_When_Commit_Has_Concurrency_Conflict()
+    {
+        var resource = new Resource { Id = 7, UserId = 42, Matches = [] };
+        _repoMock.Setup(r => r.GetByIdForUpdateAsync(7, It.IsAny<CancellationToken>())).ReturnsAsync(resource);
+        _uowMock.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new ConcurrencyConflictException(new Exception()));
+
+        var (result, _) = await _sut.DeleteAsync(7, 42);
+
+        Assert.Equal(OwnedRecordMutationResult.Conflict, result);
+        _attachmentServiceMock.Verify(s => s.DeleteStorageObjectsAsync(It.IsAny<IEnumerable<string>>()), Times.Never);
     }
 
     [Fact]

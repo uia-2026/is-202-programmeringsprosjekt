@@ -65,7 +65,7 @@ public class NeedController : Controller
                 await _categoryRepository.GetAllAsync()
         };
 
-        ViewData["IsEdit"] = true;
+        ViewData["IsEdit"] = false;
         return View("Create", model);
     }
 
@@ -89,7 +89,7 @@ public class NeedController : Controller
             model.AvailableCategories =
                 await _categoryRepository.GetAllAsync();
 
-            ViewData["IsEdit"] = true;
+            ViewData["IsEdit"] = false;
             return View("Create", model);
         }
 
@@ -131,8 +131,9 @@ public class NeedController : Controller
             AvailableCategories = await _categoryRepository.GetAllAsync()
         };
 
+        ViewData["IsEdit"] = true;
         ViewData["EditNeedId"] = id;
-        return View(model);
+        return View("Create", model);
     }
 
     [HttpPost]
@@ -140,13 +141,16 @@ public class NeedController : Controller
     [Authorize(Roles = "PublicActor")]
     public async Task<IActionResult> Edit(int id, NeedCreateViewModel model, CancellationToken cancellationToken)
     {
+        var existingNeed = await _needService.GetByIdAsync(id, cancellationToken);
+        AllowUnchangedDeadline(existingNeed?.Deadline, model.Deadline);
         await TryResolveRegionAsync(model, cancellationToken);
 
         if (!ModelState.IsValid)
         {
             model.AvailableCategories = await _categoryRepository.GetAllAsync();
             ViewData["EditNeedId"] = id;
-            return View(model);
+            ViewData["IsEdit"] = true;
+            return View("Create", model);
         }
 
         var (result, message) = await _needService.UpdateAsync(id, model, User.GetUserId(), cancellationToken);
@@ -165,6 +169,13 @@ public class NeedController : Controller
 
             case OwnedRecordMutationResult.Conflict:
                 ModelState.AddModelError(string.Empty, message);
+                model.AvailableCategories = await _categoryRepository.GetAllAsync();
+                ViewData["EditNeedId"] = id;
+                ViewData["IsEdit"] = true;
+                return View("Create", model);
+
+            case OwnedRecordMutationResult.ValidationError:
+                ModelState.AddModelError(nameof(model.CategoryId), message);
                 model.AvailableCategories = await _categoryRepository.GetAllAsync();
                 ViewData["EditNeedId"] = id;
                 ViewData["IsEdit"] = true;
@@ -205,8 +216,16 @@ public class NeedController : Controller
 
     [HttpPut("/api/needs/{id:int}")]
     [Authorize(Roles = "PublicActor")]
-    public async Task<IActionResult> UpdateApi(int id, [FromBody] NeedCreateViewModel model, CancellationToken cancellationToken)
+    public async Task<IActionResult> UpdateApi(int id, [FromBody] NeedCreateViewModel? model, CancellationToken cancellationToken)
     {
+        if (model is null)
+        {
+            ModelState.AddModelError(string.Empty, "A request body is required.");
+            return ValidationProblem(modelStateDictionary: ModelState, statusCode: UnprocessableEntityStatusCode);
+        }
+
+        var existingNeed = await _needService.GetByIdAsync(id, cancellationToken);
+        AllowUnchangedDeadline(existingNeed?.Deadline, model.Deadline);
         await TryResolveRegionAsync(model, cancellationToken);
 
         if (!ModelState.IsValid)
@@ -215,6 +234,12 @@ public class NeedController : Controller
         }
 
         var (result, message) = await _needService.UpdateAsync(id, model, User.GetUserId(), cancellationToken);
+        if (result == OwnedRecordMutationResult.ValidationError)
+        {
+            ModelState.AddModelError(nameof(model.CategoryId), message);
+            return ValidationProblem(modelStateDictionary: ModelState, statusCode: UnprocessableEntityStatusCode);
+        }
+
         return ToApiResult(result, message);
     }
 
@@ -297,5 +322,20 @@ public class NeedController : Controller
         }
 
         ModelState.AddModelError(nameof(model.Region), "Please select a location on land (not in the ocean).");
+    }
+
+    private void AllowUnchangedDeadline(DateTime? currentDeadline, DateTime? submittedDeadline)
+    {
+        if (currentDeadline != submittedDeadline
+            || !ModelState.TryGetValue(nameof(NeedCreateViewModel.Deadline), out var deadlineState))
+        {
+            return;
+        }
+
+        for (var i = deadlineState.Errors.Count - 1; i >= 0; i--)
+        {
+            if (deadlineState.Errors[i].ErrorMessage == "Deadline must be in the future.")
+                deadlineState.Errors.RemoveAt(i);
+        }
     }
 }
