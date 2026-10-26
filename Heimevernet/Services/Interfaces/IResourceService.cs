@@ -58,4 +58,15 @@ public interface IResourceService
        double radiusKm,
        int maxResults,
        CancellationToken cancellationToken = default);
+
+    Task<(OwnedRecordMutationResult Result, string Message)> UpdateAsync(
+        int id,
+        ResourceCreateViewModel model,
+        int userId,
+        CancellationToken cancellationToken = default);
+
+    Task<(OwnedRecordMutationResult Result, string Message)> DeleteAsync(
+        int id,
+        int userId,
+        CancellationToken cancellationToken = default);
 }

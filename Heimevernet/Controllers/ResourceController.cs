@@ -17,6 +17,7 @@ public class ResourceController : Controller
     private readonly IResourceService _resourceService;
     private readonly ICategoryRepository _categoryRepository;
     private readonly IAttachmentService _attachmentService;
+    private const int UnprocessableEntityStatusCode = 422;
 
     public ResourceController(
         IResourceService resourceService,
@@ -49,7 +50,8 @@ public class ResourceController : Controller
                 await _categoryRepository.GetAllAsync()
         };
 
-        return View(model);
+        ViewData["IsEdit"] = true;
+        return View("Create", model);
     }
 
     /// <summary>
@@ -68,7 +70,8 @@ public class ResourceController : Controller
         if (!ModelState.IsValid)
         {
             model.AvailableCategories = await _categoryRepository.GetAllAsync();
-            return View(model);
+            ViewData["IsEdit"] = true;
+            return View("Create", model);
         }
 
         var userId = User.GetUserId();
@@ -94,6 +97,124 @@ public class ResourceController : Controller
         }
 
         return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpGet]
+    [Authorize(Roles = "ResourceProvider")]
+    public async Task<IActionResult> Edit(int id, CancellationToken cancellationToken)
+    {
+        var resource = await _resourceService.GetByIdAsync(id, cancellationToken);
+
+        if (resource is null)
+            return NotFound();
+
+        if (resource.UserId != User.GetUserId())
+            return Forbid();
+
+        var model = new ResourceCreateViewModel
+        {
+            CategoryId = resource.CategoryId,
+            Title = resource.Title,
+            Description = resource.Description,
+            Latitude = resource.Latitude,
+            Longitude = resource.Longitude,
+            Region = resource.Region,
+            AvailableFrom = resource.AvailableFrom,
+            AvailableTo = resource.AvailableTo,
+            ContactPoint = resource.ContactPoint,
+            AvailableCategories = await _categoryRepository.GetAllAsync()
+        };
+
+        ViewData["EditResourceId"] = id;
+        return View(model);
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "ResourceProvider")]
+    [ValidateAntiForgeryToken]
+    [RequestSizeLimit(6 * 1024 * 1024)]
+    public async Task<IActionResult> Edit(int id, ResourceCreateViewModel model, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+        {
+            model.AvailableCategories = await _categoryRepository.GetAllAsync();
+            ViewData["EditResourceId"] = id;
+            return View(model);
+        }
+
+        var (result, message) = await _resourceService.UpdateAsync(id, model, User.GetUserId(), cancellationToken);
+
+        switch (result)
+        {
+            case OwnedRecordMutationResult.Success:
+                TempData["Success"] = "Resource updated.";
+                return RedirectToAction(nameof(Details), new { id });
+
+            case OwnedRecordMutationResult.NotFound:
+                return NotFound();
+
+            case OwnedRecordMutationResult.Forbidden:
+                return Forbid();
+
+            case OwnedRecordMutationResult.Conflict:
+                ModelState.AddModelError(string.Empty, message);
+                model.AvailableCategories = await _categoryRepository.GetAllAsync();
+                ViewData["EditResourceId"] = id;
+                ViewData["IsEdit"] = true;
+                return View("Create", model);
+
+            default:
+                return Problem(detail: "Unexpected update result.");
+        }
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "ResourceProvider")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+    {
+        var (result, message) = await _resourceService.DeleteAsync(id, User.GetUserId(), cancellationToken);
+
+        switch (result)
+        {
+            case OwnedRecordMutationResult.Success:
+                TempData["Success"] = "Resource deleted.";
+                return RedirectToAction(nameof(Index));
+
+            case OwnedRecordMutationResult.NotFound:
+                return NotFound();
+
+            case OwnedRecordMutationResult.Forbidden:
+                return Forbid();
+
+            case OwnedRecordMutationResult.Conflict:
+                TempData["Error"] = message;
+                return RedirectToAction(nameof(Details), new { id });
+
+            default:
+                return Problem(detail: "Unexpected delete result.");
+        }
+    }
+
+    [HttpPut("/api/resources/{id:int}")]
+    [Authorize(Roles = "ResourceProvider")]
+    public async Task<IActionResult> UpdateApi(int id, [FromBody] ResourceCreateViewModel model, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(modelStateDictionary: ModelState, statusCode: UnprocessableEntityStatusCode);
+        }
+
+        var (result, message) = await _resourceService.UpdateAsync(id, model, User.GetUserId(), cancellationToken);
+        return ToApiResult(result, message);
+    }
+
+    [HttpDelete("/api/resources/{id:int}")]
+    [Authorize(Roles = "ResourceProvider")]
+    public async Task<IActionResult> DeleteApi(int id, CancellationToken cancellationToken)
+    {
+        var (result, message) = await _resourceService.DeleteAsync(id, User.GetUserId(), cancellationToken);
+        return ToApiResult(result, message);
     }
 
     [HttpGet]
@@ -176,5 +297,17 @@ public class ResourceController : Controller
 
         TempData[result.Success ? "Success" : "Error"] = result.Success ? "Photo removed." : result.Error;
         return RedirectToAction(nameof(Details), new { id = resourceId });
+    }
+
+    private IActionResult ToApiResult(OwnedRecordMutationResult result, string message)
+    {
+        return result switch
+        {
+            OwnedRecordMutationResult.Success => Ok(new { message }),
+            OwnedRecordMutationResult.NotFound => NotFound(new { message }),
+            OwnedRecordMutationResult.Forbidden => StatusCode(403, new { message }),
+            OwnedRecordMutationResult.Conflict => StatusCode(409, new { message }),
+            _ => Problem(detail: "Unexpected mutation result.")
+        };
     }
 }

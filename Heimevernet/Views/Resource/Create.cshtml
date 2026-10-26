@@ -1,10 +1,13 @@
 @model Heimevernet.ViewModels.Resource.ResourceCreateViewModel
 
 @{
-    ViewData["Title"] = "Register Resource";
+    var isEdit = (ViewData["IsEdit"] as bool?) == true;
+    var editResourceId = ViewData["EditResourceId"] as int?;
+    var pageTitle = isEdit ? "Edit Resource" : "Register Resource";
+    ViewData["Title"] = pageTitle;
 }
 
-<a asp-action="Index" class="btn btn-link link-secondary text-decoration-none ps-0 mb-3">
+<a asp-action="@(isEdit ? "Details" : "Index")" asp-route-id="@(isEdit ? editResourceId : null)" class="btn btn-link link-secondary text-decoration-none ps-0 mb-3">
     <i class="bi bi-arrow-left me-1"></i>
     Back to overview
 </a>
@@ -15,13 +18,13 @@
             <div class="card-body p-4 p-md-5">
 
                 <div class="mb-4">
-                    <h1 class="h4 mb-1">Register Resource</h1>
+                    <h1 class="h4 mb-1">@pageTitle</h1>
                     <p class="text-secondary small mb-0">
-                        Provide the resource details and optionally upload a photo.
+                        @(isEdit ? "Update resource details." : "Provide the resource details and optionally upload a photo.")
                     </p>
                 </div>
 
-                <form asp-action="Create" method="post" enctype="multipart/form-data">
+                <form asp-action="@(isEdit ? "Edit" : "Create")" asp-route-id="@(isEdit ? editResourceId : null)" method="post" enctype="multipart/form-data">
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
                     <div class="mb-3">
@@ -100,55 +103,58 @@
                         <span asp-validation-for="ContactPoint" class="text-danger small"></span>
                     </div>
 
-                    <hr class="my-4" />
+                    @if (!isEdit)
+                    {
+                        <hr class="my-4" />
 
-                    <h2 class="h6 mb-1">Resource photo</h2>
-                    <p class="text-secondary small mb-3">
-                        Add a photo to help others identify the resource. This is optional.
-                    </p>
+                        <h2 class="h6 mb-1">Resource photo</h2>
+                        <p class="text-secondary small mb-3">
+                            Add a photo to help others identify the resource. This is optional.
+                        </p>
 
-                    <label for="Image" class="resource-upload-area w-100 rounded-3 p-4 text-center">
-                        <div class="resource-upload-icon mb-2">
-                            <i class="bi bi-cloud-arrow-up"></i>
-                        </div>
-
-                        <div class="fw-medium mb-1" id="upload-label">
-                            Click to choose an image
-                        </div>
-
-                        <div class="text-secondary small">
-                            JPG, PNG or WebP · Maximum 5 MB
-                        </div>
-
-                        <input asp-for="Image" id="Image" type="file" class="visually-hidden"
-                               accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" />
-                    </label>
-
-                    <span asp-validation-for="Image" class="text-danger small"></span>
-
-                    <div id="image-preview-container" class="mt-3 d-none">
-                        <div class="d-flex align-items-center gap-3 p-2 border rounded-3">
-                            <img id="image-preview" src="" alt="Selected resource photo"
-                                 class="rounded object-fit-cover" style="width: 84px; height: 64px;" />
-
-                            <div class="flex-grow-1 min-width-0">
-                                <div id="image-name" class="small fw-medium text-break"></div>
-                                <div id="image-size" class="small text-secondary"></div>
+                        <label for="Image" class="resource-upload-area w-100 rounded-3 p-4 text-center">
+                            <div class="resource-upload-icon mb-2">
+                                <i class="bi bi-cloud-arrow-up"></i>
                             </div>
 
-                            <button type="button" id="remove-image" class="btn btn-sm btn-outline-secondary">
-                                Remove
-                            </button>
+                            <div class="fw-medium mb-1" id="upload-label">
+                                Click to choose an image
+                            </div>
+
+                            <div class="text-secondary small">
+                                JPG, PNG or WebP · Maximum 5 MB
+                            </div>
+
+                            <input asp-for="Image" id="Image" type="file" class="visually-hidden"
+                                   accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" />
+                        </label>
+
+                        <span asp-validation-for="Image" class="text-danger small"></span>
+
+                        <div id="image-preview-container" class="mt-3 d-none">
+                            <div class="d-flex align-items-center gap-3 p-2 border rounded-3">
+                                <img id="image-preview" src="" alt="Selected resource photo"
+                                     class="rounded object-fit-cover" style="width: 84px; height: 64px;" />
+
+                                <div class="flex-grow-1 min-width-0">
+                                    <div id="image-name" class="small fw-medium text-break"></div>
+                                    <div id="image-size" class="small text-secondary"></div>
+                                </div>
+
+                                <button type="button" id="remove-image" class="btn btn-sm btn-outline-secondary">
+                                    Remove
+                                </button>
+                            </div>
                         </div>
-                    </div>
+                    }
 
                     <div class="d-flex flex-column flex-sm-row gap-2 mt-4">
                         <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-plus-lg me-1"></i>
-                            Register Resource
+                            <i class="bi @(isEdit ? "bi-check2" : "bi-plus-lg") me-1"></i>
+                            @(isEdit ? "Save changes" : "Register Resource")
                         </button>
 
-                        <a asp-action="Index" class="btn btn-outline-secondary">
+                        <a asp-action="@(isEdit ? "Details" : "Index")" asp-route-id="@(isEdit ? editResourceId : null)" class="btn btn-outline-secondary">
                             Cancel
                         </a>
                     </div>
@@ -190,6 +196,10 @@
             const name = document.getElementById('image-name');
             const size = document.getElementById('image-size');
             const remove = document.getElementById('remove-image');
+
+            if (!input || !label || !container || !preview || !name || !size || !remove) {
+                return;
+            }
 
             let previewUrl = null;
 

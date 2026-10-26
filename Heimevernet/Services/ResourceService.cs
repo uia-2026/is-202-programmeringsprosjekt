@@ -3,6 +3,7 @@ using Heimevernet.Mappers;
 using Heimevernet.Mappers.Interfaces;
 using Heimevernet.Repositories.Interfaces;
 using Heimevernet.Services.Interfaces;
+using Heimevernet.Services.Rules;
 using Heimevernet.ViewModels.Map;
 using Heimevernet.ViewModels.Need;
 using Heimevernet.ViewModels.Resource;
@@ -114,5 +115,64 @@ public class ResourceService : IResourceService
         return dtos
             .Select(_nearbyResourceMapper.ToViewModel)
             .ToList();
+    }
+
+    public async Task<(OwnedRecordMutationResult Result, string Message)> UpdateAsync(
+        int id,
+        ResourceCreateViewModel model,
+        int userId,
+        CancellationToken cancellationToken = default)
+    {
+        var resource = await _resourceRepository.GetByIdForUpdateAsync(id, cancellationToken);
+
+        if (resource is null)
+        {
+            return (OwnedRecordMutationResult.NotFound, "Resource not found.");
+        }
+
+        var decision = OwnedRecordPolicy.CanEditResource(resource, model, userId);
+
+        if (!decision.Allowed)
+        {
+            var result = decision.FailureCode == OwnedRecordFailureCode.NotOwner
+                ? OwnedRecordMutationResult.Forbidden
+                : OwnedRecordMutationResult.Conflict;
+
+            return (result, decision.Message);
+        }
+
+        _resourceMapper.ApplyEditableFields(resource, model);
+        await _unitOfWork.CommitAsync(cancellationToken);
+
+        return (OwnedRecordMutationResult.Success, "Resource updated.");
+    }
+
+    public async Task<(OwnedRecordMutationResult Result, string Message)> DeleteAsync(
+        int id,
+        int userId,
+        CancellationToken cancellationToken = default)
+    {
+        var resource = await _resourceRepository.GetByIdForUpdateAsync(id, cancellationToken);
+
+        if (resource is null)
+        {
+            return (OwnedRecordMutationResult.NotFound, "Resource not found.");
+        }
+
+        var decision = OwnedRecordPolicy.CanDeleteResource(resource, userId);
+
+        if (!decision.Allowed)
+        {
+            var result = decision.FailureCode == OwnedRecordFailureCode.NotOwner
+                ? OwnedRecordMutationResult.Forbidden
+                : OwnedRecordMutationResult.Conflict;
+
+            return (result, decision.Message);
+        }
+
+        _resourceRepository.Remove(resource);
+        await _unitOfWork.CommitAsync(cancellationToken);
+
+        return (OwnedRecordMutationResult.Success, "Resource deleted.");
     }
 }

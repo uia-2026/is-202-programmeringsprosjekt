@@ -26,6 +26,20 @@
     var lng = need.Longitude.ToString(CultureInfo.InvariantCulture);
 }
 
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">
+        @TempData["Success"]
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["Error"]
+    </div>
+}
+
 @section Styles {
     <link rel="stylesheet"
           href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -127,6 +141,29 @@
                    class="btn btn-success w-100 mb-2">
                     Find Resources
                 </a>
+
+                @if (need.IsOwner)
+                {
+                    @if (need.Status != Heimevernet.Models.NeedStatus.Resolved)
+                    {
+                        <a asp-action="Edit"
+                           asp-route-id="@need.Id"
+                           class="btn btn-outline-primary w-100 mb-2">
+                            Edit Need
+                        </a>
+                    }
+
+                    <form asp-action="Delete"
+                          asp-route-id="@need.Id"
+                          method="post"
+                          onsubmit="return confirm('Delete this need? This cannot be undone.');">
+                        @Html.AntiForgeryToken()
+
+                        <button type="submit" class="btn btn-outline-danger w-100 mb-2">
+                            Delete Need
+                        </button>
+                    </form>
+                }
 
                 <button class="btn btn-outline-secondary w-100" type="button">
                     Mark as Resolved

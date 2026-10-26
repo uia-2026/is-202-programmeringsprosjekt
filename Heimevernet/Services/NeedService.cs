@@ -3,6 +3,7 @@ using Heimevernet.Mappers;
 using Heimevernet.Mappers.Interfaces;
 using Heimevernet.Repositories.Interfaces;
 using Heimevernet.Services.Interfaces;
+using Heimevernet.Services.Rules;
 using Heimevernet.ViewModels.Map;
 using Heimevernet.ViewModels.Need;
 
@@ -94,5 +95,64 @@ public class NeedService : INeedService
     {
         var dtos = await _needRepository.GetMapMarkersAsync(box, limit, cancellationToken);
         return _mapMarkerMapper.ToViewModels(dtos);
+    }
+
+    public async Task<(OwnedRecordMutationResult Result, string Message)> UpdateAsync(
+        int id,
+        NeedCreateViewModel model,
+        int userId,
+        CancellationToken cancellationToken = default)
+    {
+        var need = await _needRepository.GetByIdForUpdateAsync(id, cancellationToken);
+
+        if (need is null)
+        {
+            return (OwnedRecordMutationResult.NotFound, "Need not found.");
+        }
+
+        var decision = OwnedRecordPolicy.CanEditNeed(need, model, userId);
+
+        if (!decision.Allowed)
+        {
+            var result = decision.FailureCode == OwnedRecordFailureCode.NotOwner
+                ? OwnedRecordMutationResult.Forbidden
+                : OwnedRecordMutationResult.Conflict;
+
+            return (result, decision.Message);
+        }
+
+        _needMapper.ApplyEditableFields(need, model);
+        await _unitOfWork.CommitAsync(cancellationToken);
+
+        return (OwnedRecordMutationResult.Success, "Need updated.");
+    }
+
+    public async Task<(OwnedRecordMutationResult Result, string Message)> DeleteAsync(
+        int id,
+        int userId,
+        CancellationToken cancellationToken = default)
+    {
+        var need = await _needRepository.GetByIdForUpdateAsync(id, cancellationToken);
+
+        if (need is null)
+        {
+            return (OwnedRecordMutationResult.NotFound, "Need not found.");
+        }
+
+        var decision = OwnedRecordPolicy.CanDeleteNeed(need, userId);
+
+        if (!decision.Allowed)
+        {
+            var result = decision.FailureCode == OwnedRecordFailureCode.NotOwner
+                ? OwnedRecordMutationResult.Forbidden
+                : OwnedRecordMutationResult.Conflict;
+
+            return (result, decision.Message);
+        }
+
+        _needRepository.Remove(need);
+        await _unitOfWork.CommitAsync(cancellationToken);
+
+        return (OwnedRecordMutationResult.Success, "Need deleted.");
     }
 }

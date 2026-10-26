@@ -17,6 +17,8 @@ public interface IResourceMapper
     /// <returns>A mapped <see cref="Resource"/> entity.</returns>
     Resource ToEntity(ResourceCreateViewModel model, int userId);
 
+    void ApplyEditableFields(Resource target, ResourceCreateViewModel model);
+
     /// <summary>
     /// Maps a Resource entity to a ResourceViewModel.
     /// </summary>

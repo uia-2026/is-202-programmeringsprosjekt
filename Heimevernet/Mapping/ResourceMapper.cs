@@ -35,6 +35,19 @@ public class ResourceMapper : IResourceMapper
         };
     }
 
+    public void ApplyEditableFields(Resource target, ResourceCreateViewModel model)
+    {
+        target.CategoryId = model.CategoryId!.Value;
+        target.Title = model.Title.Trim();
+        target.Description = model.Description?.Trim();
+        target.Latitude = model.Latitude;
+        target.Longitude = model.Longitude;
+        target.Region = model.Region.Trim();
+        target.AvailableFrom = model.AvailableFrom;
+        target.AvailableTo = model.AvailableTo;
+        target.ContactPoint = model.ContactPoint.Trim();
+    }
+
     /// <summary>
     /// Maps a <see cref="Resource"/> entity to a <see cref="ResourceViewModel"/>.
     /// </summary>
@@ -48,6 +61,7 @@ public class ResourceMapper : IResourceMapper
             Title = resource.Title,
             Description = resource.Description,
             CategoryName = resource.Category.Name,
+            CategoryId = resource.CategoryId,
             Latitude = resource.Latitude,
             Longitude = resource.Longitude,
             Region = resource.Region,

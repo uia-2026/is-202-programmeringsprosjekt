@@ -42,4 +42,15 @@ public interface INeedService
     Task<NeedViewModel?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<MapMarkerViewModel>> GetMapMarkersAsync(GeoBox box, int limit, CancellationToken cancellationToken = default);
+
+    Task<(OwnedRecordMutationResult Result, string Message)> UpdateAsync(
+        int id,
+        NeedCreateViewModel model,
+        int userId,
+        CancellationToken cancellationToken = default);
+
+    Task<(OwnedRecordMutationResult Result, string Message)> DeleteAsync(
+        int id,
+        int userId,
+        CancellationToken cancellationToken = default);
 }

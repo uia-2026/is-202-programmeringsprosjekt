@@ -22,6 +22,13 @@
     </div>
 }
 
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["Error"]
+    </div>
+}
+
 <div class="container py-4">
 
     <a asp-action="Index" class="btn btn-link link-secondary text-decoration-none ps-0 mb-3">
@@ -228,6 +235,23 @@
                         <p class="text-secondary small mb-4">
                             Manage photos and availability.
                         </p>
+
+                        <a asp-action="Edit"
+                           asp-route-id="@Model.Id"
+                           class="btn btn-outline-primary w-100 mb-3">
+                            Edit resource
+                        </a>
+
+                        <form asp-action="Delete"
+                              asp-route-id="@Model.Id"
+                              method="post"
+                              class="mb-3"
+                              onsubmit="return confirm('Delete this resource? This cannot be undone.');">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-outline-danger w-100">
+                                Delete resource
+                            </button>
+                        </form>
 
                         <form asp-action="UploadAttachment" method="post" enctype="multipart/form-data">
 
