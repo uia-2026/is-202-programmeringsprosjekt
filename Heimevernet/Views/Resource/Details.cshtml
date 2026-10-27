@@ -15,20 +15,6 @@
     var photos = Model.Attachments;
 }
 
-@if (TempData["Success"] != null)
-{
-    <div class="alert alert-success">
-        @TempData["Success"]
-    </div>
-}
-
-@if (TempData["Error"] != null)
-{
-    <div class="alert alert-danger">
-        @TempData["Error"]
-    </div>
-}
-
 <div class="container py-4">
 
     <a asp-action="Index" class="btn btn-link link-secondary text-decoration-none ps-0 mb-3">
