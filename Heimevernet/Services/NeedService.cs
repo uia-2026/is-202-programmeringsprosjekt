@@ -1,4 +1,5 @@
 using Heimevernet.Infrastructure.Geo;
+using Heimevernet.Exceptions;
 using Heimevernet.Mappers;
 using Heimevernet.Mappers.Interfaces;
 using Heimevernet.Repositories.Interfaces;
@@ -15,12 +16,14 @@ namespace Heimevernet.Services;
 /// </summary>
 public class NeedService(
     INeedRepository repository,
+    ICategoryRepository categoryRepository,
     INeedMapper needMapper,
     IMapMarkerMapper mapMarkerMapper,
     IUnitOfWork unitOfWork) : INeedService
 {
     private readonly INeedRepository _needRepository = repository;
     private readonly INeedMapper _needMapper = needMapper;
+    private readonly ICategoryRepository _categoryRepository = categoryRepository;
     private readonly IMapMarkerMapper _mapMarkerMapper = mapMarkerMapper;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
@@ -113,8 +116,21 @@ public class NeedService(
             return (result, decision.Message);
         }
 
+        if (model.CategoryId is not { } categoryId
+            || await _categoryRepository.GetByIdAsync(categoryId) is null)
+        {
+            return (OwnedRecordMutationResult.ValidationError, "Please select a valid category.");
+        }
+
         _needMapper.ApplyEditableFields(need, model);
-        await _unitOfWork.CommitAsync(cancellationToken);
+        try
+        {
+            await _unitOfWork.CommitAsync(cancellationToken);
+        }
+        catch (ConcurrencyConflictException)
+        {
+            return (OwnedRecordMutationResult.Conflict, "This need changed while you were editing it. Please reload and try again.");
+        }
 
         return (OwnedRecordMutationResult.Success, "Need updated.");
     }
@@ -143,7 +159,14 @@ public class NeedService(
         }
 
         _needRepository.Remove(need);
-        await _unitOfWork.CommitAsync(cancellationToken);
+        try
+        {
+            await _unitOfWork.CommitAsync(cancellationToken);
+        }
+        catch (ConcurrencyConflictException)
+        {
+            return (OwnedRecordMutationResult.Conflict, "This need changed while you were deleting it. Please reload and try again.");
+        }
 
         return (OwnedRecordMutationResult.Success, "Need deleted.");
     }

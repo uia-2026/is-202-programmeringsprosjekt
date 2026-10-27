@@ -124,6 +124,7 @@ public class MatchService : IMatchService
         await _matchRepository.AddAsync(match, cancellationToken);
 
         need.Status = NeedStatus.UnderReview;
+        _resourceRepository.MarkForConcurrencyCheck(resource);
 
         try
         {

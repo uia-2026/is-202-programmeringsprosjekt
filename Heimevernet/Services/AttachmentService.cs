@@ -109,6 +109,12 @@ public sealed class AttachmentService : IAttachmentService
             .ToList();
     }
 
+    public async Task DeleteStorageObjectsAsync(IEnumerable<string> storageKeys)
+    {
+        foreach (var key in storageKeys)
+            await TryDeleteFileAsync(key);
+    }
+
     private async Task TryDeleteFileAsync(string key)
     {
         try
