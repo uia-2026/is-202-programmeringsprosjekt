@@ -38,7 +38,7 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Need>(b =>
         {
-            b.ToTable(t => t.HasCheckConstraint("CK_Needs_QuantityNeeded_Positive", "[QuantityNeeded] >= 1"));
+            b.ToTable(t => t.HasCheckConstraint("CK_Needs_QuantityNeeded_Positive", "QuantityNeeded >= 1"));
             b.Property(n => n.Title).HasMaxLength(FieldLimits.Title);
             b.Property(n => n.Description).HasMaxLength(FieldLimits.Description);
             b.Property(n => n.Region).HasMaxLength(FieldLimits.Region);
@@ -50,7 +50,7 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Resource>(b =>
         {
-            b.ToTable(t => t.HasCheckConstraint("CK_Resources_QuantityOffered_Positive", "[QuantityOffered] >= 1"));
+            b.ToTable(t => t.HasCheckConstraint("CK_Resources_QuantityOffered_Positive", "QuantityOffered >= 1"));
             b.Property(r => r.Title).HasMaxLength(FieldLimits.Title);
             b.Property(r => r.Description).HasMaxLength(FieldLimits.Description);
             b.Property(r => r.Region).HasMaxLength(FieldLimits.Region);
@@ -71,7 +71,7 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Match>(b =>
         {
-            b.ToTable(t => t.HasCheckConstraint("CK_Matches_Quantity_Positive", "[Quantity] >= 1"));
+            b.ToTable(t => t.HasCheckConstraint("CK_Matches_Quantity_Positive", "Quantity >= 1"));
             b.Property(m => m.Status).HasConversion<string>().HasMaxLength(FieldLimits.EnumText);
             b.Property(m => m.Quantity).IsRequired().HasDefaultValue(1);
         });

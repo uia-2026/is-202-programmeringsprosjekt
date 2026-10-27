@@ -34,17 +34,17 @@ namespace Heimevernet.Migrations
             migrationBuilder.AddCheckConstraint(
                 name: "CK_Resources_QuantityOffered_Positive",
                 table: "Resources",
-                sql: "[QuantityOffered] >= 1");
+                sql: "QuantityOffered >= 1");
 
             migrationBuilder.AddCheckConstraint(
                 name: "CK_Needs_QuantityNeeded_Positive",
                 table: "Needs",
-                sql: "[QuantityNeeded] >= 1");
+                sql: "QuantityNeeded >= 1");
 
             migrationBuilder.AddCheckConstraint(
                 name: "CK_Matches_Quantity_Positive",
                 table: "Matches",
-                sql: "[Quantity] >= 1");
+                sql: "Quantity >= 1");
         }
 
         /// <inheritdoc />

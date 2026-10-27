@@ -127,7 +127,7 @@ namespace Heimevernet.Migrations
 
                     b.ToTable("Matches", t =>
                         {
-                            t.HasCheckConstraint("CK_Matches_Quantity_Positive", "[Quantity] >= 1");
+                            t.HasCheckConstraint("CK_Matches_Quantity_Positive", "Quantity >= 1");
                         });
                 });
 
@@ -203,7 +203,7 @@ namespace Heimevernet.Migrations
 
                     b.ToTable("Needs", t =>
                         {
-                            t.HasCheckConstraint("CK_Needs_QuantityNeeded_Positive", "[QuantityNeeded] >= 1");
+                            t.HasCheckConstraint("CK_Needs_QuantityNeeded_Positive", "QuantityNeeded >= 1");
                         });
                 });
 
@@ -277,7 +277,7 @@ namespace Heimevernet.Migrations
 
                     b.ToTable("Resources", t =>
                         {
-                            t.HasCheckConstraint("CK_Resources_QuantityOffered_Positive", "[QuantityOffered] >= 1");
+                            t.HasCheckConstraint("CK_Resources_QuantityOffered_Positive", "QuantityOffered >= 1");
                         });
                 });
 
