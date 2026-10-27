@@ -61,8 +61,237 @@
         </div>
     </div>
 
+    <div id="mapActionPanel" class="map-action-panel" hidden>
+        <div class="map-action-title">Map action</div>
+
+        <div class="map-action-distance-row">
+            <span class="map-action-label">Distance</span>
+            <strong id="mapActionDistance">No distance yet</strong>
+        </div>
+
+        <div id="mapActionHint" class="map-action-hint">
+            Click two different points on the map to measure distance.
+        </div>
+
+        <div class="map-action-links">
+            @if (User.IsInRole("PublicActor"))
+            {
+                <a id="mapActionNeedCreate" href="@Url.Action("Create", "Need")">Register Need</a>
+            }
+
+            @if (User.IsInRole("ResourceProvider"))
+            {
+                <a id="mapActionResourceCreate" href="@Url.Action("Create", "Resource")">Register Resource</a>
+            }
+        </div>
+    </div>
+
     <div id="mapCapNote" class="map-cap-note" role="status">
-        Too many results to show at once. Zoom in to see more.
+
+    </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+"},{        Too many results to show at once. Zoom in to see more.
     </div>
 
     <div class="map-filter-box" id="mapFilterBox">

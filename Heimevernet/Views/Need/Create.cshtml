@@ -232,9 +232,23 @@
                 setMarker(lat, lng);
             });
 
-            // If model contains coordinates (non-zero), show marker on load
-            var initialLat = @Model.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            var initialLng = @Model.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            // If the user was redirected from the map with coordinates, use those first.
+            var queryParams = new URLSearchParams(window.location.search);
+            var queryLat = queryParams.get('lat');
+            var queryLng = queryParams.get('lng');
+
+            var initialLat = queryLat !== null && queryLat !== '' ? Number(queryLat) : @Model.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var initialLng = queryLng !== null && queryLng !== '' ? Number(queryLng) : @Model.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+            if (queryLat !== null && queryLat !== '' && queryLng !== null && queryLng !== '') {
+                var latInput = document.querySelector('input[name="Latitude"]');
+                var lonInput = document.querySelector('input[name="Longitude"]');
+                if (latInput) latInput.value = Number(queryLat).toFixed(6);
+                if (lonInput) lonInput.value = Number(queryLng).toFixed(6);
+
+                var coordsEl = document.getElementById('selected-coords');
+                if (coordsEl) coordsEl.textContent = Number(queryLat).toFixed(6) + ', ' + Number(queryLng).toFixed(6);
+            }
 
             if (initialLat !== 0 || initialLng !== 0) {
                 var latNum = Number(initialLat);
@@ -244,6 +258,40 @@
             }
         })();
     </script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     <script>
         (function () {
