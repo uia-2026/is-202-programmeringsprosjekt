@@ -69,7 +69,7 @@ public class MatchController(IMatchService matchService, INeedService needServic
                     "Details", "Need", new { id = needId });
 
             case ProposeMatchResult.InvalidQuantity:
-                TempData["Error"] = "Quantity must be between 1 and 10000.";
+                TempData["Error"] = "Requested quantity exceeds what is still available for this need or resource.";
 
                 return RedirectToAction(
                     nameof(Propose), new { needId });

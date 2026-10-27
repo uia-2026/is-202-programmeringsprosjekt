@@ -90,7 +90,7 @@ public class ResourceService : IResourceService
         await _resourceRepository.AddAsync(
             resource,
             cancellationToken);
-        await _unitOfWork.CommitAsync(cancellationToken);
+        await _unitOfWork.CommitAsync();
 
         return resource.Id;
     }
@@ -148,20 +148,22 @@ public class ResourceService : IResourceService
             return (result, decision.Message);
         }
 
-        if (model.CategoryId is not { } categoryId
-            || await _categoryRepository.GetByIdAsync(categoryId) is null)
+        var categoryExists = await _categoryRepository.GetByIdAsync(model.CategoryId!.Value) is not null;
+
+        if (!categoryExists)
         {
-            return (OwnedRecordMutationResult.ValidationError, "Please select a valid category.");
+            return (OwnedRecordMutationResult.ValidationError, "Selected category does not exist.");
         }
 
         _resourceMapper.ApplyEditableFields(resource, model);
+
         try
         {
             await _unitOfWork.CommitAsync(cancellationToken);
         }
         catch (ConcurrencyConflictException)
         {
-            return (OwnedRecordMutationResult.Conflict, "This resource changed while you were editing it. Please reload and try again.");
+            return (OwnedRecordMutationResult.Conflict, "Resource was modified by another request.");
         }
 
         return (OwnedRecordMutationResult.Success, "Resource updated.");
@@ -190,18 +192,26 @@ public class ResourceService : IResourceService
             return (result, decision.Message);
         }
 
-        var storageKeys = resource.Attachments.Select(a => a.StorageKey).ToArray();
+        var attachmentStorageKeys = resource.Attachments
+            .Select(a => a.StorageKey)
+            .Where(k => !string.IsNullOrWhiteSpace(k))
+            .ToList();
+
         _resourceRepository.Remove(resource);
+
         try
         {
             await _unitOfWork.CommitAsync(cancellationToken);
         }
         catch (ConcurrencyConflictException)
         {
-            return (OwnedRecordMutationResult.Conflict, "This resource changed while you were deleting it. Please reload and try again.");
+            return (OwnedRecordMutationResult.Conflict, "Resource was modified by another request.");
         }
 
-        await _attachmentService.DeleteStorageObjectsAsync(storageKeys);
+        if (attachmentStorageKeys.Count > 0)
+        {
+            await _attachmentService.DeleteStorageObjectsAsync(attachmentStorageKeys);
+        }
 
         return (OwnedRecordMutationResult.Success, "Resource deleted.");
     }

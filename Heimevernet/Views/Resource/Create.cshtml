@@ -57,24 +57,24 @@
                     <h2 class="h6 mb-3">Location</h2>
 
                     <div class="row">
-                        <input asp-for="Latitude" type="hidden" />
-                        <input asp-for="Longitude" type="hidden" />
+                        <div class="col-12 col-sm-6 mb-3">
+                            <label asp-for="Latitude" class="form-label"></label>
+                            <input asp-for="Latitude" class="form-control" type="number" step="any"
+                                   placeholder="Latitude" />
+                            <span asp-validation-for="Latitude" class="text-danger small"></span>
+                        </div>
 
-                        <div class="col-12 mb-3">
-                            <div class="form-label">Pick location on the map</div>
-
-                            <div id="map" style="width:100%;height:660px;border:1px solid rgba(0,0,0,0.08);border-radius:.25rem"></div>
-
-                            <div class="small mt-2">
-                                <span id="selected-coords">@(Model.Latitude != 0 || Model.Longitude != 0 ? Model.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture) + ", " + Model.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")</span>
-                            </div>
-
-                            <span asp-validation-for="Latitude" class="text-danger small d-block"></span>
-                            <span asp-validation-for="Longitude" class="text-danger small d-block"></span>
+                        <div class="col-12 col-sm-6 mb-3">
+                            <label asp-for="Longitude" class="form-label"></label>
+                            <input asp-for="Longitude" class="form-control" type="number" step="any"
+                                   placeholder="Longitude" />
+                            <span asp-validation-for="Longitude" class="text-danger small"></span>
                         </div>
 
                         <div class="col-12 mb-3">
-                            <span asp-validation-for="Region" id="map-error" class="text-danger small mt-1 d-block"></span>
+                            <label asp-for="Region" class="form-label"></label>
+                            <input asp-for="Region" class="form-control" placeholder="Region" />
+                            <span asp-validation-for="Region" class="text-danger small"></span>
                         </div>
                     </div>
 
@@ -94,12 +94,6 @@
                             <input asp-for="AvailableTo" class="form-control" type="datetime-local" />
                             <span asp-validation-for="AvailableTo" class="text-danger small"></span>
                         </div>
-                    </div>
-
-                    <div class="mb-4">
-                        <label asp-for="QuantityOffered" class="form-label"></label>
-                        <input asp-for="QuantityOffered" class="form-control" type="number" min="1" max="10000" />
-                        <span asp-validation-for="QuantityOffered" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-4">
@@ -192,66 +186,6 @@
 
 @section Scripts {
     @await Html.PartialAsync("_ValidationScriptsPartial")
-
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-    <script>
-        (function () {
-            if (typeof L === 'undefined') {
-                return;
-            }
-
-            var map = L.map('map').setView([60.472, 8.4689], 5);
-
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '&copy; OpenStreetMap contributors'
-            }).addTo(map);
-
-            var marker = null;
-
-            function setMarker(lat, lng) {
-                if (marker) {
-                    marker.setLatLng([lat, lng]);
-                } else {
-                    marker = L.marker([lat, lng]).addTo(map);
-                }
-            }
-
-            function syncSelection(lat, lng) {
-                var latInput = document.querySelector('input[name="Latitude"]');
-                var lonInput = document.querySelector('input[name="Longitude"]');
-                if (latInput) latInput.value = lat.toFixed(6);
-                if (lonInput) lonInput.value = lng.toFixed(6);
-
-                var coordsEl = document.getElementById('selected-coords');
-                if (coordsEl) coordsEl.textContent = lat.toFixed(6) + ', ' + lng.toFixed(6);
-
-                var errEl = document.getElementById('map-error');
-                if (errEl) {
-                    errEl.textContent = '';
-                    errEl.style.display = 'none';
-                }
-
-                setMarker(lat, lng);
-            }
-
-            map.on('click', function (e) {
-                syncSelection(e.latlng.lat, e.latlng.lng);
-            });
-
-            var initialLat = @Model.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            var initialLng = @Model.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture);
-
-            if (initialLat !== 0 || initialLng !== 0) {
-                var latNum = Number(initialLat);
-                var lngNum = Number(initialLng);
-                setMarker(latNum, lngNum);
-                map.setView([latNum, lngNum], 13);
-            }
-        })();
-    </script>
 
     <script>
         (() => {

@@ -80,7 +80,7 @@
                         <div class="col-12 mb-3">
                             <div class="form-label">Pick location on the map</div>
 
-                            <div id="map" style="width:100%;height:660px;border:1px solid rgba(0,0,0,0.08);border-radius:.25rem"></div>
+                            <div id="map" style="width:100%;height:360px;border:1px solid rgba(0,0,0,0.08);border-radius:.25rem"></div>
 
                             <div class="small mt-2">
                                 <span id="selected-coords">@(Model.Latitude != 0 || Model.Longitude != 0 ? Model.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture) + ", " + Model.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")</span>
@@ -123,15 +123,6 @@
                             </span>
                         </div>
 
-                    </div>
-
-                    <div class="mb-4">
-                        <label asp-for="QuantityNeeded" class="form-label"></label>
-
-                        <input asp-for="QuantityNeeded" class="form-control" type="number" min="1" max="10000" />
-
-                        <span asp-validation-for="QuantityNeeded" class="text-danger small">
-                        </span>
                     </div>
 
                     <div class="mb-4">
@@ -261,8 +252,6 @@
 
             var deadlineEl = document.getElementById('Deadline');
             var deadlineError = document.querySelector('[data-valmsg-for="Deadline"]');
-            var isEdit = @(isEdit ? "true" : "false");
-            var originalDeadline = deadlineEl ? deadlineEl.value : '';
 
             function clearDeadlineError() {
                 if (deadlineError) deadlineError.textContent = '';
@@ -291,7 +280,7 @@
                         return;
                     }
 
-                    if (selected <= now && (!isEdit || val !== originalDeadline)) {
+                    if (selected <= now) {
                         e.preventDefault();
                         showDeadlineError('Deadline must be in the future.');
                         deadlineEl.focus();
