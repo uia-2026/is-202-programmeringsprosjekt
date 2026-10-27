@@ -89,8 +89,8 @@ public class NeedMapper : INeedMapper
             Title = need.Title,
             CategoryName = need.Category.Name,
             Region = need.Region,
-            Priority = need.Priority,
             QuantityNeeded = need.QuantityNeeded,
+            Priority = need.Priority,
             Status = need.Status
         };
     }

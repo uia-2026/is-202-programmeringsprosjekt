@@ -13,23 +13,17 @@ namespace Heimevernet.Controllers;
 /// MVC controller for handling Resource-related web pages (list, create, details).
 /// Uses IResourceService for business operations and ICategoryRepository to populate category lists.
 /// </summary>
-public class ResourceController : Controller
+public class ResourceController(
+    IResourceService resourceService,
+    ICategoryRepository categoryRepository,
+    IAttachmentService attachmentService,
+    IRegionResolver regionResolver) : Controller
 {
-    private readonly IResourceService _resourceService;
-    private readonly ICategoryRepository _categoryRepository;
-    private readonly IAttachmentService _attachmentService;
+    private readonly IResourceService _resourceService = resourceService;
+    private readonly ICategoryRepository _categoryRepository = categoryRepository;
+    private readonly IAttachmentService _attachmentService = attachmentService;
+    private readonly IRegionResolver _regionResolver = regionResolver;
     private const int UnprocessableEntityStatusCode = 422;
-
-    public ResourceController(
-        IResourceService resourceService,
-        ICategoryRepository categoryRepository,
-        IAttachmentService attachmentService)
-    {
-        _resourceService = resourceService;
-        _categoryRepository = categoryRepository;
-        _attachmentService = attachmentService;
-    }
-
     [HttpGet]
     public async Task<IActionResult> Index(
         CancellationToken cancellationToken)
@@ -41,8 +35,7 @@ public class ResourceController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Create(
-        CancellationToken cancellationToken)
+    public async Task<IActionResult> Create()
     {
         var model = new ResourceCreateViewModel
         {
@@ -51,7 +44,7 @@ public class ResourceController : Controller
                 await _categoryRepository.GetAllAsync()
         };
 
-        ViewData["IsEdit"] = true;
+        ViewData["IsEdit"] = false;
         return View("Create", model);
     }
 
@@ -68,10 +61,12 @@ public class ResourceController : Controller
         ResourceCreateViewModel model,
         CancellationToken cancellationToken)
     {
+        await TryResolveRegionAsync(model, cancellationToken);
+
         if (!ModelState.IsValid)
         {
             model.AvailableCategories = await _categoryRepository.GetAllAsync();
-            ViewData["IsEdit"] = true;
+            ViewData["IsEdit"] = false;
             return View("Create", model);
         }
 
@@ -123,11 +118,13 @@ public class ResourceController : Controller
             AvailableFrom = resource.AvailableFrom,
             AvailableTo = resource.AvailableTo,
             ContactPoint = resource.ContactPoint,
+            QuantityOffered = resource.QuantityOffered,
             AvailableCategories = await _categoryRepository.GetAllAsync()
         };
 
+        ViewData["IsEdit"] = true;
         ViewData["EditResourceId"] = id;
-        return View(model);
+        return View("Create", model);
     }
 
     [HttpPost]
@@ -136,11 +133,14 @@ public class ResourceController : Controller
     [RequestSizeLimit(6 * 1024 * 1024)]
     public async Task<IActionResult> Edit(int id, ResourceCreateViewModel model, CancellationToken cancellationToken)
     {
+        await TryResolveRegionAsync(model, cancellationToken);
+
         if (!ModelState.IsValid)
         {
             model.AvailableCategories = await _categoryRepository.GetAllAsync();
             ViewData["EditResourceId"] = id;
-            return View(model);
+            ViewData["IsEdit"] = true;
+            return View("Create", model);
         }
 
         var (result, message) = await _resourceService.UpdateAsync(id, model, User.GetUserId(), cancellationToken);
@@ -159,6 +159,13 @@ public class ResourceController : Controller
 
             case OwnedRecordMutationResult.Conflict:
                 ModelState.AddModelError(string.Empty, message);
+                model.AvailableCategories = await _categoryRepository.GetAllAsync();
+                ViewData["EditResourceId"] = id;
+                ViewData["IsEdit"] = true;
+                return View("Create", model);
+
+            case OwnedRecordMutationResult.ValidationError:
+                ModelState.AddModelError(nameof(model.CategoryId), message);
                 model.AvailableCategories = await _categoryRepository.GetAllAsync();
                 ViewData["EditResourceId"] = id;
                 ViewData["IsEdit"] = true;
@@ -207,6 +214,12 @@ public class ResourceController : Controller
         }
 
         var (result, message) = await _resourceService.UpdateAsync(id, model, User.GetUserId(), cancellationToken);
+        if (result == OwnedRecordMutationResult.ValidationError)
+        {
+            ModelState.AddModelError(nameof(model.CategoryId), message);
+            return ValidationProblem(modelStateDictionary: ModelState, statusCode: UnprocessableEntityStatusCode);
+        }
+
         return ToApiResult(result, message);
     }
 
@@ -250,13 +263,13 @@ public class ResourceController : Controller
 
         var filtered = string.IsNullOrWhiteSpace(region)
             ? availableResources
-            : availableResources.Where(r => r.Region == region).ToList();
+            : [.. availableResources.Where(r => r.Region == region)];
 
         var model = new PrintByRegionViewModel
         {
             SelectedRegion = region,
             AvailableRegions = availableRegions,
-            Resources = filtered.OrderBy(r => r.Title).ToList()
+            Resources = [.. filtered.OrderBy(r => r.Title)]
         };
 
         return View(model);
@@ -300,7 +313,7 @@ public class ResourceController : Controller
         return RedirectToAction(nameof(Details), new { id = resourceId });
     }
 
-    private IActionResult ToApiResult(OwnedRecordMutationResult result, string message)
+    private ObjectResult ToApiResult(OwnedRecordMutationResult result, string message)
     {
         return result switch
         {
@@ -310,5 +323,27 @@ public class ResourceController : Controller
             OwnedRecordMutationResult.Conflict => StatusCode(409, new { message }),
             _ => Problem(detail: "Unexpected mutation result.")
         };
+    }
+
+    private async Task TryResolveRegionAsync(ResourceCreateViewModel model, CancellationToken cancellationToken)
+    {
+        if (model.Latitude == 0 && model.Longitude == 0)
+        {
+            return;
+        }
+
+        var res = await _regionResolver.TryResolveRegionAsync(model.Latitude, model.Longitude, cancellationToken);
+
+        if (res.Success)
+        {
+            model.Region = res.IsInNorway
+                ? (!string.IsNullOrEmpty(res.Region) ? res.Region! : "Unknown county")
+                : "International";
+
+            ModelState.Remove(nameof(model.Region));
+            return;
+        }
+
+        ModelState.AddModelError(nameof(model.Region), "Please select a location on land (not in the ocean).");
     }
 }

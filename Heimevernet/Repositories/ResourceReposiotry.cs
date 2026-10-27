@@ -134,8 +134,7 @@ public class ResourceRepository : IResourceRepository
     int maxResults,
     CancellationToken cancellationToken = default)
     {
-        if (radiusKm <= 0)
-            throw new ArgumentOutOfRangeException(nameof(radiusKm));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(radiusKm);
 
         if (maxResults <= 0)
             return [];
@@ -220,6 +219,6 @@ public class ResourceRepository : IResourceRepository
     {
         _context.Entry(resource)
             .Property(r => r.Version)
-            .OriginalValue = resource.Version;
+            .IsModified = true;
     }
 }
