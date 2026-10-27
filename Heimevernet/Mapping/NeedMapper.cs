@@ -29,7 +29,8 @@ public class NeedMapper : INeedMapper
             Region = model.Region.Trim(),
             Priority = model.Priority,
             Deadline = model.Deadline,
-            ContactPoint = model.ContactPoint.Trim()
+            ContactPoint = model.ContactPoint.Trim(),
+            QuantityNeeded = model.QuantityNeeded
         };
     }
 
@@ -44,6 +45,7 @@ public class NeedMapper : INeedMapper
         target.Priority = model.Priority;
         target.Deadline = model.Deadline;
         target.ContactPoint = model.ContactPoint.Trim();
+        target.QuantityNeeded = model.QuantityNeeded;
     }
 
     /// <summary>
@@ -68,6 +70,7 @@ public class NeedMapper : INeedMapper
             Priority = need.Priority,
             Deadline = need.Deadline,
             ContactPoint = need.ContactPoint,
+            QuantityNeeded = need.QuantityNeeded,
             Status = need.Status,
             CreatedAt = need.CreatedAt
         };
@@ -86,6 +89,7 @@ public class NeedMapper : INeedMapper
             Title = need.Title,
             CategoryName = need.Category.Name,
             Region = need.Region,
+            QuantityNeeded = need.QuantityNeeded,
             Priority = need.Priority,
             Status = need.Status
         };

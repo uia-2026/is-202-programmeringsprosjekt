@@ -83,7 +83,7 @@ public class ResourceService : IResourceService
         await _resourceRepository.AddAsync(
             resource,
             cancellationToken);
-        await _unitOfWork.CommitAsync();
+        await _unitOfWork.CommitAsync(cancellationToken);
 
         return resource.Id;
     }

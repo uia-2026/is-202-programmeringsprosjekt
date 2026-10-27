@@ -7,5 +7,6 @@ public record NearbyResourceDto(
     string Region,
     string Status,
     string ContactPoint,
+    int QuantityOffered,
     double DistanceKm
 );

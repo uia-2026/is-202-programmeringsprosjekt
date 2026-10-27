@@ -1,5 +1,6 @@
 using Heimevernet.Infrastructure.Geo;
 using Heimevernet.Models;
+using Heimevernet.Services;
 
 namespace Heimevernet.Services.Interfaces;
 

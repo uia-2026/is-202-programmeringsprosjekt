@@ -38,21 +38,25 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Need>(b =>
         {
+            b.ToTable(t => t.HasCheckConstraint("CK_Needs_QuantityNeeded_Positive", "[QuantityNeeded] >= 1"));
             b.Property(n => n.Title).HasMaxLength(FieldLimits.Title);
             b.Property(n => n.Description).HasMaxLength(FieldLimits.Description);
             b.Property(n => n.Region).HasMaxLength(FieldLimits.Region);
             b.Property(n => n.ContactPoint).HasMaxLength(FieldLimits.ContactPoint);
             b.Property(n => n.Priority).HasConversion<string>().HasMaxLength(FieldLimits.EnumText);
             b.Property(n => n.Status).HasConversion<string>().HasMaxLength(FieldLimits.EnumText);
+            b.Property(n => n.QuantityNeeded).IsRequired().HasDefaultValue(1);
         });
 
         modelBuilder.Entity<Resource>(b =>
         {
+            b.ToTable(t => t.HasCheckConstraint("CK_Resources_QuantityOffered_Positive", "[QuantityOffered] >= 1"));
             b.Property(r => r.Title).HasMaxLength(FieldLimits.Title);
             b.Property(r => r.Description).HasMaxLength(FieldLimits.Description);
             b.Property(r => r.Region).HasMaxLength(FieldLimits.Region);
             b.Property(r => r.ContactPoint).HasMaxLength(FieldLimits.ContactPoint);
             b.Property(r => r.Status).HasConversion<string>().HasMaxLength(FieldLimits.EnumText);
+            b.Property(r => r.QuantityOffered).IsRequired().HasDefaultValue(1);
         });
 
         modelBuilder.Entity<Category>(b =>
@@ -66,7 +70,11 @@ public class AppDbContext : DbContext
             b.Property(a => a.StorageKey).HasMaxLength(FieldLimits.StorageKey));
 
         modelBuilder.Entity<Match>(b =>
-            b.Property(m => m.Status).HasConversion<string>().HasMaxLength(FieldLimits.EnumText));
+        {
+            b.ToTable(t => t.HasCheckConstraint("CK_Matches_Quantity_Positive", "[Quantity] >= 1"));
+            b.Property(m => m.Status).HasConversion<string>().HasMaxLength(FieldLimits.EnumText);
+            b.Property(m => m.Quantity).IsRequired().HasDefaultValue(1);
+        });
 
         // DB duplicate protection against the same need/resource pairing
         modelBuilder.Entity<Match>()

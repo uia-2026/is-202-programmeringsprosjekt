@@ -15,6 +15,7 @@ public static class FieldLimits
     public const int Description = 1000;
     public const int Region = 100;
     public const int ContactPoint = 200;
+    public const int MaxQuantity = 10_000;
 
     public const int CategoryName = 100;
     public const int StorageKey = 512;

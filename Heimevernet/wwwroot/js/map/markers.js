@@ -60,6 +60,7 @@ function buildPopupHtml(marker) {
                 ${escapeHtml(describe(marker))}</span></p>
             ${row("Category", marker.category)}
             ${row("Region", marker.region)}
+            ${row("Quantity", String(marker.quantity))}
             ${marker.when ? row(isNeed(marker) ? "Deadline" : "Available from", formatDate(marker.when)) : ""}
             ${km !== null ? row("Distance", `${km.toFixed(1)} km`) : ""}
             <a class="map-popup-action" href="${detailsUrl(marker)}">View details</a>

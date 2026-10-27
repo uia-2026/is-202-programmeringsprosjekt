@@ -65,9 +65,15 @@ public class MatchService : IMatchService
     public async Task<(ProposeMatchResult Result, int? MatchId)> ProposeAsync(
         int needId,
         int resourceId,
+        int quantity,
         int userId,
         CancellationToken cancellationToken = default)
     {
+        if (quantity < 1 || quantity > FieldLimits.MaxQuantity)
+        {
+            return (ProposeMatchResult.InvalidQuantity, null);
+        }
+
         var need = await _needRepository.GetByIdAsync(needId, cancellationToken);
 
         if (need is null)
@@ -111,7 +117,8 @@ public class MatchService : IMatchService
         {
             NeedId = needId,
             ResourceId = resourceId,
-            MatchedByUserId = userId
+            MatchedByUserId = userId,
+            Quantity = quantity
         };
 
         await _matchRepository.AddAsync(match, cancellationToken);

@@ -10,16 +10,10 @@ namespace Heimevernet.Controllers;
 /// MVC controller for the Match: Propose flow (#40).
 /// Lets a Need's owner pick a candidate Resource and propose it as a match.
 /// </summary>
-public class MatchController : Controller
+public class MatchController(IMatchService matchService, INeedService needService) : Controller
 {
-    private readonly IMatchService _matchService;
-    private readonly INeedService _needService;
-
-    public MatchController(IMatchService matchService, INeedService needService)
-    {
-        _matchService = matchService;
-        _needService = needService;
-    }
+    private readonly IMatchService _matchService = matchService;
+    private readonly INeedService _needService = needService;
 
     /// <summary>
     /// Shows candidate resources for a Need owned by the current user.
@@ -48,6 +42,7 @@ public class MatchController : Controller
         {
             NeedId = needId,
             NeedTitle = need.Title,
+            Quantity = 1,
             Candidates = candidates
         };
 
@@ -60,18 +55,24 @@ public class MatchController : Controller
     [Authorize(Roles = "PublicActor")]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Propose(int needId, int resourceId, CancellationToken cancellationToken)
+    public async Task<IActionResult> Propose(int needId, int resourceId, int quantity, CancellationToken cancellationToken)
     {
-        var (result, _) = await _matchService.ProposeAsync(needId, resourceId, User.GetUserId(), cancellationToken);
+        var (result, _) = await _matchService.ProposeAsync(needId, resourceId, quantity, User.GetUserId(), cancellationToken);
 
         switch (result)
         {
             case ProposeMatchResult.Success:
                 TempData["Success"] =
-                    "Resource proposed for this need. Waiting for the provider to accept.";
+                    $"Resource proposed for this need with quantity {quantity}. Waiting for the provider to accept.";
 
                 return RedirectToAction(
                     "Details", "Need", new { id = needId });
+
+            case ProposeMatchResult.InvalidQuantity:
+                TempData["Error"] = "Quantity must be between 1 and 10000.";
+
+                return RedirectToAction(
+                    nameof(Propose), new { needId });
 
             case ProposeMatchResult.NeedNotFound:
                 return NotFound();

@@ -41,6 +41,9 @@ public class ResourceCreateViewModel : IValidatableObject
     [StringLength(FieldLimits.ContactPoint, ErrorMessage = "Contact point cannot exceed {1} characters.")]
     public string ContactPoint { get; set; } = string.Empty;
 
+    [Range(1, FieldLimits.MaxQuantity, ErrorMessage = "Quantity offered must be between 1 and 10000.")]
+    public int QuantityOffered { get; set; } = 1;
+
     public IFormFile? Image { get; set; }
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)

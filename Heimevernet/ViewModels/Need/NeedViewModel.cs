@@ -33,6 +33,8 @@ public class NeedViewModel
 
     public string ContactPoint { get; set; } = string.Empty;
 
+    public int QuantityNeeded { get; set; }
+
     public NeedStatus Status { get; set; }
 
     public DateTime CreatedAt { get; set; }

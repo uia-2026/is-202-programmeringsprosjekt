@@ -17,6 +17,7 @@ public sealed record MapMarkerViewModel(
     string Status,
     DateTime? When,
     string ContactInfo,
+    int Quantity,
     double Latitude,
     double Longitude);
 

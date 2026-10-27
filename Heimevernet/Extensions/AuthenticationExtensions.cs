@@ -33,13 +33,10 @@ public static class AuthenticationExtensions
                 options.Cookie.SameSite = SameSiteMode.Lax;
             });
 
-        services.AddAuthorization(options =>
-        {
-            // Require authentication for all endpoints by default.
-            options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        services.AddAuthorizationBuilder()
+            .SetFallbackPolicy(new AuthorizationPolicyBuilder()
                 .RequireAuthenticatedUser()
-                .Build();
-        });
+                .Build());
 
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
         services.AddScoped<IAuthService, AuthService>();

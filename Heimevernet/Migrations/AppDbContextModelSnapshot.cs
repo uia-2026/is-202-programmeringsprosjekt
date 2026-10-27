@@ -96,6 +96,11 @@ namespace Heimevernet.Migrations
                     b.Property<int>("NeedId")
                         .HasColumnType("int");
 
+                    b.Property<int>("Quantity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.Property<int>("ResourceId")
                         .HasColumnType("int");
 
@@ -117,7 +122,10 @@ namespace Heimevernet.Migrations
                     b.HasIndex("NeedId", "ResourceId")
                         .IsUnique();
 
-                    b.ToTable("Matches");
+                    b.ToTable("Matches", t =>
+                        {
+                            t.HasCheckConstraint("CK_Matches_Quantity_Positive", "[Quantity] >= 1");
+                        });
                 });
 
             modelBuilder.Entity("Heimevernet.Models.Need", b =>
@@ -157,6 +165,11 @@ namespace Heimevernet.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("varchar(32)");
 
+                    b.Property<int>("QuantityNeeded")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.Property<string>("Region")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -185,7 +198,10 @@ namespace Heimevernet.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Needs");
+                    b.ToTable("Needs", t =>
+                        {
+                            t.HasCheckConstraint("CK_Needs_QuantityNeeded_Positive", "[QuantityNeeded] >= 1");
+                        });
                 });
 
             modelBuilder.Entity("Heimevernet.Models.Resource", b =>
@@ -223,6 +239,11 @@ namespace Heimevernet.Migrations
                     b.Property<double>("Longitude")
                         .HasColumnType("double");
 
+                    b.Property<int>("QuantityOffered")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.Property<string>("Region")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -251,7 +272,10 @@ namespace Heimevernet.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Resources");
+                    b.ToTable("Resources", t =>
+                        {
+                            t.HasCheckConstraint("CK_Resources_QuantityOffered_Positive", "[QuantityOffered] >= 1");
+                        });
                 });
 
             modelBuilder.Entity("Heimevernet.Models.User", b =>

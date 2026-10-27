@@ -121,7 +121,7 @@ public class ResourceRepository : IResourceRepository
             .Take(limit)
             .Select(r => new MapMarkerDto(
                 r.Id, MapMarkerKind.Resource, r.Title, r.Category.Name, r.Description, r.Region,
-                null, false, r.Status.ToString(), r.AvailableFrom, r.ContactPoint, r.Latitude, r.Longitude))
+                null, false, r.Status.ToString(), r.AvailableFrom, r.ContactPoint, r.QuantityOffered, r.Latitude, r.Longitude))
             .ToListAsync(cancellationToken);
     }
 
@@ -134,8 +134,7 @@ public class ResourceRepository : IResourceRepository
     int maxResults,
     CancellationToken cancellationToken = default)
     {
-        if (radiusKm <= 0)
-            throw new ArgumentOutOfRangeException(nameof(radiusKm));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(radiusKm);
 
         if (maxResults <= 0)
             return [];
@@ -162,6 +161,7 @@ public class ResourceRepository : IResourceRepository
                 r.Region,
                 r.Status,
                 r.ContactPoint,
+                r.QuantityOffered,
                 r.Latitude,
                 r.Longitude
             })
@@ -175,6 +175,7 @@ public class ResourceRepository : IResourceRepository
                 Region: r.Region,
                 Status: r.Status.ToString(),
                 ContactPoint: r.ContactPoint,
+                QuantityOffered: r.QuantityOffered,
                 DistanceKm: GeoMath.DistanceKm(
                     latitude,
                     longitude,

@@ -15,6 +15,7 @@ public class NearbyResourceMapper : INearbyResourceMapper
             Region: dto.Region,
             Status: dto.Status,
             ContactPoint: dto.ContactPoint,
+            QuantityOffered: dto.QuantityOffered,
             DistanceKm: dto.DistanceKm);
     }
 }

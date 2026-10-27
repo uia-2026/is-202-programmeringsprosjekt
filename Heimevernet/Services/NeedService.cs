@@ -13,24 +13,16 @@ namespace Heimevernet.Services;
 /// Application service handling operations related to Needs.
 /// Orchestrates repository access, mapping and unit-of-work commits.
 /// </summary>
-public class NeedService : INeedService
+public class NeedService(
+    INeedRepository repository,
+    INeedMapper needMapper,
+    IMapMarkerMapper mapMarkerMapper,
+    IUnitOfWork unitOfWork) : INeedService
 {
-    private readonly INeedRepository _needRepository;
-    private readonly INeedMapper _needMapper;
-    private readonly IMapMarkerMapper _mapMarkerMapper;
-    private readonly IUnitOfWork _unitOfWork;
-
-    public NeedService(
-        INeedRepository repository,
-        INeedMapper needMapper,
-        IMapMarkerMapper mapMarkerMapper,
-        IUnitOfWork unitOfWork)
-    {
-        _needRepository = repository;
-        _needMapper = needMapper;
-        _mapMarkerMapper = mapMarkerMapper;
-        _unitOfWork = unitOfWork;
-    }
+    private readonly INeedRepository _needRepository = repository;
+    private readonly INeedMapper _needMapper = needMapper;
+    private readonly IMapMarkerMapper _mapMarkerMapper = mapMarkerMapper;
+    private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
     /// <summary>
     /// Creates a new need for the specified user.
@@ -46,7 +38,7 @@ public class NeedService : INeedService
         var need = _needMapper.ToEntity(model, userId);
 
         await _needRepository.AddAsync(need, cancellationToken);
-        await _unitOfWork.CommitAsync();
+        await _unitOfWork.CommitAsync(cancellationToken);
 
         return need.Id;
     }

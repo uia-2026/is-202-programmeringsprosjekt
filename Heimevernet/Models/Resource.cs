@@ -34,10 +34,12 @@ public class Resource : IVersioned
 
     public ResourceStatus Status { get; set; } = ResourceStatus.Available;
 
+    public int QuantityOffered { get; set; } = 1;
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    public ICollection<Attachment> Attachments { get; set; } = new List<Attachment>();
-    public ICollection<Match> Matches { get; set; } = new List<Match>();
+    public ICollection<Attachment> Attachments { get; set; } = [];
+    public ICollection<Match> Matches { get; set; } = [];
 
     // Concurrency token for optimistic concurrency control.
     public int Version { get; set; }

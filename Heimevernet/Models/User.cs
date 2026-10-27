@@ -24,8 +24,8 @@ public class User
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    public ICollection<Need> Needs { get; set; } = new List<Need>();
-    public ICollection<Resource> Resources { get; set; } = new List<Resource>();
-    public ICollection<Attachment> UploadedAttachments { get; set; } = new List<Attachment>();
-    public ICollection<Match> MatchesCreated { get; set; } = new List<Match>();
+    public ICollection<Need> Needs { get; set; } = [];
+    public ICollection<Resource> Resources { get; set; } = [];
+    public ICollection<Attachment> UploadedAttachments { get; set; } = [];
+    public ICollection<Match> MatchesCreated { get; set; } = [];
 }

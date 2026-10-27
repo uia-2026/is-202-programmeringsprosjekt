@@ -8,5 +8,6 @@ public record NearbyResourceViewModel(
     string Region,
     string Status,
     string ContactPoint,
+    int QuantityOffered,
     double DistanceKm
 );

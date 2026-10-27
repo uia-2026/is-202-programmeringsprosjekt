@@ -1,4 +1,5 @@
 ﻿using Heimevernet.Data;
+using Heimevernet.Migrator;
 using Heimevernet.Services;
 using Heimevernet.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;

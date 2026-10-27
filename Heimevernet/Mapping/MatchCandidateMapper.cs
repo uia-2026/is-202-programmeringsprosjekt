@@ -20,6 +20,7 @@ public class MatchCandidateMapper : IMatchCandidateMapper
             CategoryName = resource.Category.Name,
             Region = resource.Region,
             ContactPoint = resource.ContactPoint,
+            QuantityOffered = resource.QuantityOffered,
             AvailableFrom = resource.AvailableFrom,
             AvailableTo = resource.AvailableTo,
             DistanceKm = GeoMath.DistanceKm(

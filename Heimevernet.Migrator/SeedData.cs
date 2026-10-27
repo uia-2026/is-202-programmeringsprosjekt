@@ -4,6 +4,8 @@ using Heimevernet.Services.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
+namespace Heimevernet.Migrator;
+
 public static class SeedData
 {
     private const string DevPassword = "DevPassword123!";
@@ -71,7 +73,8 @@ public static class SeedData
                 Region = "Kristiansand",
                 AvailableFrom = DateTime.UtcNow,
                 ContactPoint = provider.Email,
-                Status = ResourceStatus.Available
+                Status = ResourceStatus.Available,
+                QuantityOffered = 3
             }).Entity;
 
         var drone = await db.Resources.FirstOrDefaultAsync(r => r.Title == "Dev Test Drone", ct)
@@ -86,7 +89,8 @@ public static class SeedData
                 Region = "Kristiansand",
                 AvailableFrom = DateTime.UtcNow,
                 ContactPoint = provider.Email,
-                Status = ResourceStatus.Available
+                Status = ResourceStatus.Available,
+                QuantityOffered = 2
             }).Entity;
 
         var transportNeed = await db.Needs.FirstOrDefaultAsync(n => n.Title == "Dev Test Transport Need", ct)
@@ -102,7 +106,8 @@ public static class SeedData
                 Priority = NeedPriority.Medium,
                 Deadline = DateTime.UtcNow.AddDays(1),
                 ContactPoint = publicActor.Email,
-                Status = NeedStatus.New
+                Status = NeedStatus.New,
+                QuantityNeeded = 4
             }).Entity;
 
         var aerialNeed = await db.Needs.FirstOrDefaultAsync(n => n.Title == "Dev Test Aerial Observation Need", ct)
@@ -118,7 +123,8 @@ public static class SeedData
                 Priority = NeedPriority.Low,
                 Deadline = DateTime.UtcNow.AddDays(3),
                 ContactPoint = publicActor.Email,
-                Status = NeedStatus.New
+                Status = NeedStatus.New,
+                QuantityNeeded = 2
             }).Entity;
 
         RenewDeadlineIfExpired(transportNeed, days: 1);

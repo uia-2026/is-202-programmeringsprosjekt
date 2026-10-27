@@ -5,6 +5,7 @@ namespace Heimevernet.Services.Interfaces;
 public enum ProposeMatchResult
 {
     Success,
+    InvalidQuantity,
     NeedNotFound,
     NeedNotOpen,
     ResourceNotFound,
@@ -37,5 +38,5 @@ public interface IMatchService
     /// Validates and creates a Match between the given Need and Resource.
     /// Only the Need's owner may propose a match for it.
     /// </summary>
-    Task<(ProposeMatchResult Result, int? MatchId)> ProposeAsync(int needId, int resourceId, int userId, CancellationToken cancellationToken = default);
+    Task<(ProposeMatchResult Result, int? MatchId)> ProposeAsync(int needId, int resourceId, int quantity, int userId, CancellationToken cancellationToken = default);
 }
