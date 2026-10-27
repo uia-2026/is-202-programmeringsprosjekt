@@ -17,6 +17,8 @@ public interface INeedMapper
     /// <returns>A mapped <see cref="Need"/> entity.</returns>
     Need ToEntity(NeedCreateViewModel model, int userId);
 
+    void ApplyEditableFields(Need target, NeedCreateViewModel model);
+
     /// <summary>
     /// Maps a domain Need to a detailed view model.
     /// </summary>

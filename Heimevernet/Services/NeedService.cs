@@ -1,8 +1,10 @@
 using Heimevernet.Infrastructure.Geo;
+using Heimevernet.Exceptions;
 using Heimevernet.Mappers;
 using Heimevernet.Mappers.Interfaces;
 using Heimevernet.Repositories.Interfaces;
 using Heimevernet.Services.Interfaces;
+using Heimevernet.Services.Rules;
 using Heimevernet.ViewModels.Map;
 using Heimevernet.ViewModels.Need;
 
@@ -16,16 +18,19 @@ public class NeedService : INeedService
 {
     private readonly INeedRepository _needRepository;
     private readonly INeedMapper _needMapper;
+    private readonly ICategoryRepository _categoryRepository;
     private readonly IMapMarkerMapper _mapMarkerMapper;
     private readonly IUnitOfWork _unitOfWork;
 
     public NeedService(
         INeedRepository repository,
+        ICategoryRepository categoryRepository,
         INeedMapper needMapper,
         IMapMarkerMapper mapMarkerMapper,
         IUnitOfWork unitOfWork)
     {
         _needRepository = repository;
+        _categoryRepository = categoryRepository;
         _needMapper = needMapper;
         _mapMarkerMapper = mapMarkerMapper;
         _unitOfWork = unitOfWork;
@@ -94,5 +99,84 @@ public class NeedService : INeedService
     {
         var dtos = await _needRepository.GetMapMarkersAsync(box, limit, cancellationToken);
         return _mapMarkerMapper.ToViewModels(dtos);
+    }
+
+    public async Task<(OwnedRecordMutationResult Result, string Message)> UpdateAsync(
+        int id,
+        NeedCreateViewModel model,
+        int userId,
+        CancellationToken cancellationToken = default)
+    {
+        var need = await _needRepository.GetByIdForUpdateAsync(id, cancellationToken);
+
+        if (need is null)
+        {
+            return (OwnedRecordMutationResult.NotFound, "Need not found.");
+        }
+
+        var decision = OwnedRecordPolicy.CanEditNeed(need, model, userId);
+
+        if (!decision.Allowed)
+        {
+            var result = decision.FailureCode == OwnedRecordFailureCode.NotOwner
+                ? OwnedRecordMutationResult.Forbidden
+                : OwnedRecordMutationResult.Conflict;
+
+            return (result, decision.Message);
+        }
+
+        if (model.CategoryId is not { } categoryId
+            || await _categoryRepository.GetByIdAsync(categoryId) is null)
+        {
+            return (OwnedRecordMutationResult.ValidationError, "Please select a valid category.");
+        }
+
+        _needMapper.ApplyEditableFields(need, model);
+        try
+        {
+            await _unitOfWork.CommitAsync(cancellationToken);
+        }
+        catch (ConcurrencyConflictException)
+        {
+            return (OwnedRecordMutationResult.Conflict, "This need changed while you were editing it. Please reload and try again.");
+        }
+
+        return (OwnedRecordMutationResult.Success, "Need updated.");
+    }
+
+    public async Task<(OwnedRecordMutationResult Result, string Message)> DeleteAsync(
+        int id,
+        int userId,
+        CancellationToken cancellationToken = default)
+    {
+        var need = await _needRepository.GetByIdForUpdateAsync(id, cancellationToken);
+
+        if (need is null)
+        {
+            return (OwnedRecordMutationResult.NotFound, "Need not found.");
+        }
+
+        var decision = OwnedRecordPolicy.CanDeleteNeed(need, userId);
+
+        if (!decision.Allowed)
+        {
+            var result = decision.FailureCode == OwnedRecordFailureCode.NotOwner
+                ? OwnedRecordMutationResult.Forbidden
+                : OwnedRecordMutationResult.Conflict;
+
+            return (result, decision.Message);
+        }
+
+        _needRepository.Remove(need);
+        try
+        {
+            await _unitOfWork.CommitAsync(cancellationToken);
+        }
+        catch (ConcurrencyConflictException)
+        {
+            return (OwnedRecordMutationResult.Conflict, "This need changed while you were deleting it. Please reload and try again.");
+        }
+
+        return (OwnedRecordMutationResult.Success, "Need deleted.");
     }
 }

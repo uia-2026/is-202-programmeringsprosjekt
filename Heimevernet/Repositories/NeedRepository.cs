@@ -37,6 +37,12 @@ public class NeedRepository : INeedRepository
             .Include(n => n.Category)
             .FirstOrDefaultAsync(n => n.Id == id, cancellationToken);
 
+    public async Task<Need?> GetByIdForUpdateAsync(int id, CancellationToken cancellationToken = default) =>
+        await _context.Needs
+            .Include(n => n.Category)
+            .Include(n => n.Matches)
+            .FirstOrDefaultAsync(n => n.Id == id, cancellationToken);
+
     /// <summary>
     /// Adds a Need entity to the context for insertion.
     /// </summary>
@@ -45,6 +51,11 @@ public class NeedRepository : INeedRepository
     public async Task AddAsync(Need need, CancellationToken cancellationToken = default)
     {
         await _context.Needs.AddAsync(need, cancellationToken);
+    }
+
+    public void Remove(Need need)
+    {
+        _context.Needs.Remove(need);
     }
 
     public async Task<IReadOnlyList<MapMarkerDto>> GetMapMarkersAsync(

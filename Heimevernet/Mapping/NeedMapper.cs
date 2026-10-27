@@ -33,6 +33,19 @@ public class NeedMapper : INeedMapper
         };
     }
 
+    public void ApplyEditableFields(Need target, NeedCreateViewModel model)
+    {
+        target.CategoryId = model.CategoryId!.Value;
+        target.Title = model.Title.Trim();
+        target.Description = model.Description?.Trim();
+        target.Latitude = model.Latitude;
+        target.Longitude = model.Longitude;
+        target.Region = model.Region.Trim();
+        target.Priority = model.Priority;
+        target.Deadline = model.Deadline;
+        target.ContactPoint = model.ContactPoint.Trim();
+    }
+
     /// <summary>
     /// Maps a <see cref="Need"/> entity to a detailed <see cref="NeedViewModel"/>.
     /// </summary>
@@ -43,6 +56,8 @@ public class NeedMapper : INeedMapper
         return new NeedViewModel
         {
             Id = need.Id,
+            UserId = need.UserId,
+            IsOwner = false,
             Title = need.Title,
             Description = need.Description,
             CategoryName = need.Category.Name,

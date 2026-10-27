@@ -12,7 +12,9 @@ public interface INeedRepository
 {
     Task<IEnumerable<Need>> GetAllAsync(CancellationToken cancellationToken = default);
     Task<Need?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
+    Task<Need?> GetByIdForUpdateAsync(int id, CancellationToken cancellationToken = default);
     Task AddAsync(Need need, CancellationToken cancellationToken = default);
+    void Remove(Need need);
     Task<IReadOnlyList<MapMarkerDto>> GetMapMarkersAsync(GeoBox box, int limit, CancellationToken cancellationToken = default);
     void SetOriginalVersion(Need need, int version);
 }

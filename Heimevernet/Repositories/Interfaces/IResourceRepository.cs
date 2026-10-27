@@ -30,6 +30,10 @@ public interface IResourceRepository
         int id,
         CancellationToken cancellationToken = default);
 
+    Task<Resource?> GetByIdForUpdateAsync(
+        int id,
+        CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Retrieves all resources with status Available, filtered at the database level.
     /// </summary>
@@ -45,6 +49,8 @@ public interface IResourceRepository
     Task AddAsync(
         Resource resource,
         CancellationToken cancellationToken = default);
+
+    void Remove(Resource resource);
 
     Task<IReadOnlyList<MapMarkerDto>> GetMapMarkersAsync(
             GeoBox box, int? ownerUserId, bool availableOnly, int limit,
@@ -67,4 +73,5 @@ public interface IResourceRepository
             CancellationToken cancellationToken = default);
 
     void SetOriginalVersion(Resource resource, int version);
+    void MarkForConcurrencyCheck(Resource resource);
 }

@@ -1,8 +1,10 @@
 using Heimevernet.Infrastructure.Geo;
+using Heimevernet.Exceptions;
 using Heimevernet.Mappers;
 using Heimevernet.Mappers.Interfaces;
 using Heimevernet.Repositories.Interfaces;
 using Heimevernet.Services.Interfaces;
+using Heimevernet.Services.Rules;
 using Heimevernet.ViewModels.Map;
 using Heimevernet.ViewModels.Need;
 using Heimevernet.ViewModels.Resource;
@@ -16,6 +18,8 @@ namespace Heimevernet.Services;
 public class ResourceService : IResourceService
 {
     private readonly IResourceRepository _resourceRepository;
+    private readonly ICategoryRepository _categoryRepository;
+    private readonly IAttachmentService _attachmentService;
     private readonly IResourceMapper _resourceMapper;
     private readonly IMapMarkerMapper _mapMarkerMapper;
     private readonly IUnitOfWork _unitOfWork;
@@ -23,12 +27,16 @@ public class ResourceService : IResourceService
 
     public ResourceService(
         IResourceRepository resourceRepository,
+        ICategoryRepository categoryRepository,
+        IAttachmentService attachmentService,
         IResourceMapper resourceMapper,
         IMapMarkerMapper mapMarkerMapper,
         INearbyResourceMapper nearbyResourceMapper,
         IUnitOfWork unitOfWork)
     {
         _resourceRepository = resourceRepository;
+        _categoryRepository = categoryRepository;
+        _attachmentService = attachmentService;
         _resourceMapper = resourceMapper;
         _mapMarkerMapper = mapMarkerMapper;
         _nearbyResourceMapper = nearbyResourceMapper;
@@ -114,5 +122,87 @@ public class ResourceService : IResourceService
         return dtos
             .Select(_nearbyResourceMapper.ToViewModel)
             .ToList();
+    }
+
+    public async Task<(OwnedRecordMutationResult Result, string Message)> UpdateAsync(
+        int id,
+        ResourceCreateViewModel model,
+        int userId,
+        CancellationToken cancellationToken = default)
+    {
+        var resource = await _resourceRepository.GetByIdForUpdateAsync(id, cancellationToken);
+
+        if (resource is null)
+        {
+            return (OwnedRecordMutationResult.NotFound, "Resource not found.");
+        }
+
+        var decision = OwnedRecordPolicy.CanEditResource(resource, model, userId);
+
+        if (!decision.Allowed)
+        {
+            var result = decision.FailureCode == OwnedRecordFailureCode.NotOwner
+                ? OwnedRecordMutationResult.Forbidden
+                : OwnedRecordMutationResult.Conflict;
+
+            return (result, decision.Message);
+        }
+
+        if (model.CategoryId is not { } categoryId
+            || await _categoryRepository.GetByIdAsync(categoryId) is null)
+        {
+            return (OwnedRecordMutationResult.ValidationError, "Please select a valid category.");
+        }
+
+        _resourceMapper.ApplyEditableFields(resource, model);
+        try
+        {
+            await _unitOfWork.CommitAsync(cancellationToken);
+        }
+        catch (ConcurrencyConflictException)
+        {
+            return (OwnedRecordMutationResult.Conflict, "This resource changed while you were editing it. Please reload and try again.");
+        }
+
+        return (OwnedRecordMutationResult.Success, "Resource updated.");
+    }
+
+    public async Task<(OwnedRecordMutationResult Result, string Message)> DeleteAsync(
+        int id,
+        int userId,
+        CancellationToken cancellationToken = default)
+    {
+        var resource = await _resourceRepository.GetByIdForUpdateAsync(id, cancellationToken);
+
+        if (resource is null)
+        {
+            return (OwnedRecordMutationResult.NotFound, "Resource not found.");
+        }
+
+        var decision = OwnedRecordPolicy.CanDeleteResource(resource, userId);
+
+        if (!decision.Allowed)
+        {
+            var result = decision.FailureCode == OwnedRecordFailureCode.NotOwner
+                ? OwnedRecordMutationResult.Forbidden
+                : OwnedRecordMutationResult.Conflict;
+
+            return (result, decision.Message);
+        }
+
+        var storageKeys = resource.Attachments.Select(a => a.StorageKey).ToArray();
+        _resourceRepository.Remove(resource);
+        try
+        {
+            await _unitOfWork.CommitAsync(cancellationToken);
+        }
+        catch (ConcurrencyConflictException)
+        {
+            return (OwnedRecordMutationResult.Conflict, "This resource changed while you were deleting it. Please reload and try again.");
+        }
+
+        await _attachmentService.DeleteStorageObjectsAsync(storageKeys);
+
+        return (OwnedRecordMutationResult.Success, "Resource deleted.");
     }
 }

@@ -22,6 +22,7 @@ public class NeedController : Controller
 
     private const double NearbyResourcesRadiusKm = 50;
     private const int NearbyResourcesMaxResults = 5;
+    private const int UnprocessableEntityStatusCode = 422;
 
     public NeedController(
         INeedService needService,
@@ -64,7 +65,8 @@ public class NeedController : Controller
                 await _categoryRepository.GetAllAsync()
         };
 
-        return View(model);
+        ViewData["IsEdit"] = false;
+        return View("Create", model);
     }
 
     /// <summary>
@@ -80,41 +82,15 @@ public class NeedController : Controller
         NeedCreateViewModel model,
         CancellationToken cancellationToken)
     {
-        // Deadline validation is handled by the view model attribute (FutureDate).
-
-        // If coordinates are provided, derive the county (region) server-side to ensure integrity.
-        if (model.Latitude != 0 || model.Longitude != 0)
-        {
-            var res = await _regionResolver.TryResolveRegionAsync(model.Latitude, model.Longitude, cancellationToken);
-
-            if (res.Success)
-            {
-                if (res.IsInNorway)
-                {
-                    model.Region = !string.IsNullOrEmpty(res.Region) ? res.Region! : "Unknown county";
-                }
-                else
-                {
-                    // Explicitly resolved to an international location
-                    model.Region = "International";
-                }
-
-                // Server derived region; remove client-side Region validation state.
-                ModelState.Remove(nameof(model.Region));
-            }
-            else
-            {
-                // Lookup failed (timeout/network/HTTP error) or resolved to no region (e.g., ocean).
-                ModelState.AddModelError(nameof(model.Region), "Please select a location on land (not in the ocean).");
-            }
-        }
+        await TryResolveRegionAsync(model, cancellationToken);
 
         if (!ModelState.IsValid)
         {
             model.AvailableCategories =
                 await _categoryRepository.GetAllAsync();
 
-            return View(model);
+            ViewData["IsEdit"] = false;
+            return View("Create", model);
         }
 
         var createdId = await _needService.CreateAsync(model, User.GetUserId(), cancellationToken);
@@ -123,6 +99,156 @@ public class NeedController : Controller
             $"The need \"{model.Title}\" has been registered.";
 
         return RedirectToAction(nameof(Details), new { id = createdId });
+    }
+
+    [HttpGet]
+    [Authorize(Roles = "PublicActor")]
+    public async Task<IActionResult> Edit(int id, CancellationToken cancellationToken)
+    {
+        var need = await _needService.GetByIdAsync(id, cancellationToken);
+
+        if (need is null)
+        {
+            return NotFound();
+        }
+
+        if (need.UserId != User.GetUserId())
+        {
+            return Forbid();
+        }
+
+        var model = new NeedCreateViewModel
+        {
+            CategoryId = need.CategoryId,
+            Title = need.Title,
+            Description = need.Description,
+            Latitude = need.Latitude,
+            Longitude = need.Longitude,
+            Region = need.Region,
+            Priority = need.Priority,
+            Deadline = need.Deadline,
+            ContactPoint = need.ContactPoint,
+            AvailableCategories = await _categoryRepository.GetAllAsync()
+        };
+
+        ViewData["IsEdit"] = true;
+        ViewData["EditNeedId"] = id;
+        return View("Create", model);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "PublicActor")]
+    public async Task<IActionResult> Edit(int id, NeedCreateViewModel model, CancellationToken cancellationToken)
+    {
+        var existingNeed = await _needService.GetByIdAsync(id, cancellationToken);
+        AllowUnchangedDeadline(existingNeed?.Deadline, model.Deadline);
+        await TryResolveRegionAsync(model, cancellationToken);
+
+        if (!ModelState.IsValid)
+        {
+            model.AvailableCategories = await _categoryRepository.GetAllAsync();
+            ViewData["EditNeedId"] = id;
+            ViewData["IsEdit"] = true;
+            return View("Create", model);
+        }
+
+        var (result, message) = await _needService.UpdateAsync(id, model, User.GetUserId(), cancellationToken);
+
+        switch (result)
+        {
+            case OwnedRecordMutationResult.Success:
+                TempData["Success"] = "Need updated.";
+                return RedirectToAction(nameof(Details), new { id });
+
+            case OwnedRecordMutationResult.NotFound:
+                return NotFound();
+
+            case OwnedRecordMutationResult.Forbidden:
+                return Forbid();
+
+            case OwnedRecordMutationResult.Conflict:
+                ModelState.AddModelError(string.Empty, message);
+                model.AvailableCategories = await _categoryRepository.GetAllAsync();
+                ViewData["EditNeedId"] = id;
+                ViewData["IsEdit"] = true;
+                return View("Create", model);
+
+            case OwnedRecordMutationResult.ValidationError:
+                ModelState.AddModelError(nameof(model.CategoryId), message);
+                model.AvailableCategories = await _categoryRepository.GetAllAsync();
+                ViewData["EditNeedId"] = id;
+                ViewData["IsEdit"] = true;
+                return View("Create", model);
+
+            default:
+                return Problem(detail: "Unexpected update result.");
+        }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "PublicActor")]
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+    {
+        var (result, message) = await _needService.DeleteAsync(id, User.GetUserId(), cancellationToken);
+
+        switch (result)
+        {
+            case OwnedRecordMutationResult.Success:
+                TempData["Success"] = "Need deleted.";
+                return RedirectToAction(nameof(Index));
+
+            case OwnedRecordMutationResult.NotFound:
+                return NotFound();
+
+            case OwnedRecordMutationResult.Forbidden:
+                return Forbid();
+
+            case OwnedRecordMutationResult.Conflict:
+                TempData["Error"] = message;
+                return RedirectToAction(nameof(Details), new { id });
+
+            default:
+                return Problem(detail: "Unexpected delete result.");
+        }
+    }
+
+    [HttpPut("/api/needs/{id:int}")]
+    [Authorize(Roles = "PublicActor")]
+    public async Task<IActionResult> UpdateApi(int id, [FromBody] NeedCreateViewModel? model, CancellationToken cancellationToken)
+    {
+        if (model is null)
+        {
+            ModelState.AddModelError(string.Empty, "A request body is required.");
+            return ValidationProblem(modelStateDictionary: ModelState, statusCode: UnprocessableEntityStatusCode);
+        }
+
+        var existingNeed = await _needService.GetByIdAsync(id, cancellationToken);
+        AllowUnchangedDeadline(existingNeed?.Deadline, model.Deadline);
+        await TryResolveRegionAsync(model, cancellationToken);
+
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(modelStateDictionary: ModelState, statusCode: UnprocessableEntityStatusCode);
+        }
+
+        var (result, message) = await _needService.UpdateAsync(id, model, User.GetUserId(), cancellationToken);
+        if (result == OwnedRecordMutationResult.ValidationError)
+        {
+            ModelState.AddModelError(nameof(model.CategoryId), message);
+            return ValidationProblem(modelStateDictionary: ModelState, statusCode: UnprocessableEntityStatusCode);
+        }
+
+        return ToApiResult(result, message);
+    }
+
+    [HttpDelete("/api/needs/{id:int}")]
+    [Authorize(Roles = "PublicActor")]
+    public async Task<IActionResult> DeleteApi(int id, CancellationToken cancellationToken)
+    {
+        var (result, message) = await _needService.DeleteAsync(id, User.GetUserId(), cancellationToken);
+        return ToApiResult(result, message);
     }
 
     /// <summary>
@@ -144,6 +270,8 @@ public class NeedController : Controller
             return NotFound();
         }
 
+        needViewModel.IsOwner = needViewModel.UserId == User.GetUserId();
+
         var nearbyResources = await _resourceService.GetCompatibleNearbyAsync(
             needViewModel,
             NearbyResourcesRadiusKm,
@@ -160,5 +288,54 @@ public class NeedController : Controller
         };
 
         return View(model);
+    }
+
+    private IActionResult ToApiResult(OwnedRecordMutationResult result, string message)
+    {
+        return result switch
+        {
+            OwnedRecordMutationResult.Success => Ok(new { message }),
+            OwnedRecordMutationResult.NotFound => NotFound(new { message }),
+            OwnedRecordMutationResult.Forbidden => StatusCode(403, new { message }),
+            OwnedRecordMutationResult.Conflict => StatusCode(409, new { message }),
+            _ => Problem(detail: "Unexpected mutation result.")
+        };
+    }
+
+    private async Task TryResolveRegionAsync(NeedCreateViewModel model, CancellationToken cancellationToken)
+    {
+        if (model.Latitude == 0 && model.Longitude == 0)
+        {
+            return;
+        }
+
+        var res = await _regionResolver.TryResolveRegionAsync(model.Latitude, model.Longitude, cancellationToken);
+
+        if (res.Success)
+        {
+            model.Region = res.IsInNorway
+                ? (!string.IsNullOrEmpty(res.Region) ? res.Region! : "Unknown county")
+                : "International";
+
+            ModelState.Remove(nameof(model.Region));
+            return;
+        }
+
+        ModelState.AddModelError(nameof(model.Region), "Please select a location on land (not in the ocean).");
+    }
+
+    private void AllowUnchangedDeadline(DateTime? currentDeadline, DateTime? submittedDeadline)
+    {
+        if (currentDeadline != submittedDeadline
+            || !ModelState.TryGetValue(nameof(NeedCreateViewModel.Deadline), out var deadlineState))
+        {
+            return;
+        }
+
+        for (var i = deadlineState.Errors.Count - 1; i >= 0; i--)
+        {
+            if (deadlineState.Errors[i].ErrorMessage == "Deadline must be in the future.")
+                deadlineState.Errors.RemoveAt(i);
+        }
     }
 }

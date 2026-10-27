@@ -1,10 +1,13 @@
 @model Heimevernet.ViewModels.Need.NeedCreateViewModel
 
 @{
-    ViewData["Title"] = "Register Need";
+    var isEdit = (ViewData["IsEdit"] as bool?) == true;
+    var editNeedId = ViewData["EditNeedId"] as int?;
+    var pageTitle = isEdit ? "Edit Need" : "Register Need";
+    ViewData["Title"] = pageTitle;
 }
 
-<a asp-action="Index" class="btn btn-link ps-0 mb-3">
+<a asp-action="@(isEdit ? "Details" : "Index")" asp-route-id="@(isEdit ? editNeedId : null)" class="btn btn-link ps-0 mb-3">
     <i class="bi bi-arrow-left"></i> Back to Overview
 </a>
 
@@ -14,9 +17,9 @@
         <div class="card shadow-sm" style="color-scheme: light;">
             <div class="card-body">
 
-                <h2 class="h4 mb-4">Register Need</h2>
+                <h2 class="h4 mb-4">@pageTitle</h2>
 
-                <form id="need-create-form" asp-action="Create" method="post">
+                <form id="need-create-form" asp-action="@(isEdit ? "Edit" : "Create")" asp-route-id="@(isEdit ? editNeedId : null)" method="post">
 
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger">
                     </div>
@@ -136,10 +139,10 @@
                     <div class="d-flex flex-column flex-sm-row gap-2">
 
                         <button type="submit" class="btn btn-primary">
-                            Register Need
+                            @(isEdit ? "Save changes" : "Register Need")
                         </button>
 
-                        <a asp-action="Index" class="btn btn-outline-secondary">
+                        <a asp-action="@(isEdit ? "Details" : "Index")" asp-route-id="@(isEdit ? editNeedId : null)" class="btn btn-outline-secondary">
                             Cancel
                         </a>
 
@@ -249,6 +252,8 @@
 
             var deadlineEl = document.getElementById('Deadline');
             var deadlineError = document.querySelector('[data-valmsg-for="Deadline"]');
+            var isEdit = @(isEdit ? "true" : "false");
+            var originalDeadline = deadlineEl ? deadlineEl.value : '';
 
             function clearDeadlineError() {
                 if (deadlineError) deadlineError.textContent = '';
@@ -277,7 +282,7 @@
                         return;
                     }
 
-                    if (selected <= now) {
+                    if (selected <= now && (!isEdit || val !== originalDeadline)) {
                         e.preventDefault();
                         showDeadlineError('Deadline must be in the future.');
                         deadlineEl.focus();

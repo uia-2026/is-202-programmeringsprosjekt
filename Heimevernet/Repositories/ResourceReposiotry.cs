@@ -53,6 +53,19 @@ public class ResourceRepository : IResourceRepository
                 cancellationToken);
     }
 
+    public async Task<Resource?> GetByIdForUpdateAsync(
+        int id,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.Resources
+            .Include(r => r.Category)
+            .Include(r => r.Attachments)
+            .Include(r => r.Matches)
+            .FirstOrDefaultAsync(
+                r => r.Id == id,
+                cancellationToken);
+    }
+
     /// <summary>
     /// Retrieves all Available resources from the database, including Category, ordered by creation time.
     /// </summary>
@@ -81,6 +94,11 @@ public class ResourceRepository : IResourceRepository
         await _context.Resources.AddAsync(
             resource,
             cancellationToken);
+    }
+
+    public void Remove(Resource resource)
+    {
+        _context.Resources.Remove(resource);
     }
 
     public async Task<IReadOnlyList<MapMarkerDto>> GetMapMarkersAsync(
@@ -194,5 +212,12 @@ public class ResourceRepository : IResourceRepository
         _context.Entry(resource)
             .Property(r => r.Version)
             .OriginalValue = version;
+    }
+
+    public void MarkForConcurrencyCheck(Resource resource)
+    {
+        _context.Entry(resource)
+            .Property(r => r.Version)
+            .IsModified = true;
     }
 }
