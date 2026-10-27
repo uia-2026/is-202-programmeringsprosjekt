@@ -11,18 +11,14 @@ using QRCoder;
 
 namespace Heimevernet.Services;
 
-public class AuthService : IAuthService
+public class AuthService(
+    IUserRepository userRepository,
+    IPasswordHasher<User> passwordHasher,
+    IUnitOfWork unitOfWork) : IAuthService
 {
-    private readonly IUserRepository _userRepository;
-    private readonly IPasswordHasher<User> _passwordHasher;
-    private readonly IUnitOfWork _unitOfWork;
-
-    public AuthService(IUserRepository userRepository, IPasswordHasher<User> passwordHasher, IUnitOfWork unitOfWork)
-    {
-        _userRepository = userRepository;
-        _passwordHasher = passwordHasher;
-        _unitOfWork = unitOfWork;
-    }
+    private readonly IUserRepository _userRepository = userRepository;
+    private readonly IPasswordHasher<User> _passwordHasher = passwordHasher;
+    private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
     public async Task<RegisterResult> RegisterAsync(
         RegisterViewModel model,
@@ -49,7 +45,7 @@ public class AuthService : IAuthService
             model.Password);
 
         await _userRepository.AddAsync(user, ct);
-        await _unitOfWork.CommitAsync();
+        await _unitOfWork.CommitAsync(ct);
 
         return new RegisterResult(
             Success: true);
@@ -159,7 +155,7 @@ public class AuthService : IAuthService
         user.TwoFactorSecret = secret;
         user.TwoFactorEnabled = true;
 
-        await _unitOfWork.CommitAsync();
+        await _unitOfWork.CommitAsync(ct);
 
         return new TwoFactorSetupResult(
             Success: true);

@@ -76,7 +76,7 @@ public sealed class AttachmentService : IAttachmentService
                 UploadedByUserId = userId,
                 UploadedAt = DateTime.UtcNow
             }, ct);
-            await _uow.CommitAsync();
+            await _uow.CommitAsync(ct);
         }
         catch
         {
@@ -94,7 +94,7 @@ public sealed class AttachmentService : IAttachmentService
             return new(false, "Attachment not found.");
 
         _attachments.Remove(attachment);
-        await _uow.CommitAsync();
+        await _uow.CommitAsync(ct);
         await TryDeleteFileAsync(attachment.StorageKey);
 
         return new(true, null);

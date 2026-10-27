@@ -43,4 +43,7 @@ public class NeedCreateViewModel
     [Required(ErrorMessage = "Contact point is required.")]
     [StringLength(FieldLimits.ContactPoint, ErrorMessage = "Contact point cannot exceed {1} characters.")]
     public string ContactPoint { get; set; } = string.Empty;
+
+    [Range(1, FieldLimits.MaxQuantity, ErrorMessage = "Quantity needed must be between 1 and 10000.")]
+    public int QuantityNeeded { get; set; } = 1;
 }

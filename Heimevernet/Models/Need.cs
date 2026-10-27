@@ -35,9 +35,11 @@ public class Need : IVersioned
 
     public NeedStatus Status { get; set; } = NeedStatus.New;
 
+    public int QuantityNeeded { get; set; } = 1;
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    public ICollection<Match> Matches { get; set; } = new List<Match>();
+    public ICollection<Match> Matches { get; set; } = [];
 
     // Concurrency token for optimistic concurrency control.
     public int Version { get; set; }

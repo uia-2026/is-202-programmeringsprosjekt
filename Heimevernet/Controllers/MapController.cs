@@ -5,11 +5,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Heimevernet.Controllers;
 
-public class MapController : Controller
+public class MapController(IMapService mapService) : Controller
 {
-    private readonly IMapService _mapService;
-
-    public MapController(IMapService mapService) => _mapService = mapService;
+    private readonly IMapService _mapService = mapService;
 
     [HttpGet]
     public IActionResult Index() => View();

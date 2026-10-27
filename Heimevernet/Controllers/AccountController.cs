@@ -6,16 +6,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Heimevernet.Controllers;
 
-public class AccountController : Controller
+public class AccountController(IAuthService authService, IUserService userService) : Controller
 {
-    private readonly IAuthService _authService;
-    private readonly IUserService _userService;
-
-    public AccountController(IAuthService authService, IUserService userService)
-    {
-        _authService = authService;
-        _userService = userService;
-    }
+    private readonly IAuthService _authService = authService;
+    private readonly IUserService _userService = userService;
 
     [Authorize]
     [HttpGet]
@@ -122,9 +116,7 @@ public class AccountController : Controller
         TwoFactorSetupViewModel model,
         CancellationToken ct)
     {
-        var secret = TempData["PendingSecret"] as string;
-
-        if (secret == null)
+        if (TempData["PendingSecret"] is not string secret)
             return RedirectToAction(nameof(SetupTwoFactor));
 
         var result = await _authService.CompleteTwoFactorSetupAsync(

@@ -29,7 +29,8 @@ public class NeedMapperTests
             Region = "  Kristiansand  ",
             Priority = NeedPriority.Medium,
             Deadline = deadline,
-            ContactPoint = "  contact@example.com  "
+            ContactPoint = "  contact@example.com  ",
+            QuantityNeeded = 7
         };
 
         var result = _sut.ToEntity(model, 42);
@@ -44,6 +45,7 @@ public class NeedMapperTests
         Assert.Equal(NeedPriority.Medium, result.Priority);
         Assert.Equal(deadline, result.Deadline);
         Assert.Equal("contact@example.com", result.ContactPoint);
+        Assert.Equal(7, result.QuantityNeeded);
     }
 
     /// <summary>
@@ -62,7 +64,8 @@ public class NeedMapperTests
             Region = "Region",
             Priority = NeedPriority.Low,
             Deadline = null,
-            ContactPoint = "contact"
+            ContactPoint = "contact",
+            QuantityNeeded = 1
         };
 
         var result = _sut.ToEntity(model, 1);
@@ -91,6 +94,7 @@ public class NeedMapperTests
             Priority = NeedPriority.Medium,
             Deadline = deadline,
             ContactPoint = "john@example.com",
+            QuantityNeeded = 3,
             Status = NeedStatus.Assigned,
             CreatedAt = createdAt
         };
@@ -107,6 +111,7 @@ public class NeedMapperTests
         Assert.Equal(NeedPriority.Medium, result.Priority);
         Assert.Equal(deadline, result.Deadline);
         Assert.Equal("john@example.com", result.ContactPoint);
+        Assert.Equal(3, result.QuantityNeeded);
         Assert.Equal(NeedStatus.Assigned, result.Status);
         Assert.Equal(createdAt, result.CreatedAt);
     }
@@ -123,6 +128,7 @@ public class NeedMapperTests
             Title = "Summary Test",
             Category = new Category { Name = "Transport" },
             Region = "Bergen",
+            QuantityNeeded = 8,
             Priority = NeedPriority.Low,
             Status = NeedStatus.New
         };
@@ -133,6 +139,7 @@ public class NeedMapperTests
         Assert.Equal("Summary Test", result.Title);
         Assert.Equal("Transport", result.CategoryName);
         Assert.Equal("Bergen", result.Region);
+        Assert.Equal(8, result.QuantityNeeded);
         Assert.Equal(NeedPriority.Low, result.Priority);
         Assert.Equal(NeedStatus.New, result.Status);
     }

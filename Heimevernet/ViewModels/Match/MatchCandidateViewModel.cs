@@ -18,6 +18,8 @@ public class MatchCandidateViewModel
 
     public string ContactPoint { get; set; } = string.Empty;
 
+    public int QuantityOffered { get; set; }
+
     public DateTime AvailableFrom { get; set; }
 
     public DateTime? AvailableTo { get; set; }

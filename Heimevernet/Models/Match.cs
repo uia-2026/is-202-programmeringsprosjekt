@@ -21,6 +21,8 @@ public class Match : IVersioned
     public int MatchedByUserId { get; set; }
     public User MatchedByUser { get; set; } = null!;
 
+    public int Quantity { get; set; } = 1;
+
     public DateTime MatchedAt { get; set; } = DateTime.UtcNow;
 
     // Concurrency token for optimistic concurrency control

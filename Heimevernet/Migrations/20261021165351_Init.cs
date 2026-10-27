@@ -9,6 +9,8 @@ namespace Heimevernet.Migrations
     /// <inheritdoc />
     public partial class Init : Migration
     {
+        private static readonly string[] MatchNeedAndResourceColumns = ["NeedId", "ResourceId"];
+
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -235,7 +237,7 @@ namespace Heimevernet.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_Matches_NeedId_ResourceId",
                 table: "Matches",
-                columns: new[] { "NeedId", "ResourceId" },
+                columns: MatchNeedAndResourceColumns,
                 unique: true);
 
             migrationBuilder.CreateIndex(

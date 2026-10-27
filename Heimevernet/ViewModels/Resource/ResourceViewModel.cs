@@ -30,6 +30,8 @@ public class ResourceViewModel
 
     public string ContactPoint { get; set; } = string.Empty;
 
+    public int QuantityOffered { get; set; }
+
     public ResourceStatus Status { get; set; }
 
     public DateTime CreatedAt { get; set; }

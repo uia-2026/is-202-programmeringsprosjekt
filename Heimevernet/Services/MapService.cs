@@ -3,20 +3,16 @@ using Heimevernet.Models;
 using Heimevernet.Services.Interfaces;
 using Heimevernet.ViewModels.Map;
 
+namespace Heimevernet.Services;
+
 public sealed record MapDataViewModel(IReadOnlyList<MapMarkerViewModel> Markers, bool Truncated);
 
-public sealed class MapService : IMapService
+public sealed class MapService(INeedService needService, IResourceService resourceService) : IMapService
 {
     private const int MaxPerKind = 500;
 
-    private readonly INeedService _needService;
-    private readonly IResourceService _resourceService;
-
-    public MapService(INeedService needService, IResourceService resourceService)
-    {
-        _needService = needService;
-        _resourceService = resourceService;
-    }
+    private readonly INeedService _needService = needService;
+    private readonly IResourceService _resourceService = resourceService;
 
     public async Task<MapDataViewModel> GetMarkersAsync(
         int userId, UserRole role, GeoBox box, CancellationToken ct = default)

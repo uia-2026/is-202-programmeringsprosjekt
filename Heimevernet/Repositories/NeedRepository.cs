@@ -72,7 +72,7 @@ public class NeedRepository : INeedRepository
             .Select(n => new MapMarkerDto(
                 n.Id, MapMarkerKind.Need, n.Title, n.Category.Name, n.Description, n.Region,
                 n.Priority.ToString(), n.Priority == NeedPriority.Critical, n.Status.ToString(),
-                n.Deadline, n.ContactPoint, n.Latitude, n.Longitude))
+                n.Deadline, n.ContactPoint, n.QuantityNeeded, n.Latitude, n.Longitude))
             .ToListAsync(cancellationToken);
     }
 

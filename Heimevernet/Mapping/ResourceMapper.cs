@@ -31,7 +31,8 @@ public class ResourceMapper : IResourceMapper
             Region = model.Region.Trim(),
             AvailableFrom = model.AvailableFrom,
             AvailableTo = model.AvailableTo,
-            ContactPoint = model.ContactPoint.Trim()
+            ContactPoint = model.ContactPoint.Trim(),
+            QuantityOffered = model.QuantityOffered
         };
     }
 
@@ -46,6 +47,7 @@ public class ResourceMapper : IResourceMapper
         target.AvailableFrom = model.AvailableFrom;
         target.AvailableTo = model.AvailableTo;
         target.ContactPoint = model.ContactPoint.Trim();
+        target.QuantityOffered = model.QuantityOffered;
     }
 
     /// <summary>
@@ -68,6 +70,7 @@ public class ResourceMapper : IResourceMapper
             AvailableFrom = resource.AvailableFrom,
             AvailableTo = resource.AvailableTo,
             ContactPoint = resource.ContactPoint,
+            QuantityOffered = resource.QuantityOffered,
             Status = resource.Status,
             CreatedAt = resource.CreatedAt,
             UserId = resource.UserId,

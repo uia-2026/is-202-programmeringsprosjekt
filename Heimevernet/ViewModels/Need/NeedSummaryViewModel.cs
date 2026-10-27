@@ -12,6 +12,7 @@ public class NeedSummaryViewModel
     public string Title { get; set; } = string.Empty;
     public string CategoryName { get; set; } = string.Empty;
     public string Region { get; set; } = string.Empty;
+    public int QuantityNeeded { get; set; }
     public NeedPriority Priority { get; set; }
     public NeedStatus Status { get; set; }
 }

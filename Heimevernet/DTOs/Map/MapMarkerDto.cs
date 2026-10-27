@@ -14,5 +14,6 @@ public sealed record MapMarkerDto(
     string Status,
     DateTime? When,
     string ContactInfo,
+    int Quantity,
     double Latitude,
     double Longitude);

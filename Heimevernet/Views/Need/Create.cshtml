@@ -126,6 +126,15 @@
                     </div>
 
                     <div class="mb-4">
+                        <label asp-for="QuantityNeeded" class="form-label"></label>
+
+                        <input asp-for="QuantityNeeded" class="form-control" type="number" min="1" max="10000" />
+
+                        <span asp-validation-for="QuantityNeeded" class="text-danger small">
+                        </span>
+                    </div>
+
+                    <div class="mb-4">
                         <label asp-for="ContactPoint" class="form-label">
                         </label>
 

@@ -30,7 +30,8 @@ public class ResourceMapperTests
             Region = "  Bergen  ",
             AvailableFrom = availableFrom,
             AvailableTo = availableTo,
-            ContactPoint = "  provider@example.com  "
+            ContactPoint = "  provider@example.com  ",
+            QuantityOffered = 6
         };
 
         var result = _sut.ToEntity(model, 99);
@@ -45,6 +46,7 @@ public class ResourceMapperTests
         Assert.Equal(availableFrom, result.AvailableFrom);
         Assert.Equal(availableTo, result.AvailableTo);
         Assert.Equal("provider@example.com", result.ContactPoint);
+        Assert.Equal(6, result.QuantityOffered);
     }
 
     /// <summary>
@@ -60,7 +62,8 @@ public class ResourceMapperTests
             Region = "Region",
             AvailableFrom = new DateTime(2026, 01, 01),
             AvailableTo = null,
-            ContactPoint = "contact"
+            ContactPoint = "contact",
+            QuantityOffered = 1
         };
 
         var result = _sut.ToEntity(model, 1);
@@ -89,6 +92,7 @@ public class ResourceMapperTests
             AvailableFrom = from,
             AvailableTo = to,
             ContactPoint = "driver@example.com",
+            QuantityOffered = 5,
             Status = ResourceStatus.Busy,
             CreatedAt = createdAt
         };
@@ -105,6 +109,7 @@ public class ResourceMapperTests
         Assert.Equal(from, result.AvailableFrom);
         Assert.Equal(to, result.AvailableTo);
         Assert.Equal("driver@example.com", result.ContactPoint);
+        Assert.Equal(5, result.QuantityOffered);
         Assert.Equal(ResourceStatus.Busy, result.Status);
         Assert.Equal(createdAt, result.CreatedAt);
     }

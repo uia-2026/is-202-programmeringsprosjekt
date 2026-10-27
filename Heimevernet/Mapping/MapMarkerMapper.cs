@@ -20,6 +20,7 @@ public class MapMarkerMapper : IMapMarkerMapper
             dto.Status,
             dto.When,
             dto.ContactInfo,
+            dto.Quantity,
             dto.Latitude,
             dto.Longitude);
     }

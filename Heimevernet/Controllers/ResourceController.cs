@@ -2,6 +2,7 @@ using Heimevernet.Extensions;
 using Heimevernet.Models;
 using Heimevernet.Repositories.Interfaces;
 using Heimevernet.Services.Interfaces;
+using Heimevernet.ViewModels.Attachment;
 using Heimevernet.ViewModels.Resource;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,26 +13,17 @@ namespace Heimevernet.Controllers;
 /// MVC controller for handling Resource-related web pages (list, create, details).
 /// Uses IResourceService for business operations and ICategoryRepository to populate category lists.
 /// </summary>
-public class ResourceController : Controller
+public class ResourceController(
+    IResourceService resourceService,
+    ICategoryRepository categoryRepository,
+    IAttachmentService attachmentService,
+    IRegionResolver regionResolver) : Controller
 {
-    private readonly IResourceService _resourceService;
-    private readonly ICategoryRepository _categoryRepository;
-    private readonly IAttachmentService _attachmentService;
-    private readonly IRegionResolver _regionResolver;
+    private readonly IResourceService _resourceService = resourceService;
+    private readonly ICategoryRepository _categoryRepository = categoryRepository;
+    private readonly IAttachmentService _attachmentService = attachmentService;
+    private readonly IRegionResolver _regionResolver = regionResolver;
     private const int UnprocessableEntityStatusCode = 422;
-
-    public ResourceController(
-        IResourceService resourceService,
-        ICategoryRepository categoryRepository,
-        IAttachmentService attachmentService,
-        IRegionResolver regionResolver)
-    {
-        _resourceService = resourceService;
-        _categoryRepository = categoryRepository;
-        _attachmentService = attachmentService;
-        _regionResolver = regionResolver;
-    }
-
     [HttpGet]
     public async Task<IActionResult> Index(
         CancellationToken cancellationToken)
@@ -43,8 +35,7 @@ public class ResourceController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Create(
-        CancellationToken cancellationToken)
+    public async Task<IActionResult> Create()
     {
         var model = new ResourceCreateViewModel
         {
@@ -127,6 +118,7 @@ public class ResourceController : Controller
             AvailableFrom = resource.AvailableFrom,
             AvailableTo = resource.AvailableTo,
             ContactPoint = resource.ContactPoint,
+            QuantityOffered = resource.QuantityOffered,
             AvailableCategories = await _categoryRepository.GetAllAsync()
         };
 
@@ -271,13 +263,13 @@ public class ResourceController : Controller
 
         var filtered = string.IsNullOrWhiteSpace(region)
             ? availableResources
-            : availableResources.Where(r => r.Region == region).ToList();
+            : [.. availableResources.Where(r => r.Region == region)];
 
         var model = new PrintByRegionViewModel
         {
             SelectedRegion = region,
             AvailableRegions = availableRegions,
-            Resources = filtered.OrderBy(r => r.Title).ToList()
+            Resources = [.. filtered.OrderBy(r => r.Title)]
         };
 
         return View(model);
@@ -321,7 +313,7 @@ public class ResourceController : Controller
         return RedirectToAction(nameof(Details), new { id = resourceId });
     }
 
-    private IActionResult ToApiResult(OwnedRecordMutationResult result, string message)
+    private ObjectResult ToApiResult(OwnedRecordMutationResult result, string message)
     {
         return result switch
         {
