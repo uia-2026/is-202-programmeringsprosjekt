@@ -17,16 +17,19 @@ public class ResourceController : Controller
     private readonly IResourceService _resourceService;
     private readonly ICategoryRepository _categoryRepository;
     private readonly IAttachmentService _attachmentService;
+    private readonly IRegionResolver _regionResolver;
     private const int UnprocessableEntityStatusCode = 422;
 
     public ResourceController(
         IResourceService resourceService,
         ICategoryRepository categoryRepository,
-        IAttachmentService attachmentService)
+        IAttachmentService attachmentService,
+        IRegionResolver regionResolver)
     {
         _resourceService = resourceService;
         _categoryRepository = categoryRepository;
         _attachmentService = attachmentService;
+        _regionResolver = regionResolver;
     }
 
     [HttpGet]
@@ -67,6 +70,8 @@ public class ResourceController : Controller
         ResourceCreateViewModel model,
         CancellationToken cancellationToken)
     {
+        await TryResolveRegionAsync(model, cancellationToken);
+
         if (!ModelState.IsValid)
         {
             model.AvailableCategories = await _categoryRepository.GetAllAsync();
@@ -136,6 +141,8 @@ public class ResourceController : Controller
     [RequestSizeLimit(6 * 1024 * 1024)]
     public async Task<IActionResult> Edit(int id, ResourceCreateViewModel model, CancellationToken cancellationToken)
     {
+        await TryResolveRegionAsync(model, cancellationToken);
+
         if (!ModelState.IsValid)
         {
             model.AvailableCategories = await _categoryRepository.GetAllAsync();
@@ -324,5 +331,27 @@ public class ResourceController : Controller
             OwnedRecordMutationResult.Conflict => StatusCode(409, new { message }),
             _ => Problem(detail: "Unexpected mutation result.")
         };
+    }
+
+    private async Task TryResolveRegionAsync(ResourceCreateViewModel model, CancellationToken cancellationToken)
+    {
+        if (model.Latitude == 0 && model.Longitude == 0)
+        {
+            return;
+        }
+
+        var res = await _regionResolver.TryResolveRegionAsync(model.Latitude, model.Longitude, cancellationToken);
+
+        if (res.Success)
+        {
+            model.Region = res.IsInNorway
+                ? (!string.IsNullOrEmpty(res.Region) ? res.Region! : "Unknown county")
+                : "International";
+
+            ModelState.Remove(nameof(model.Region));
+            return;
+        }
+
+        ModelState.AddModelError(nameof(model.Region), "Please select a location on land (not in the ocean).");
     }
 }
