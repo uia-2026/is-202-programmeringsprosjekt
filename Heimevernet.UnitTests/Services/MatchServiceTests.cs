@@ -4,6 +4,7 @@ using Heimevernet.Models;
 using Heimevernet.Repositories.Interfaces;
 using Heimevernet.Services;
 using Heimevernet.Services.Interfaces;
+using Heimevernet.ViewModels.Match;
 using Moq;
 using MatchEntity = Heimevernet.Models.Match;
 
@@ -16,13 +17,15 @@ public class MatchServiceTests
     private readonly Mock<IMatchRepository> _matchRepositoryMock = new();
     private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
     private readonly Mock<IMatchCandidateMapper> _matchCandidateMapperMock = new();
+    private readonly Mock<IMatchListMapper> _matchListMapperMock = new();
 
     private MatchService CreateSut() => new(
         _needRepositoryMock.Object,
         _resourceRepositoryMock.Object,
         _matchRepositoryMock.Object,
         _unitOfWorkMock.Object,
-        _matchCandidateMapperMock.Object);
+        _matchCandidateMapperMock.Object,
+        _matchListMapperMock.Object);
 
     [Theory]
     [InlineData(0)]
@@ -451,7 +454,8 @@ public class MatchServiceTests
             resourceRepository.Object,
             matchRepository.Object,
             unitOfWork.Object,
-            candidateMapper.Object);
+            candidateMapper.Object,
+            new Mock<IMatchListMapper>().Object);
 
         needRepository.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
             .ReturnsAsync(need);
@@ -470,5 +474,242 @@ public class MatchServiceTests
 
         Assert.Equal(ProposeMatchResult.Success, result);
         resourceRepository.Verify(r => r.MarkForConcurrencyCheck(resource), Times.Once);
+    }
+
+    // ---------- NYTT I STEG 10: Accept, Reject og My Matches ----------
+
+    private static MatchEntity CreateMatch(
+        MatchStatus status = MatchStatus.UnderReview,
+        int quantity = 3,
+        int resourceOwnerId = 7)
+    {
+        return new MatchEntity
+        {
+            Id = 1,
+            NeedId = 10,
+            ResourceId = 20,
+            Quantity = quantity,
+            Status = status,
+            Need = new Need { Id = 10, QuantityNeeded = 5 },
+            Resource = new Resource { Id = 20, UserId = resourceOwnerId, QuantityOffered = 5 }
+        };
+    }
+
+    private void SetupAllocations(int needAllocated, int resourceAllocated)
+    {
+        _matchRepositoryMock
+            .Setup(r => r.GetAcceptedAllocatedQuantityForNeedAsync(10, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(needAllocated);
+
+        _matchRepositoryMock
+            .Setup(r => r.GetAcceptedAllocatedQuantityForResourceAsync(20, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(resourceAllocated);
+    }
+
+    [Fact]
+    public async Task AcceptAsync_MatchNotFound_ReturnsMatchNotFound()
+    {
+        _matchRepositoryMock
+            .Setup(r => r.GetByIdWithNeedAndResourceAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((MatchEntity?)null);
+
+        var sut = CreateSut();
+
+        var result = await sut.AcceptAsync(1, 7, CancellationToken.None);
+
+        Assert.Equal(MatchDecisionResult.MatchNotFound, result);
+        _unitOfWorkMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AcceptAsync_UserNotResourceOwner_ReturnsUserIsNotResourceOwner_AndDoesNotPersist()
+    {
+        var match = CreateMatch(resourceOwnerId: 99);
+
+        _matchRepositoryMock
+            .Setup(r => r.GetByIdWithNeedAndResourceAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(match);
+
+        var sut = CreateSut();
+
+        var result = await sut.AcceptAsync(1, 7, CancellationToken.None);
+
+        Assert.Equal(MatchDecisionResult.UserIsNotResourceOwner, result);
+        Assert.Equal(MatchStatus.UnderReview, match.Status);
+        _unitOfWorkMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AcceptAsync_MatchAlreadyAssigned_ReturnsMatchNotUnderReview()
+    {
+        var match = CreateMatch(status: MatchStatus.Assigned);
+
+        _matchRepositoryMock
+            .Setup(r => r.GetByIdWithNeedAndResourceAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(match);
+
+        var sut = CreateSut();
+
+        var result = await sut.AcceptAsync(1, 7, CancellationToken.None);
+
+        Assert.Equal(MatchDecisionResult.MatchNotUnderReview, result);
+        _unitOfWorkMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AcceptAsync_NotEnoughQuantityLeft_ReturnsInsufficientQuantity_AndDoesNotPersist()
+    {
+        // Need wants 5, 3 are already accepted, so only 2 are left. The match asks for 3.
+        var match = CreateMatch(quantity: 3);
+
+        _matchRepositoryMock
+            .Setup(r => r.GetByIdWithNeedAndResourceAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(match);
+
+        SetupAllocations(needAllocated: 3, resourceAllocated: 0);
+
+        var sut = CreateSut();
+
+        var result = await sut.AcceptAsync(1, 7, CancellationToken.None);
+
+        Assert.Equal(MatchDecisionResult.InsufficientQuantity, result);
+        Assert.Equal(MatchStatus.UnderReview, match.Status);
+        _unitOfWorkMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AcceptAsync_Success_SetsAssigned_MarksConcurrency_AndCommits()
+    {
+        var match = CreateMatch(quantity: 3);
+
+        _matchRepositoryMock
+            .Setup(r => r.GetByIdWithNeedAndResourceAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(match);
+
+        SetupAllocations(needAllocated: 0, resourceAllocated: 0);
+
+        var sut = CreateSut();
+
+        var result = await sut.AcceptAsync(1, 7, CancellationToken.None);
+
+        Assert.Equal(MatchDecisionResult.Success, result);
+        Assert.Equal(MatchStatus.Assigned, match.Status);
+        _needRepositoryMock.Verify(r => r.MarkForConcurrencyCheck(match.Need), Times.Once);
+        _resourceRepositoryMock.Verify(r => r.MarkForConcurrencyCheck(match.Resource), Times.Once);
+        _unitOfWorkMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task AcceptAsync_ConcurrencyCommit_ReturnsConcurrentChange()
+    {
+        var match = CreateMatch();
+
+        _matchRepositoryMock
+            .Setup(r => r.GetByIdWithNeedAndResourceAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(match);
+
+        SetupAllocations(needAllocated: 0, resourceAllocated: 0);
+
+        _unitOfWorkMock
+            .Setup(u => u.CommitAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new ConcurrencyConflictException(new InvalidOperationException()));
+
+        var sut = CreateSut();
+
+        var result = await sut.AcceptAsync(1, 7, CancellationToken.None);
+
+        Assert.Equal(MatchDecisionResult.ConcurrentChange, result);
+    }
+
+    [Fact]
+    public async Task RejectAsync_UserNotResourceOwner_ReturnsUserIsNotResourceOwner_AndDoesNotRemove()
+    {
+        var match = CreateMatch(resourceOwnerId: 99);
+
+        _matchRepositoryMock
+            .Setup(r => r.GetByIdWithNeedAndResourceAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(match);
+
+        var sut = CreateSut();
+
+        var result = await sut.RejectAsync(1, 7, CancellationToken.None);
+
+        Assert.Equal(MatchDecisionResult.UserIsNotResourceOwner, result);
+        _matchRepositoryMock.Verify(r => r.Remove(It.IsAny<MatchEntity>()), Times.Never);
+        _unitOfWorkMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RejectAsync_MatchAlreadyAssigned_ReturnsMatchNotUnderReview()
+    {
+        var match = CreateMatch(status: MatchStatus.Assigned);
+
+        _matchRepositoryMock
+            .Setup(r => r.GetByIdWithNeedAndResourceAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(match);
+
+        var sut = CreateSut();
+
+        var result = await sut.RejectAsync(1, 7, CancellationToken.None);
+
+        Assert.Equal(MatchDecisionResult.MatchNotUnderReview, result);
+        _matchRepositoryMock.Verify(r => r.Remove(It.IsAny<MatchEntity>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RejectAsync_Success_RemovesMatch_AndCommits()
+    {
+        var match = CreateMatch();
+
+        _matchRepositoryMock
+            .Setup(r => r.GetByIdWithNeedAndResourceAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(match);
+
+        var sut = CreateSut();
+
+        var result = await sut.RejectAsync(1, 7, CancellationToken.None);
+
+        Assert.Equal(MatchDecisionResult.Success, result);
+        _matchRepositoryMock.Verify(r => r.Remove(match), Times.Once);
+        _unitOfWorkMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetMyMatchesAsync_ResourceProvider_UsesResourceOwnerQuery()
+    {
+        var match = CreateMatch();
+
+        _matchRepositoryMock
+            .Setup(r => r.GetForResourceOwnerAsync(7, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<MatchEntity> { match });
+
+        _matchListMapperMock
+            .Setup(m => m.ToListItem(match, true))
+            .Returns(new MatchListItemViewModel { MatchId = match.Id, CanDecide = true });
+
+        var sut = CreateSut();
+
+        var model = await sut.GetMyMatchesAsync(7, true, CancellationToken.None);
+
+        Assert.True(model.IsResourceProvider);
+        Assert.Single(model.Matches);
+        Assert.True(model.Matches[0].CanDecide);
+        _matchRepositoryMock.Verify(r => r.GetForNeedOwnerAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetMyMatchesAsync_PublicActor_UsesNeedOwnerQuery()
+    {
+        _matchRepositoryMock
+            .Setup(r => r.GetForNeedOwnerAsync(7, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<MatchEntity>());
+
+        var sut = CreateSut();
+
+        var model = await sut.GetMyMatchesAsync(7, false, CancellationToken.None);
+
+        Assert.False(model.IsResourceProvider);
+        Assert.Empty(model.Matches);
+        _matchRepositoryMock.Verify(r => r.GetForResourceOwnerAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

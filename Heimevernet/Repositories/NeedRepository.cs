@@ -82,4 +82,18 @@ public class NeedRepository : INeedRepository
             .Property(n => n.Version)
             .OriginalValue = version;
     }
+
+    // ---------- NYTT I STEG 2 ----------
+
+    /// <summary>
+    /// Forces EF Core to check Need.Version on save, even if nothing else on the need changed.
+    /// Prevents two users from over-allocating the same need at the same time.
+    /// </summary>
+    public void MarkForConcurrencyCheck(Need need)
+    {
+        _context.Entry(need)
+            .Property(n => n.Version)
+            .IsModified = true;
+    }
 }
+ 

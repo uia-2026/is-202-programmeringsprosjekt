@@ -17,5 +17,5 @@ public interface INeedRepository
     void Remove(Need need);
     Task<IReadOnlyList<MapMarkerDto>> GetMapMarkersAsync(GeoBox box, int limit, CancellationToken cancellationToken = default);
     void SetOriginalVersion(Need need, int version);
+    void MarkForConcurrencyCheck(Need need);
 }
-

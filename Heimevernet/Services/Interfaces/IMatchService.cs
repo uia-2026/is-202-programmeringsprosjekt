@@ -15,6 +15,17 @@ public enum ProposeMatchResult
     ConcurrentChange
 }
 
+// NYTT I STEG 6
+public enum MatchDecisionResult
+{
+    Success,
+    MatchNotFound,
+    UserIsNotResourceOwner,
+    MatchNotUnderReview,
+    InsufficientQuantity,
+    ConcurrentChange
+}
+
 /// <summary>
 /// Business logic for proposing a Resource to fulfill a Need (Match: Propose flow, #40).
 /// </summary>
@@ -39,4 +50,24 @@ public interface IMatchService
     /// Only the Need's owner may propose a match for it.
     /// </summary>
     Task<(ProposeMatchResult Result, int? MatchId)> ProposeAsync(int needId, int resourceId, int quantity, int userId, CancellationToken cancellationToken = default);
+
+    // ---------- NYTT I STEG 6 ----------
+
+    /// <summary>
+    /// Returns the "My Matches" page model for the given user.
+    /// Resource Providers see matches on their resources; Public Actors see matches on their needs.
+    /// </summary>
+    Task<MatchIndexViewModel> GetMyMatchesAsync(int userId, bool isResourceProvider, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Accepts a match. Only the owner of the match's Resource may accept,
+    /// and only while the match is UnderReview and there is enough quantity left.
+    /// </summary>
+    Task<MatchDecisionResult> AcceptAsync(int matchId, int userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Rejects a match by removing it. Only the owner of the match's Resource may reject,
+    /// and only while the match is UnderReview.
+    /// </summary>
+    Task<MatchDecisionResult> RejectAsync(int matchId, int userId, CancellationToken cancellationToken = default);
 }

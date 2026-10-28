@@ -8,9 +8,9 @@ using Heimevernet.Mappers.Interfaces;
 namespace Heimevernet.Services;
 
 /// <summary>
-/// Business logic for the Match: Propose flow (#40).
-/// Suggests candidate Resources for a Need and creates a Match when a
-/// Public Actor proposes one, with server-side validation.
+/// Business logic for the Match flow.
+/// Propose (#40): suggests candidate Resources for a Need and creates a Match.
+/// My Matches: lists matches and lets the Resource Provider accept or reject them.
 /// </summary>
 public class MatchService : IMatchService
 {
@@ -19,19 +19,22 @@ public class MatchService : IMatchService
     private readonly IMatchRepository _matchRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMatchCandidateMapper _matchCandidateMapper;
+    private readonly IMatchListMapper _matchListMapper; // NYTT I STEG 7
 
     public MatchService(
         INeedRepository needRepository,
         IResourceRepository resourceRepository,
         IMatchRepository matchRepository,
         IUnitOfWork unitOfWork,
-        IMatchCandidateMapper matchCandidateMapper)
+        IMatchCandidateMapper matchCandidateMapper,
+        IMatchListMapper matchListMapper) // NYTT I STEG 7
     {
         _needRepository = needRepository;
         _resourceRepository = resourceRepository;
         _matchRepository = matchRepository;
         _unitOfWork = unitOfWork;
         _matchCandidateMapper = matchCandidateMapper;
+        _matchListMapper = matchListMapper; // NYTT I STEG 7
     }
 
     public async Task<IReadOnlyList<MatchCandidateViewModel>> GetCandidateResourcesAsync(
@@ -155,5 +158,117 @@ public class MatchService : IMatchService
         }
 
         return (ProposeMatchResult.Success, match.Id);
+    }
+
+    // ---------- NYTT I STEG 7 ----------
+
+    public async Task<MatchIndexViewModel> GetMyMatchesAsync(
+        int userId,
+        bool isResourceProvider,
+        CancellationToken cancellationToken = default)
+    {
+        var matches = isResourceProvider
+            ? await _matchRepository.GetForResourceOwnerAsync(userId, cancellationToken)
+            : await _matchRepository.GetForNeedOwnerAsync(userId, cancellationToken);
+
+        return new MatchIndexViewModel
+        {
+            IsResourceProvider = isResourceProvider,
+            Matches = matches
+                .Select(m => _matchListMapper.ToListItem(m, isResourceProvider))
+                .ToList()
+        };
+    }
+
+    public async Task<MatchDecisionResult> AcceptAsync(
+        int matchId,
+        int userId,
+        CancellationToken cancellationToken = default)
+    {
+        var match = await _matchRepository.GetByIdWithNeedAndResourceAsync(matchId, cancellationToken);
+
+        if (match is null)
+        {
+            return MatchDecisionResult.MatchNotFound;
+        }
+
+        if (match.Resource.UserId != userId)
+        {
+            return MatchDecisionResult.UserIsNotResourceOwner;
+        }
+
+        if (match.Status != MatchStatus.UnderReview)
+        {
+            return MatchDecisionResult.MatchNotUnderReview;
+        }
+
+        // How much is already given away (accepted) on this need and this resource?
+        var acceptedNeedAllocation = await _matchRepository
+            .GetAcceptedAllocatedQuantityForNeedAsync(match.NeedId, cancellationToken);
+
+        var acceptedResourceAllocation = await _matchRepository
+            .GetAcceptedAllocatedQuantityForResourceAsync(match.ResourceId, cancellationToken);
+
+        var needRemaining = match.Need.QuantityNeeded - acceptedNeedAllocation;
+        var resourceRemaining = match.Resource.QuantityOffered - acceptedResourceAllocation;
+
+        if (match.Quantity > needRemaining || match.Quantity > resourceRemaining)
+        {
+            return MatchDecisionResult.InsufficientQuantity;
+        }
+
+        match.Status = MatchStatus.Assigned;
+
+        // Force a version check on Need and Resource, so two people cannot
+        // accept matches on the same need or resource at the same time.
+        _needRepository.MarkForConcurrencyCheck(match.Need);
+        _resourceRepository.MarkForConcurrencyCheck(match.Resource);
+
+        try
+        {
+            await _unitOfWork.CommitAsync(cancellationToken);
+        }
+        catch (ConcurrencyConflictException)
+        {
+            return MatchDecisionResult.ConcurrentChange;
+        }
+
+        return MatchDecisionResult.Success;
+    }
+
+    public async Task<MatchDecisionResult> RejectAsync(
+        int matchId,
+        int userId,
+        CancellationToken cancellationToken = default)
+    {
+        var match = await _matchRepository.GetByIdWithNeedAndResourceAsync(matchId, cancellationToken);
+
+        if (match is null)
+        {
+            return MatchDecisionResult.MatchNotFound;
+        }
+
+        if (match.Resource.UserId != userId)
+        {
+            return MatchDecisionResult.UserIsNotResourceOwner;
+        }
+
+        if (match.Status != MatchStatus.UnderReview)
+        {
+            return MatchDecisionResult.MatchNotUnderReview;
+        }
+
+        _matchRepository.Remove(match);
+
+        try
+        {
+            await _unitOfWork.CommitAsync(cancellationToken);
+        }
+        catch (ConcurrencyConflictException)
+        {
+            return MatchDecisionResult.ConcurrentChange;
+        }
+
+        return MatchDecisionResult.Success;
     }
 }

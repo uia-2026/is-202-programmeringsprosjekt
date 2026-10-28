@@ -48,4 +48,53 @@ public class MatchRepository : IMatchRepository
             .Where(m => m.ResourceId == resourceId && m.Status == MatchStatus.Assigned)
             .SumAsync(m => (int?)m.Quantity, cancellationToken) ?? 0;
     }
+
+    // ---------- NYTT I STEG 1 ----------
+
+    /// <summary>
+    /// Returns all matches for needs owned by the given user (Public Actor view).
+    /// </summary>
+    public async Task<IReadOnlyList<Match>> GetForNeedOwnerAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Matches
+            .AsNoTracking()
+            .Include(m => m.Need)
+            .Include(m => m.Resource)
+            .Where(m => m.Need.UserId == userId)
+            .OrderByDescending(m => m.MatchedAt)
+            .ToListAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Returns all matches for resources owned by the given user (Resource Provider view).
+    /// </summary>
+    public async Task<IReadOnlyList<Match>> GetForResourceOwnerAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Matches
+            .AsNoTracking()
+            .Include(m => m.Need)
+            .Include(m => m.Resource)
+            .Where(m => m.Resource.UserId == userId)
+            .OrderByDescending(m => m.MatchedAt)
+            .ToListAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Returns a tracked match including its Need and Resource, or null.
+    /// </summary>
+    public async Task<Match?> GetByIdWithNeedAndResourceAsync(int id, CancellationToken cancellationToken = default)
+    {
+        return await _context.Matches
+            .Include(m => m.Need)
+            .Include(m => m.Resource)
+            .FirstOrDefaultAsync(m => m.Id == id, cancellationToken);
+    }
+
+    /// <summary>
+    /// Marks a match for deletion.
+    /// </summary>
+    public void Remove(Match match)
+    {
+        _context.Matches.Remove(match);
+    }
 }

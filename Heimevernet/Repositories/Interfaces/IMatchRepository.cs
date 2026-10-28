@@ -33,4 +33,24 @@ public interface IMatchRepository
     /// Sums quantities from accepted matches for a specific resource.
     /// </summary>
     Task<int> GetAcceptedAllocatedQuantityForResourceAsync(int resourceId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns all matches for needs owned by the given user (Public Actor view).
+    /// </summary>
+    Task<IReadOnlyList<Match>> GetForNeedOwnerAsync(int userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns all matches for resources owned by the given user (Resource Provider view).
+    /// </summary>
+    Task<IReadOnlyList<Match>> GetForResourceOwnerAsync(int userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns a tracked match including its Need and Resource, or null.
+    /// </summary>
+    Task<Match?> GetByIdWithNeedAndResourceAsync(int id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Marks a match for deletion.
+    /// </summary>
+    void Remove(Match match);
 }
