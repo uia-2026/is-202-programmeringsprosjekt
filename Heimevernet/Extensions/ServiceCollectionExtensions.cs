@@ -78,6 +78,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMapMarkerMapper, MapMarkerMapper>();
         services.AddSingleton<INearbyResourceMapper, NearbyResourceMapper>();
         services.AddScoped<IMatchCandidateMapper, MatchCandidateMapper>();
+        services.AddSingleton<IMatchListMapper, MatchListMapper>(); // NYTT I STEG 5
 
         return services;
     }
