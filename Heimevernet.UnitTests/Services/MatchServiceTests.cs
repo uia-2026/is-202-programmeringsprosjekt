@@ -71,6 +71,14 @@ public class MatchServiceTests
             .ReturnsAsync(false);
 
         _matchRepositoryMock
+            .Setup(r => r.GetAcceptedAllocatedQuantityForNeedAsync(need.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(0);
+
+        _matchRepositoryMock
+            .Setup(r => r.GetAcceptedAllocatedQuantityForResourceAsync(resource.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(0);
+
+        _matchRepositoryMock
             .Setup(r => r.AddAsync(It.IsAny<MatchEntity>(), It.IsAny<CancellationToken>()))
             .Callback<MatchEntity, CancellationToken>((m, _) =>
             {
@@ -97,6 +105,175 @@ public class MatchServiceTests
         Assert.Equal(NeedStatus.UnderReview, need.Status);
 
         _unitOfWorkMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ProposeAsync_QuantityExceedsNeedRemaining_ReturnsInvalidQuantity_AndDoesNotPersist()
+    {
+        _needRepositoryMock
+            .Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Need { Id = 1, UserId = 7, Status = NeedStatus.New, QuantityNeeded = 5 });
+
+        _resourceRepositoryMock
+            .Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Resource { Id = 2, Status = ResourceStatus.Available, QuantityOffered = 10 });
+
+        _matchRepositoryMock
+            .Setup(r => r.ExistsAsync(1, 2, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        _matchRepositoryMock
+            .Setup(r => r.GetAcceptedAllocatedQuantityForNeedAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(3);
+
+        _matchRepositoryMock
+            .Setup(r => r.GetAcceptedAllocatedQuantityForResourceAsync(2, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(0);
+
+        var sut = CreateSut();
+
+        var (result, matchId) = await sut.ProposeAsync(1, 2, 3, 7, CancellationToken.None);
+
+        Assert.Equal(ProposeMatchResult.InvalidQuantity, result);
+        Assert.Null(matchId);
+        _matchRepositoryMock.Verify(r => r.AddAsync(It.IsAny<MatchEntity>(), It.IsAny<CancellationToken>()), Times.Never);
+        _unitOfWorkMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ProposeAsync_QuantityExceedsResourceRemaining_ReturnsInvalidQuantity_AndDoesNotPersist()
+    {
+        _needRepositoryMock
+            .Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Need { Id = 1, UserId = 7, Status = NeedStatus.New, QuantityNeeded = 10 });
+
+        _resourceRepositoryMock
+            .Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Resource { Id = 2, Status = ResourceStatus.Available, QuantityOffered = 5 });
+
+        _matchRepositoryMock
+            .Setup(r => r.ExistsAsync(1, 2, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        _matchRepositoryMock
+            .Setup(r => r.GetAcceptedAllocatedQuantityForNeedAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(0);
+
+        _matchRepositoryMock
+            .Setup(r => r.GetAcceptedAllocatedQuantityForResourceAsync(2, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(2);
+
+        var sut = CreateSut();
+
+        var (result, matchId) = await sut.ProposeAsync(1, 2, 4, 7, CancellationToken.None);
+
+        Assert.Equal(ProposeMatchResult.InvalidQuantity, result);
+        Assert.Null(matchId);
+        _matchRepositoryMock.Verify(r => r.AddAsync(It.IsAny<MatchEntity>(), It.IsAny<CancellationToken>()), Times.Never);
+        _unitOfWorkMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ProposeAsync_QuantityExceedsBothRemainingLimits_ReturnsInvalidQuantity_AndDoesNotPersist()
+    {
+        _needRepositoryMock
+            .Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Need { Id = 1, UserId = 7, Status = NeedStatus.New, QuantityNeeded = 6 });
+
+        _resourceRepositoryMock
+            .Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Resource { Id = 2, Status = ResourceStatus.Available, QuantityOffered = 4 });
+
+        _matchRepositoryMock
+            .Setup(r => r.ExistsAsync(1, 2, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        _matchRepositoryMock
+            .Setup(r => r.GetAcceptedAllocatedQuantityForNeedAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(2);
+
+        _matchRepositoryMock
+            .Setup(r => r.GetAcceptedAllocatedQuantityForResourceAsync(2, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        var sut = CreateSut();
+
+        var (result, matchId) = await sut.ProposeAsync(1, 2, 10, 7, CancellationToken.None);
+
+        Assert.Equal(ProposeMatchResult.InvalidQuantity, result);
+        Assert.Null(matchId);
+        _matchRepositoryMock.Verify(r => r.AddAsync(It.IsAny<MatchEntity>(), It.IsAny<CancellationToken>()), Times.Never);
+        _unitOfWorkMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ProposeAsync_QuantityWithinBothLimits_CreatesProposal()
+    {
+        _needRepositoryMock
+            .Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Need { Id = 1, UserId = 7, Status = NeedStatus.New, QuantityNeeded = 8 });
+
+        _resourceRepositoryMock
+            .Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Resource { Id = 2, Status = ResourceStatus.Available, QuantityOffered = 7 });
+
+        _matchRepositoryMock
+            .Setup(r => r.ExistsAsync(1, 2, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        _matchRepositoryMock
+            .Setup(r => r.GetAcceptedAllocatedQuantityForNeedAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(3);
+
+        _matchRepositoryMock
+            .Setup(r => r.GetAcceptedAllocatedQuantityForResourceAsync(2, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(2);
+
+        _matchRepositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<MatchEntity>(), It.IsAny<CancellationToken>()))
+            .Callback<MatchEntity, CancellationToken>((m, _) => m.Id = 123)
+            .Returns(Task.CompletedTask);
+
+        var sut = CreateSut();
+
+        var (result, matchId) = await sut.ProposeAsync(1, 2, 4, 7, CancellationToken.None);
+
+        Assert.Equal(ProposeMatchResult.Success, result);
+        Assert.Equal(123, matchId);
+        _matchRepositoryMock.Verify(r => r.AddAsync(It.IsAny<MatchEntity>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ProposeAsync_Need4_Resource3_Quantity100_ReturnsInvalidQuantity_AndDoesNotPersist()
+    {
+        _needRepositoryMock
+            .Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Need { Id = 1, UserId = 7, Status = NeedStatus.New, QuantityNeeded = 4 });
+
+        _resourceRepositoryMock
+            .Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Resource { Id = 2, Status = ResourceStatus.Available, QuantityOffered = 3 });
+
+        _matchRepositoryMock
+            .Setup(r => r.ExistsAsync(1, 2, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        _matchRepositoryMock
+            .Setup(r => r.GetAcceptedAllocatedQuantityForNeedAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(0);
+
+        _matchRepositoryMock
+            .Setup(r => r.GetAcceptedAllocatedQuantityForResourceAsync(2, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(0);
+
+        var sut = CreateSut();
+
+        var (result, matchId) = await sut.ProposeAsync(1, 2, 100, 7, CancellationToken.None);
+
+        Assert.Equal(ProposeMatchResult.InvalidQuantity, result);
+        Assert.Null(matchId);
+        _matchRepositoryMock.Verify(r => r.AddAsync(It.IsAny<MatchEntity>(), It.IsAny<CancellationToken>()), Times.Never);
+        _unitOfWorkMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -282,6 +459,12 @@ public class MatchServiceTests
             .ReturnsAsync(resource);
         matchRepository.Setup(r => r.ExistsAsync(1, 2, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
+
+        matchRepository.Setup(r => r.GetAcceptedAllocatedQuantityForNeedAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(0);
+
+        matchRepository.Setup(r => r.GetAcceptedAllocatedQuantityForResourceAsync(2, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(0);
 
         var (result, _) = await service.ProposeAsync(1, 2, 1, 42, CancellationToken.None);
 

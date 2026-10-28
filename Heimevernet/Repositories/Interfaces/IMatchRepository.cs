@@ -23,4 +23,14 @@ public interface IMatchRepository
     /// <param name="match">The match entity to add.</param>
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
     Task AddAsync(Match match, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sums quantities from accepted matches for a specific need.
+    /// </summary>
+    Task<int> GetAcceptedAllocatedQuantityForNeedAsync(int needId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sums quantities from accepted matches for a specific resource.
+    /// </summary>
+    Task<int> GetAcceptedAllocatedQuantityForResourceAsync(int resourceId, CancellationToken cancellationToken = default);
 }

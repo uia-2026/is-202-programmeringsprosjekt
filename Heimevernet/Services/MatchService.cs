@@ -113,6 +113,21 @@ public class MatchService : IMatchService
             return (ProposeMatchResult.MatchAlreadyExists, null);
         }
 
+        var acceptedNeedAllocation = await _matchRepository
+            .GetAcceptedAllocatedQuantityForNeedAsync(needId, cancellationToken);
+
+        var acceptedResourceAllocation = await _matchRepository
+            .GetAcceptedAllocatedQuantityForResourceAsync(resourceId, cancellationToken);
+
+        var needRemaining = Math.Max(0, need.QuantityNeeded - acceptedNeedAllocation);
+        var resourceRemaining = Math.Max(0, resource.QuantityOffered - acceptedResourceAllocation);
+        var maxAllowed = Math.Min(needRemaining, resourceRemaining);
+
+        if (quantity > maxAllowed)
+        {
+            return (ProposeMatchResult.InvalidQuantity, null);
+        }
+
         var match = new Match
         {
             NeedId = needId,

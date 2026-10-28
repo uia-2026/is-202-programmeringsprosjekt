@@ -34,4 +34,18 @@ public class MatchRepository : IMatchRepository
     {
         await _context.Matches.AddAsync(match, cancellationToken);
     }
+
+    public async Task<int> GetAcceptedAllocatedQuantityForNeedAsync(int needId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Matches
+            .Where(m => m.NeedId == needId && m.Status == MatchStatus.Assigned)
+            .SumAsync(m => (int?)m.Quantity, cancellationToken) ?? 0;
+    }
+
+    public async Task<int> GetAcceptedAllocatedQuantityForResourceAsync(int resourceId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Matches
+            .Where(m => m.ResourceId == resourceId && m.Status == MatchStatus.Assigned)
+            .SumAsync(m => (int?)m.Quantity, cancellationToken) ?? 0;
+    }
 }
