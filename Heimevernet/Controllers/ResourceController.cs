@@ -31,6 +31,14 @@ public class ResourceController(
         var resources =
             await _resourceService.GetAllAsync(cancellationToken);
 
+        if (User.IsInRole("ResourceProvider"))
+        {
+            var currentUserId = User.GetUserId();
+            resources = resources
+                .Where(r => r.UserId == currentUserId)
+                .ToList();
+        }
+
         return View(resources);
     }
 
