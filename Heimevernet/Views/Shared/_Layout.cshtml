@@ -132,14 +132,17 @@
                             </li>
                         }
 
-                        @if (isResourceProvider)
+                        @if (isPublicActor || isResourceProvider)
                         {
                             <li class="nav-item">
                                 <a class="nav-link @ActiveClass("Resource", "Create")" asp-controller="Resource" asp-action="Create">
                                     Register Resource
                                 </a>
                             </li>
+                        }
 
+                        @if (isResourceProvider)
+                        {
                             <li class="nav-item">
                                 <a class="nav-link @ActiveClass("Resource", "MyResources")" asp-controller="Resource" asp-action="MyResources">
                                     My Resources
