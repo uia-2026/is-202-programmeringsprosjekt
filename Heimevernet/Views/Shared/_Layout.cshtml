@@ -132,15 +132,13 @@
                             </li>
                         }
 
-                        @if (isResourceProvider)
+                        @if (isPublicActor || isResourceProvider)
                         {
                             <li class="nav-item">
                                 <a class="nav-link @ActiveClass("Resource", "Create")" asp-controller="Resource" asp-action="Create">
                                     Register Resource
                                 </a>
-                            </li>
-                        }
-
+                            </li>                        }
                     </ul>
                 </nav>
             </aside>
@@ -149,21 +147,7 @@
 
                 <main class="app-main @ViewData["MainClass"]" role="main">
 
-                    @if (TempData["Success"] != null)
-                    {
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            @TempData["Success"]
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    }
-
-                    @if (TempData["Error"] != null)
-                    {
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            @TempData["Error"]
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    }
+                    @await Html.PartialAsync("_TempDataAlerts")
 
                     @RenderBody()
                 </main>

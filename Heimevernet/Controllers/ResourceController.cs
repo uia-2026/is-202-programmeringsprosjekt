@@ -43,6 +43,7 @@ public class ResourceController(
     }
 
     [HttpGet]
+    [Authorize(Roles = "PublicActor,ResourceProvider")]
     public async Task<IActionResult> Create()
     {
         var model = new ResourceCreateViewModel
@@ -62,7 +63,7 @@ public class ResourceController(
     /// </summary>
     /// <returns>Redirects to the new resource's Details page, or redisplays the form on validation errors.</returns>
     [HttpPost]
-    [Authorize(Roles = "ResourceProvider")]
+    [Authorize(Roles = "PublicActor,ResourceProvider")]
     [ValidateAntiForgeryToken]
     [RequestSizeLimit(6 * 1024 * 1024)] // 5 MB photo plus form overhead
     public async Task<IActionResult> Create(
@@ -104,7 +105,7 @@ public class ResourceController(
     }
 
     [HttpGet]
-    [Authorize(Roles = "ResourceProvider")]
+    [Authorize(Roles = "PublicActor,ResourceProvider")]
     public async Task<IActionResult> Edit(int id, CancellationToken cancellationToken)
     {
         var resource = await _resourceService.GetByIdAsync(id, cancellationToken);
@@ -136,7 +137,7 @@ public class ResourceController(
     }
 
     [HttpPost]
-    [Authorize(Roles = "ResourceProvider")]
+    [Authorize(Roles = "PublicActor,ResourceProvider")]
     [ValidateAntiForgeryToken]
     [RequestSizeLimit(6 * 1024 * 1024)]
     public async Task<IActionResult> Edit(int id, ResourceCreateViewModel model, CancellationToken cancellationToken)
@@ -185,7 +186,7 @@ public class ResourceController(
     }
 
     [HttpPost]
-    [Authorize(Roles = "ResourceProvider")]
+    [Authorize(Roles = "PublicActor,ResourceProvider")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
@@ -213,7 +214,7 @@ public class ResourceController(
     }
 
     [HttpPut("/api/resources/{id:int}")]
-    [Authorize(Roles = "ResourceProvider")]
+    [Authorize(Roles = "PublicActor,ResourceProvider")]
     public async Task<IActionResult> UpdateApi(int id, [FromBody] ResourceCreateViewModel model, CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid)
@@ -232,7 +233,7 @@ public class ResourceController(
     }
 
     [HttpDelete("/api/resources/{id:int}")]
-    [Authorize(Roles = "ResourceProvider")]
+    [Authorize(Roles = "PublicActor,ResourceProvider")]
     public async Task<IActionResult> DeleteApi(int id, CancellationToken cancellationToken)
     {
         var (result, message) = await _resourceService.DeleteAsync(id, User.GetUserId(), cancellationToken);
@@ -285,7 +286,7 @@ public class ResourceController(
 
     /// <summary>Uploads a photo to a resource owned by the current user.</summary>
     [HttpPost]
-    [Authorize(Roles = "ResourceProvider")]
+    [Authorize(Roles = "PublicActor,ResourceProvider")]
     [ValidateAntiForgeryToken]
     [RequestSizeLimit(6 * 1024 * 1024)]
     public async Task<IActionResult> UploadAttachment(
@@ -308,7 +309,7 @@ public class ResourceController(
 
     /// <summary>Deletes a photo from a resource owned by the current user.</summary>
     [HttpPost]
-    [Authorize(Roles = "ResourceProvider")]
+    [Authorize(Roles = "PublicActor,ResourceProvider")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteAttachment(
         int attachmentId,
