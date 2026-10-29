@@ -37,6 +37,37 @@ public class ResourceRepository : IResourceRepository
     }
 
     /// <summary>
+    /// Retrieves the Resources owned by <paramref name="userId"/>, newest first (#37).
+    /// The owner filter runs in SQL, so other users' resources are never loaded.
+    /// </summary>
+    public async Task<IReadOnlyList<Resource>> GetByUserIdAsync(
+        int userId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.Resources
+            .AsNoTracking()
+            .Include(r => r.Category)
+            .Where(r => r.UserId == userId)
+            .OrderByDescending(r => r.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Retrieves every user who owns at least one Resource, ordered by username (#37).
+    /// Only the id and username are selected.
+    /// </summary>
+    public async Task<IReadOnlyList<ResourceOwnerDto>> GetOwnersAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.Users
+            .AsNoTracking()
+            .Where(u => u.Resources.Any())
+            .OrderBy(u => u.Username)
+            .Select(u => new ResourceOwnerDto(u.Id, u.Username))
+            .ToListAsync(cancellationToken);
+    }
+
+    /// <summary>
     /// Retrieves a single Resource by id, including its Category navigation property.
     /// </summary>
     /// <param name="id">The resource id to look up.</param>

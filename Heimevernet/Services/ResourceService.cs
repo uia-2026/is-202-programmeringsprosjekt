@@ -103,6 +103,28 @@ public class ResourceService : IResourceService
         return _mapMarkerMapper.ToViewModels(dtos);
     }
 
+    public async Task<IReadOnlyList<ResourceViewModel>> GetByUserIdAsync(
+        int userId,
+        CancellationToken cancellationToken = default)
+    {
+        var resources =
+            await _resourceRepository.GetByUserIdAsync(userId, cancellationToken);
+
+        return resources
+            .Select(r => _resourceMapper.ToViewModel(r))
+            .ToList();
+    }
+
+    public async Task<IReadOnlyList<ResourceOwnerOptionViewModel>> GetOwnersAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var owners = await _resourceRepository.GetOwnersAsync(cancellationToken);
+
+        return owners
+            .Select(o => new ResourceOwnerOptionViewModel { UserId = o.UserId, Username = o.Username })
+            .ToList();
+    }
+
     public async Task<IReadOnlyList<NearbyResourceViewModel>>
      GetCompatibleNearbyAsync(
          NeedViewModel needViewModel,
