@@ -1,0 +1,21 @@
+@{
+    var success = TempData["Success"];
+    var error = TempData["Error"];
+    var alertClasses = ViewData["TempDataAlertClasses"] as string ?? string.Empty;
+}
+
+@if (success != null)
+{
+    <div class="alert alert-success alert-dismissible fade show @alertClasses" role="alert">
+        @success
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (error != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show @alertClasses" role="alert">
+        @error
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}

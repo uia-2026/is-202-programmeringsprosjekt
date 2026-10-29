@@ -15,16 +15,6 @@ else
     <p class="text-muted">Proposals on your needs and their status.</p>
 }
 
-@if (TempData["Success"] is string success)
-{
-    <div class="alert alert-success">@success</div>
-}
-
-@if (TempData["Error"] is string error)
-{
-    <div class="alert alert-danger">@error</div>
-}
-
 @if (Model.Matches.Count == 0)
 {
     <p>You have no matches yet.</p>
