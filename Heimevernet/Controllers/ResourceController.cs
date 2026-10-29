@@ -24,19 +24,33 @@ public class ResourceController(
     private readonly IAttachmentService _attachmentService = attachmentService;
     private readonly IRegionResolver _regionResolver = regionResolver;
     private const int UnprocessableEntityStatusCode = 422;
+    /// <summary>
+    /// Lists resources (#37).
+    /// Resource Providers always see only their own resources; any ownerId in the request is ignored.
+    /// Public Actors see every resource by default and can filter by owner with <paramref name="ownerId"/>.
+    /// All filtering happens in the database.
+    /// </summary>
     [HttpGet]
     public async Task<IActionResult> Index(
+        int? ownerId,
         CancellationToken cancellationToken)
     {
-        var resources =
-            await _resourceService.GetAllAsync(cancellationToken);
+        IReadOnlyList<ResourceViewModel> resources;
 
         if (User.IsInRole("ResourceProvider"))
         {
-            var currentUserId = User.GetUserId();
-            resources = resources
-                .Where(r => r.UserId == currentUserId)
-                .ToList();
+            // Owner comes from the claims, never from the request.
+            resources = await _resourceService.GetByUserIdAsync(User.GetUserId(), cancellationToken);
+        }
+        else
+        {
+            resources = ownerId.HasValue
+                ? await _resourceService.GetByUserIdAsync(ownerId.Value, cancellationToken)
+                : await _resourceService.GetAllAsync(cancellationToken);
+
+            ViewBag.Owners = await _resourceService.GetOwnersAsync(cancellationToken);
+            ViewBag.SelectedOwnerId = ownerId;
+            ViewBag.CurrentUserId = User.GetUserId();
         }
 
         return View(resources);

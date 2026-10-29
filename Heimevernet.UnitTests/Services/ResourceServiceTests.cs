@@ -399,4 +399,47 @@ public class ResourceServiceTests
         Assert.Equal(ResourceStatus.Busy, resource.Status);
         Assert.Equal(createdAt, resource.CreatedAt);
     }
+
+    /// <summary>
+    /// Ensures GetByUserIdAsync queries the repository for the given owner only
+    /// and never falls back to loading every resource (#37).
+    /// </summary>
+    [Fact]
+    public async Task GetByUserIdAsync_Queries_Repository_By_Owner()
+    {
+        var owned = new List<Resource>
+        {
+            new() { Id = 1, UserId = 42, Title = "Tractor" },
+            new() { Id = 2, UserId = 42, Title = "Drone" }
+        };
+        _repoMock.Setup(r => r.GetByUserIdAsync(42, It.IsAny<CancellationToken>())).ReturnsAsync(owned);
+        _mapperMock.Setup(m => m.ToViewModel(It.IsAny<Resource>()))
+            .Returns((Resource r) => new ResourceViewModel { Id = r.Id, Title = r.Title, UserId = r.UserId });
+
+        var result = await _sut.GetByUserIdAsync(42, CancellationToken.None);
+
+        Assert.Equal(2, result.Count);
+        Assert.All(result, r => Assert.Equal(42, r.UserId));
+        _repoMock.Verify(r => r.GetAllAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    /// <summary>
+    /// Ensures GetOwnersAsync maps owner DTOs to filter options (#37).
+    /// </summary>
+    [Fact]
+    public async Task GetOwnersAsync_Maps_Owners()
+    {
+        _repoMock.Setup(r => r.GetOwnersAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Heimevernet.DTOs.Resources.ResourceOwnerDto>
+            {
+                new(1, "dev_public_actor"),
+                new(2, "dev_resource_provider")
+            });
+
+        var result = await _sut.GetOwnersAsync(CancellationToken.None);
+
+        Assert.Equal(2, result.Count);
+        Assert.Equal(2, result[1].UserId);
+        Assert.Equal("dev_resource_provider", result[1].Username);
+    }
 }

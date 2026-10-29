@@ -12,6 +12,35 @@
     </a>
 </div>
 
+@if (ViewBag.Owners is IReadOnlyList<Heimevernet.ViewModels.Resource.ResourceOwnerOptionViewModel> owners)
+{
+    int? selectedOwnerId = ViewBag.SelectedOwnerId;
+    int currentUserId = ViewBag.CurrentUserId;
+
+    <form method="get" asp-action="Index" class="d-flex flex-wrap align-items-center gap-2 mb-4">
+        <label for="ownerId" class="form-label mb-0 small text-muted">Owner</label>
+
+        <select id="ownerId" name="ownerId" class="form-select form-select-sm w-auto"
+                onchange="this.form.submit()">
+            <option value="">All owners</option>
+            @foreach (var owner in owners)
+            {
+                var label = owner.UserId == currentUserId ? $"{owner.Username} (you)" : owner.Username;
+                <option value="@owner.UserId" selected="@(owner.UserId == selectedOwnerId)">@label</option>
+            }
+        </select>
+
+        <noscript>
+            <button type="submit" class="btn btn-outline-secondary btn-sm">Filter</button>
+        </noscript>
+
+        @if (selectedOwnerId.HasValue)
+        {
+            <a asp-action="Index" class="btn btn-link btn-sm">Clear filter</a>
+        }
+    </form>
+}
+
 @if (Model.Any())
 {
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
@@ -101,6 +130,13 @@
 else
 {
     <p class="text-muted">
-        No resources have been registered yet.
+        @if (ViewBag.SelectedOwnerId is int)
+        {
+            @:No resources found for this owner.
+        }
+        else
+        {
+            @:No resources have been registered yet.
+        }
     </p>
 }

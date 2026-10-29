@@ -38,6 +38,19 @@ public interface IResourceService
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Returns the resources owned by the given user, newest first. Filtered in the database.
+    /// </summary>
+    Task<IReadOnlyList<ResourceViewModel>> GetByUserIdAsync(
+        int userId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns every user who owns at least one resource, for the owner filter.
+    /// </summary>
+    Task<IReadOnlyList<ResourceOwnerOptionViewModel>> GetOwnersAsync(
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Creates a new Resource from the provided create model for the specified user.
     /// </summary>
     /// <param name="model">The create view model containing resource details.</param>

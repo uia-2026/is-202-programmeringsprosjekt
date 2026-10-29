@@ -41,6 +41,13 @@ public interface IResourceRepository
     /// <returns>A read-only list of available <see cref="Resource"/> entities.</returns>
     Task<IReadOnlyList<Resource>> GetAvailableAsync(
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<Resource>> GetByUserIdAsync(
+        int userId,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<ResourceOwnerDto>> GetOwnersAsync(
+        CancellationToken cancellationToken = default);
     /// <summary>
     /// Adds a resource to the underlying data store.
     /// </summary>
