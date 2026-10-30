@@ -23,7 +23,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Heimevernet\Heimevernet.csproj" />
+    <ProjectReference Include="..\Heimevernet\Heimevernet.csproj" Aliases="WebApp, global" />
+    <ProjectReference Include="..\Heimevernet.Migrator\Heimevernet.Migrator.csproj" />
   </ItemGroup>
-
+  
 </Project>

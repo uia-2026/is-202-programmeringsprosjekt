@@ -1,4 +1,7 @@
+extern alias WebApp;
+
 using Heimevernet.Data;
+using Heimevernet.Migrator;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -15,7 +18,7 @@ namespace Heimevernet.IntegrationTests.Infrastructure;
 /// MariaDB Testcontainer and configures test application services and environment settings.
 /// </summary>
 public sealed class HeimevernetWebApplicationFactory
-    : WebApplicationFactory<Program>, IAsyncLifetime
+    : WebApplicationFactory<WebApp::Program>, IAsyncLifetime
 {
     // Configure an isolated MariaDB docker container for integration testing.
     private readonly MariaDbContainer _database =
@@ -38,6 +41,8 @@ public sealed class HeimevernetWebApplicationFactory
         using var scope = Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await db.Database.MigrateAsync();
+
+        await SeedData.SeedReferenceDataAsync(db, CancellationToken.None);
     }
 
     /// <summary>
@@ -56,7 +61,7 @@ public sealed class HeimevernetWebApplicationFactory
         builder.ConfigureAppConfiguration((_, configuration) =>
         {
             // Load user secrets from the main project assembly if present.
-            configuration.AddUserSecrets<Program>(optional: true);
+            configuration.AddUserSecrets<WebApp::Program>(optional: true);
         });
 
         builder.ConfigureServices(services =>
