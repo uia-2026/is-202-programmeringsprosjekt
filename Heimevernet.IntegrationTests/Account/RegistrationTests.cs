@@ -3,7 +3,6 @@ using Heimevernet.IntegrationTests.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace Heimevernet.IntegrationTests.Account;
 

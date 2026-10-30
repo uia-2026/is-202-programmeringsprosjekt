@@ -1,7 +1,6 @@
 using Heimevernet.IntegrationTests.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Testing;
 using OtpNet;
-using Xunit;
 
 namespace Heimevernet.IntegrationTests.Account;
 
