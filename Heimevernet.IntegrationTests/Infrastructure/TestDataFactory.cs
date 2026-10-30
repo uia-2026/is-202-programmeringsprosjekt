@@ -113,6 +113,40 @@ public sealed class TestDataFactory
     }
 
     /// <summary>
+    /// Seeds a standalone Resource record directly into the test database.
+    /// </summary>
+    public async Task<int> CreateResourceAsync(
+        int userId,
+        CancellationToken cancellationToken = default)
+    {
+        using var scope = _services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var categoryId = await GetCategoryIdAsync(cancellationToken);
+
+        var resource = new Heimevernet.Models.Resource
+        {
+            UserId = userId,
+            CategoryId = categoryId,
+            Title = $"Integration test resource {Guid.NewGuid():N}",
+            Description = "Test description",
+            Latitude = 0,
+            Longitude = 0,
+            Region = "Test region",
+            ContactPoint = "Test contact point",
+            QuantityOffered = 1,
+            Status = ResourceStatus.Available,
+            AvailableFrom = DateTime.Now.AddHours(-1),
+            AvailableTo = null
+        };
+
+        db.Resources.Add(resource);
+        await db.SaveChangesAsync(cancellationToken);
+
+        return resource.Id;
+    }
+
+    /// <summary>
     /// Seeds a Need, Resource, and Match relational graph into the test database.
     /// </summary>
     public async Task<int> CreateNeedWithMatchAsync(
@@ -173,6 +207,70 @@ public sealed class TestDataFactory
 
         return need.Id;
     }
+
+
+    /// <summary>
+    /// Seeds a Need, Resource, and Match relational graph into the test database.
+    /// </summary>
+    public async Task<int> CreateResourceWithMatchAsync(
+        int providerId,
+        int ownerId,
+        MatchStatus matchStatus,
+        CancellationToken cancellationToken = default)
+    {
+        using var scope = _services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var categoryId = await GetCategoryIdAsync(cancellationToken);
+
+        var need = new Need
+        {
+            UserId = ownerId,
+            CategoryId = categoryId,
+            Title = $"Integration test need {Guid.NewGuid():N}",
+            Description = "Test description",
+            Latitude = 0,
+            Longitude = 0,
+            Region = "Test region",
+            Priority = NeedPriority.Medium,
+            ContactPoint = "Test contact point",
+            QuantityNeeded = 1,
+            Status = NeedStatus.New
+        };
+
+        var resource = new Resource
+        {
+            UserId = providerId,
+            CategoryId = categoryId,
+            Title = $"Integration test resource {Guid.NewGuid():N}",
+            Description = "Test resource",
+            Latitude = 0,
+            Longitude = 0,
+            Region = "Test region",
+            ContactPoint = "Test contact point",
+            Status = ResourceStatus.Available,
+            QuantityOffered = 1,
+            AvailableFrom = DateTime.UtcNow
+        };
+
+        var match = new Match
+        {
+            Need = need,
+            Resource = resource,
+            MatchedByUserId = ownerId,
+            Status = matchStatus,
+            Quantity = 1
+        };
+
+        db.Needs.Add(need);
+        db.Resources.Add(resource);
+        db.Matches.Add(match);
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        return resource.Id;
+    }
+
 
     /// <summary>
     /// Retrieves the ID of the first seeded category.
