@@ -285,6 +285,75 @@ public sealed class TestDataFactory
             .Select(c => c.Id)
             .FirstAsync(cancellationToken);
     }
+
+
+    public async Task<int> CreateMapNeedAsync(
+        int userId,
+        double latitude,
+        double longitude,
+        NeedStatus status = NeedStatus.New,
+        NeedPriority priority = NeedPriority.Medium,
+        CancellationToken cancellationToken = default)
+    {
+        using var scope = _services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var categoryId = await GetCategoryIdAsync(cancellationToken);
+
+        var need = new Need
+        {
+            UserId = userId,
+            CategoryId = categoryId,
+            Title = $"Map test need {Guid.NewGuid():N}",
+            Description = "Map test description",
+            Latitude = latitude,
+            Longitude = longitude,
+            Region = "Test region",
+            Priority = priority,
+            ContactPoint = "Test contact point",
+            QuantityNeeded = 1,
+            Status = status
+        };
+
+        db.Needs.Add(need);
+        await db.SaveChangesAsync(cancellationToken);
+
+        return need.Id;
+    }
+
+    public async Task<int> CreateMapResourceAsync(
+        int userId,
+        double latitude,
+        double longitude,
+        ResourceStatus status = ResourceStatus.Available,
+        CancellationToken cancellationToken = default)
+    {
+        using var scope = _services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var categoryId = await GetCategoryIdAsync(cancellationToken);
+
+        var resource = new Resource
+        {
+            UserId = userId,
+            CategoryId = categoryId,
+            Title = $"Map test resource {Guid.NewGuid():N}",
+            Description = "Map test description",
+            Latitude = latitude,
+            Longitude = longitude,
+            Region = "Test region",
+            ContactPoint = "Test contact point",
+            Status = status,
+            QuantityOffered = 1,
+            AvailableFrom = DateTime.UtcNow
+        };
+
+        db.Resources.Add(resource);
+        await db.SaveChangesAsync(cancellationToken);
+
+        return resource.Id;
+    }
+
 }
 
 /// <summary>
