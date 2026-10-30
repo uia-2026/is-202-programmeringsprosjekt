@@ -57,6 +57,7 @@ public sealed class HeimevernetWebApplicationFactory
         // Inject dynamic container connection settings before the host boots.
         builder.UseSetting("ConnectionStrings:heimevernetdb", _database.GetConnectionString());
         builder.UseSetting("Storage:Bucket", "test_bucket_is202");
+        builder.UseSetting("Storage:PublicBaseUrl", "https://hhbpqeqznbrwzuooqakk.supabase.co/storage/v1/object/public/test_bucket_is202");
 
         builder.ConfigureAppConfiguration((_, configuration) =>
         {
