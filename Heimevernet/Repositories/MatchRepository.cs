@@ -35,21 +35,18 @@ public class MatchRepository : IMatchRepository
         await _context.Matches.AddAsync(match, cancellationToken);
     }
 
-    public async Task<int> GetAcceptedAllocatedQuantityForNeedAsync(int needId, CancellationToken cancellationToken = default)
+    public async Task<int> GetAllocatedQuantityForNeedAsync(int needId, CancellationToken cancellationToken = default)
     {
         return await _context.Matches
-            .Where(m => m.NeedId == needId && m.Status == MatchStatus.Assigned)
+            .Where(m => m.NeedId == needId && (m.Status == MatchStatus.Assigned || m.Status == MatchStatus.Resolved))
             .SumAsync(m => (int?)m.Quantity, cancellationToken) ?? 0;
     }
 
-    public async Task<int> GetAcceptedAllocatedQuantityForResourceAsync(int resourceId, CancellationToken cancellationToken = default)
+    public async Task<int> GetAllocatedQuantityForResourceAsync(int resourceId, CancellationToken cancellationToken = default)
     {
-        return await _context.Matches
-            .Where(m => m.ResourceId == resourceId && m.Status == MatchStatus.Assigned)
+        return await _context.Matches.Where(m => m.ResourceId == resourceId && (m.Status == MatchStatus.Assigned || m.Status == MatchStatus.Resolved))
             .SumAsync(m => (int?)m.Quantity, cancellationToken) ?? 0;
     }
-
-    // ---------- NYTT I STEG 1 ----------
 
     /// <summary>
     /// Returns all matches for needs owned by the given user (Public Actor view).
@@ -90,11 +87,32 @@ public class MatchRepository : IMatchRepository
             .FirstOrDefaultAsync(m => m.Id == id, cancellationToken);
     }
 
-    /// <summary>
-    /// Marks a match for deletion.
-    /// </summary>
-    public void Remove(Match match)
+    public async Task<List<Match>> GetPendingMatchesByNeedIdAsync(
+        int needId,
+        IReadOnlyCollection<int> excludedMatchIds,
+        CancellationToken cancellationToken = default)
     {
-        _context.Matches.Remove(match);
+        return await _context.Matches
+            .Where(m => m.NeedId == needId &&
+                        m.Status == MatchStatus.UnderReview &&
+                        !excludedMatchIds.Contains(m.Id))
+            .Include(m => m.Need)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Match>> GetPendingMatchesByResourceIdAsync(int resourceId, int excludeMatchId, CancellationToken ct = default) =>
+       await _context.Matches
+           .Include(m => m.Need)
+           .Where(m => m.ResourceId == resourceId && m.Id != excludeMatchId && m.Status == MatchStatus.UnderReview)
+           .ToListAsync(ct);
+
+    public async Task<int> CountPendingForNeedAsync(
+        int needId,
+        int excludedMatchId,
+        CancellationToken ct = default)
+    {
+        return await _context.Matches
+            .Where(m => m.NeedId == needId && m.Id != excludedMatchId && m.Status == MatchStatus.UnderReview)
+            .CountAsync(ct);
     }
 }

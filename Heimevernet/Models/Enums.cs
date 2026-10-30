@@ -7,7 +7,6 @@ public enum UserRole
 {
     PublicActor,
     ResourceProvider
-    // ? Maybe we can add Admin role later
 }
 
 /// <summary>
@@ -45,9 +44,11 @@ public enum ResourceStatus
 /// </summary>
 public enum MatchStatus
 {
-    UnderReview,
-    Assigned,
-    Resolved
+    UnderReview, // Proposed and awaiting the Resource Provider's decision.
+    Assigned,    // Accepted; the match quantity has been allocated.
+    Resolved,    // The Need was marked as resolved; all assigned matches become resolved.
+    Rejected,    // The Resource Provider rejected the proposal.
+    Cancelled    // The proposal is no longer needed because the Need was deleted or fully allocated.
 }
 
 /// <summary>

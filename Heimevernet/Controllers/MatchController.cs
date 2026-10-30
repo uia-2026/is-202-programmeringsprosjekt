@@ -60,7 +60,7 @@ public class MatchController(IMatchService matchService, INeedService needServic
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Propose(int needId, int resourceId, int quantity, CancellationToken cancellationToken)
     {
-        var (result, _) = await _matchService.ProposeAsync(needId, resourceId, quantity, User.GetUserId(), cancellationToken);
+        var (result, _, maxAllowedQuantity) = await _matchService.ProposeAsync(needId, resourceId, quantity, User.GetUserId(), cancellationToken);
 
         switch (result)
         {
@@ -109,6 +109,20 @@ public class MatchController(IMatchService matchService, INeedService needServic
                 return RedirectToAction(
                     nameof(Propose), new { needId });
 
+            case ProposeMatchResult.ResourceNotSuitable:
+                TempData["Error"] =
+                    "This resource is not suitable for the need based on category, location, or availability.";
+
+                return RedirectToAction(
+                    nameof(Propose), new { needId });
+
+            case ProposeMatchResult.ExceedsRemaining:
+                TempData["Error"] =
+                    $"The requested quantity exceeds the remaining available quantity. Maximum allowed: {maxAllowedQuantity ?? 0}.";
+
+                return RedirectToAction(
+                    nameof(Propose), new { needId });
+
             case ProposeMatchResult.ConcurrentChange:
                 TempData["Error"] =
                     "The need or resource was modified by another request. Please try again.";
@@ -121,8 +135,6 @@ public class MatchController(IMatchService matchService, INeedService needServic
                     detail: "An unexpected result occurred while proposing the match.");
         }
     }
-
-    // ---------- NYTT I STEG 8 ----------
 
     /// <summary>
     /// "My Matches": Public Actors see matches on their needs,
@@ -185,6 +197,18 @@ public class MatchController(IMatchService matchService, INeedService needServic
 
             case MatchDecisionResult.InsufficientQuantity:
                 TempData["Error"] = "There is not enough quantity left on the need or resource to accept this match.";
+                break;
+
+            case MatchDecisionResult.NeedNotOpen:
+                TempData["Error"] = "The need is no longer open for matches.";
+                break;
+
+            case MatchDecisionResult.ResourceNotSuitable:
+                TempData["Error"] = "The resource is no longer suitable for the need based on category, location, or availability.";
+                break;
+
+            case MatchDecisionResult.ResourceNotAvailable:
+                TempData["Error"] = "The resource is no longer available.";
                 break;
 
             case MatchDecisionResult.ConcurrentChange:

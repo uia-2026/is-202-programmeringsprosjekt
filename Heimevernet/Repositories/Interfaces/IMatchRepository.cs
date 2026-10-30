@@ -27,12 +27,12 @@ public interface IMatchRepository
     /// <summary>
     /// Sums quantities from accepted matches for a specific need.
     /// </summary>
-    Task<int> GetAcceptedAllocatedQuantityForNeedAsync(int needId, CancellationToken cancellationToken = default);
+    Task<int> GetAllocatedQuantityForNeedAsync(int needId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Sums quantities from accepted matches for a specific resource.
     /// </summary>
-    Task<int> GetAcceptedAllocatedQuantityForResourceAsync(int resourceId, CancellationToken cancellationToken = default);
+    Task<int> GetAllocatedQuantityForResourceAsync(int resourceId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Returns all matches for needs owned by the given user (Public Actor view).
@@ -50,7 +50,17 @@ public interface IMatchRepository
     Task<Match?> GetByIdWithNeedAndResourceAsync(int id, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Marks a match for deletion.
+    /// Retrieves all pending matches for the specified need.
     /// </summary>
-    void Remove(Match match);
+    Task<List<Match>> GetPendingMatchesByNeedIdAsync(
+            int needId,
+            IReadOnlyCollection<int> excludedMatchIds,
+            CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves all pending matches for the specified resource.
+    /// </summary>
+    Task<IReadOnlyList<Match>> GetPendingMatchesByResourceIdAsync(int resourceId, int excludeMatchId, CancellationToken ct = default);
+
+    Task<int> CountPendingForNeedAsync(int needId, int excludedMatchId, CancellationToken ct = default);
 }
