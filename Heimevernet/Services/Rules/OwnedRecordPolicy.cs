@@ -9,6 +9,7 @@ public enum OwnedRecordFailureCode
     None,
     NotOwner,
     Resolved,
+    ProtectedByMatch,
     ProtectedByPendingOrAssignedMatch
 }
 
@@ -55,7 +56,9 @@ public static class OwnedRecordPolicy
         return OwnedRecordDecision.Success();
     }
 
-    public static OwnedRecordDecision CanDeleteNeed(Need need, int userId)
+    public static OwnedRecordDecision CanDeleteNeed(
+        Need need,
+        int userId)
     {
         if (need.UserId != userId)
         {
@@ -64,11 +67,11 @@ public static class OwnedRecordPolicy
                 "You can only delete your own needs.");
         }
 
-        if (HasPendingOrAssignedMatch(need.Matches))
+        if (HasAnyMatch(need.Matches))
         {
             return OwnedRecordDecision.Fail(
-                OwnedRecordFailureCode.ProtectedByPendingOrAssignedMatch,
-                "Needs with pending proposals or active assignments cannot be deleted.");
+                OwnedRecordFailureCode.ProtectedByMatch,
+                "Needs with associated matches cannot be deleted.");
         }
 
         return OwnedRecordDecision.Success();
@@ -96,7 +99,9 @@ public static class OwnedRecordPolicy
         return OwnedRecordDecision.Success();
     }
 
-    public static OwnedRecordDecision CanDeleteResource(Resource resource, int userId)
+    public static OwnedRecordDecision CanDeleteResource(
+        Resource resource,
+        int userId)
     {
         if (resource.UserId != userId)
         {
@@ -105,15 +110,18 @@ public static class OwnedRecordPolicy
                 "You can only delete your own resources.");
         }
 
-        if (HasPendingOrAssignedMatch(resource.Matches))
+        if (HasAnyMatch(resource.Matches))
         {
             return OwnedRecordDecision.Fail(
-                OwnedRecordFailureCode.ProtectedByPendingOrAssignedMatch,
-                "Resources with pending proposals or active assignments cannot be deleted.");
+                OwnedRecordFailureCode.ProtectedByMatch,
+                "Resources with associated matches cannot be deleted.");
         }
 
         return OwnedRecordDecision.Success();
     }
+
+    private static bool HasAnyMatch(IEnumerable<Match> matches) =>
+        matches.Any();
 
     private static bool HasPendingOrAssignedMatch(IEnumerable<Match> matches) =>
         matches.Any(m => m.Status is MatchStatus.UnderReview or MatchStatus.Assigned);
