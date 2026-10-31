@@ -1,97 +1,183 @@
-@model IEnumerable<Heimevernet.ViewModels.Need.NeedViewModel>
+@model Heimevernet.ViewModels.Need.NeedIndexViewModel
 
 @using Heimevernet.Models
+@using Heimevernet.DTOs.Needs
 
 @{
     ViewData["Title"] = "Registered Needs";
+
+    (string Css, string Label) PriorityChip(NeedPriority p) => p switch
+    {
+        NeedPriority.Low => ("chip-priority-low", "Low"),
+        NeedPriority.Medium => ("chip-priority-medium", "Medium"),
+        NeedPriority.Critical => ("chip-priority-critical", "Critical"),
+        _ => ("chip-priority-medium", p.ToString())
+    };
+
+    (string Css, string Label) StatusChip(NeedStatus s) => s switch
+    {
+        NeedStatus.New => ("chip-status-new", "New"),
+        NeedStatus.UnderReview => ("chip-status-underreview", "Under review"),
+        NeedStatus.Assigned => ("chip-status-assigned", "Assigned"),
+        NeedStatus.Resolved => ("chip-status-resolved", "Resolved"),
+        _ => ("chip-status-new", s.ToString())
+    };
+
+    string AccentFor(NeedPriority p) => p switch
+    {
+        NeedPriority.Critical => "#dc2626",
+        NeedPriority.Medium => "#ca8a04",
+        _ => "#2563eb"
+    };
+
+    var hasFilters = Model.Filter.CategoryId.HasValue
+        || Model.Filter.Priority.HasValue
+        || Model.Filter.Status.HasValue
+        || !string.IsNullOrWhiteSpace(Model.Filter.Region)
+        || !string.IsNullOrWhiteSpace(Model.Filter.Search);
+
+    var loadError = ViewBag.LoadError as string;
 }
 
-<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+<div id="needLoadingBar" class="list-loading-bar"></div>
+
+<div class="page-header">
     <div>
         <h1>Registered Needs</h1>
-        <p class="text-muted mb-0">
-            Overview of registered needs.
-        </p>
+        <p>Overview of registered needs. Filter, sort and search to find what matters right now.</p>
     </div>
 
-    <a asp-controller="Need" asp-action="Create" class="btn btn-primary">
-        Register Need
+    <a asp-controller="Need" asp-action="Create" class="btn btn-brand">
+        <i class="bi bi-plus-lg"></i> Register Need
     </a>
 </div>
 
-@if (Model.Any())
-{
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+<form method="get" asp-action="Index" class="filter-bar" id="needFilterForm">
 
-        @foreach (var need in Model)
+    <select name="CategoryId" class="form-select" onchange="this.form.submit()" aria-label="Filter by type">
+        <option value="">All types</option>
+        @foreach (var category in Model.AvailableCategories)
         {
-            <div class="col">
-                <div class="card h-100 shadow-sm">
+            <option value="@category.Id" selected="@(category.Id == Model.Filter.CategoryId)">@category.Name</option>
+        }
+    </select>
 
-                    <div class="card-body">
+    <select name="Priority" class="form-select" onchange="this.form.submit()" aria-label="Filter by priority">
+        <option value="">All priorities</option>
+        @foreach (NeedPriority priority in Enum.GetValues(typeof(NeedPriority)))
+        {
+            <option value="@priority" selected="@(priority == Model.Filter.Priority)">@PriorityChip(priority).Label</option>
+        }
+    </select>
 
-                        <div class="d-flex justify-content-between align-items-start mb-2">
+    <select name="Status" class="form-select" onchange="this.form.submit()" aria-label="Filter by status">
+        <option value="">All status</option>
+        @foreach (NeedStatus status in Enum.GetValues(typeof(NeedStatus)))
+        {
+            <option value="@status" selected="@(status == Model.Filter.Status)">@StatusChip(status).Label</option>
+        }
+    </select>
 
-                            @{
-                                var badgeClass = need.Priority switch
-                                {
-                                    NeedPriority.Low => "bg-primary",
-                                    NeedPriority.Medium => "bg-info text-dark",
-                                    NeedPriority.Critical => "bg-danger",
-                                    _ => "bg-secondary"
-                                };
-                            }
+    <select name="Region" class="form-select" onchange="this.form.submit()" aria-label="Filter by region">
+        <option value="">All regions</option>
+        @foreach (var region in Model.AvailableRegions)
+        {
+            <option value="@region" selected="@(region == Model.Filter.Region)">@region</option>
+        }
+    </select>
 
-                            <span class="badge @badgeClass">
-                                @need.Priority
-                            </span>
+    <div class="input-group filter-bar-search">
+        <input type="text" name="Search" value="@Model.Filter.Search" placeholder="Search needs..." class="form-control" aria-label="Search needs" />
+        <button type="submit" class="btn filter-search-btn" aria-label="Search">
+            <i class="bi bi-search"></i>
+        </button>
+    </div>
 
-                            <span class="badge bg-secondary">
-                                @need.Status
-                            </span>
+    <select name="Sort" class="form-select" onchange="this.form.submit()" aria-label="Sort">
+        <option value="@NeedSortOption.CreatedAtDescending" selected="@(Model.Filter.Sort == NeedSortOption.CreatedAtDescending)">Newest first</option>
+        <option value="@NeedSortOption.CreatedAtAscending" selected="@(Model.Filter.Sort == NeedSortOption.CreatedAtAscending)">Oldest first</option>
+        <option value="@NeedSortOption.PriorityDescending" selected="@(Model.Filter.Sort == NeedSortOption.PriorityDescending)">Priority (high to low)</option>
+        <option value="@NeedSortOption.DeadlineAscending" selected="@(Model.Filter.Sort == NeedSortOption.DeadlineAscending)">Deadline (soonest)</option>
+    </select>
 
-                        </div>
+    @if (hasFilters)
+    {
+        <a asp-action="Index" class="filter-clear"><i class="bi bi-x-circle"></i> Clear filters</a>
+    }
 
-                        <h5 class="card-title">
-                            @need.Title
-                        </h5>
+</form>
 
-                        <p class="card-text text-muted small mb-1">
-                            @need.CategoryName
-                        </p>
+@if (loadError != null)
+{
+    <div class="state-panel state-error">
+        <i class="bi bi-exclamation-triangle fs-3"></i>
+        <strong>Couldn't load needs</strong>
+        <span>@loadError</span>
+        <a asp-action="Index" class="btn btn-brand btn-sm mt-2">Try again</a>
+    </div>
+}
+else if (Model.Items.Any())
+{
+    <div class="entity-grid">
+        @foreach (var need in Model.Items)
+        {
+            var (chipCss, chipLabel) = PriorityChip(need.Priority);
+            var (statusCss, statusLabel) = StatusChip(need.Status);
 
-                        <p class="card-text text-muted small mb-3">
-                            <i class="bi bi-geo-alt"></i>
-                            @need.FullAddress
-                        </p>
+            <div class="entity-card" style="--entity-accent: @AccentFor(need.Priority)">
+                <div class="entity-card-head">
+                    <h2 class="entity-card-title">@need.Title</h2>
+                    <span class="chip @chipCss"><span class="chip-dot"></span>@chipLabel</span>
+                </div>
 
-                        <p class="card-text text-muted small mb-3">
-                            Quantity needed: @need.QuantityNeeded
-                        </p>
+                <span class="chip @statusCss">@statusLabel</span>
 
-                        @if (!string.IsNullOrWhiteSpace(need.Description))
-                        {
-                            <p class="card-text">
-                                @need.Description
-                            </p>
-                        }
+                <p class="entity-card-meta"><i class="bi bi-tag"></i> @need.CategoryName</p>
+                <p class="entity-card-meta"><i class="bi bi-geo-alt"></i> @need.FullAddress</p>
 
-                        <a asp-controller="Need" asp-action="Details" asp-route-id="@need.Id"
-                           class="btn btn-outline-primary btn-sm w-100">
-                            View details
-                        </a>
+                @if (need.Deadline.HasValue)
+                {
+                    <p class="entity-card-meta"><i class="bi bi-clock"></i> Deadline: <strong>@need.Deadline.Value.ToString("dd.MM.yyyy HH:mm")</strong></p>
+                }
 
-                    </div>
+                <p class="entity-card-meta"><i class="bi bi-boxes"></i> Quantity needed: @need.QuantityNeeded</p>
 
+                @if (!string.IsNullOrWhiteSpace(need.Description))
+                {
+                    <p class="entity-card-desc">@need.Description</p>
+                }
+
+                <div class="entity-card-footer">
+                    <a asp-controller="Need" asp-action="Details" asp-route-id="@need.Id" class="btn btn-outline-brand btn-sm w-100">
+                        View details
+                    </a>
                 </div>
             </div>
         }
-
     </div>
 }
 else
 {
-    <div class="alert alert-light border">
-        No needs have been registered yet.
+    <div class="state-panel">
+        <i class="bi bi-inbox fs-3"></i>
+        <strong>No needs match your filters</strong>
+        <span>Try widening your search or clearing filters.</span>
+        @if (hasFilters)
+        {
+            <a asp-action="Index" class="btn btn-outline-brand btn-sm mt-2">Clear filters</a>
+        }
     </div>
+}
+
+@section Scripts {
+    <script>
+        (function () {
+            var form = document.getElementById('needFilterForm');
+            var bar = document.getElementById('needLoadingBar');
+            if (!form || !bar) return;
+            form.addEventListener('submit', function () {
+                bar.classList.add('is-active');
+            });
+        })();
+    </script>
 }

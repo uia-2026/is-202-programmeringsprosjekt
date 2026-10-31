@@ -2,6 +2,7 @@ using Heimevernet.Infrastructure.Geo;
 using Heimevernet.Models;
 using Heimevernet.ViewModels.Map;
 using Heimevernet.ViewModels.Need;
+using Heimevernet.DTOs.Needs;
 
 namespace Heimevernet.Services.Interfaces;
 
@@ -26,6 +27,10 @@ public interface INeedService
     /// <returns>A sequence of <see cref="NeedViewModel"/>.</returns>
     Task<IEnumerable<NeedViewModel>> GetAllAsync(CancellationToken cancellationToken = default);
 
+    Task<IEnumerable<NeedViewModel>> GetFilteredAsync(NeedFilterDto filter, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<string>> GetDistinctRegionsAsync(CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Returns summary view models for all needs.
     /// </summary>
@@ -40,6 +45,7 @@ public interface INeedService
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
     /// <returns>The mapped <see cref="NeedViewModel"/> or null.</returns>
     Task<NeedViewModel?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
+
 
     Task<IReadOnlyList<MapMarkerViewModel>> GetMapMarkersAsync(GeoBox box, int limit, CancellationToken cancellationToken = default);
 

@@ -252,4 +252,56 @@ public class ResourceRepository : IResourceRepository
             .Property(r => r.Version)
             .IsModified = true;
     }
+
+    public async Task<IReadOnlyList<Resource>> GetFilteredAsync(ResourceFilterDto filter, CancellationToken cancellationToken = default)
+    {
+        var query = _context.Resources
+            .AsNoTracking()
+            .Include(r => r.Category)
+            .AsQueryable();
+
+        if (filter.Status.HasValue)
+            query = query.Where(r => r.Status == filter.Status.Value);
+
+        if (filter.OwnerUserId.HasValue)
+            query = query.Where(r => r.UserId == filter.OwnerUserId.Value);
+
+        if (filter.CategoryId.HasValue)
+            query = query.Where(r => r.CategoryId == filter.CategoryId.Value);
+
+        if (!string.IsNullOrWhiteSpace(filter.Region))
+            query = query.Where(r => r.Region == filter.Region);
+
+        if (filter.AvailableFrom.HasValue)
+            query = query.Where(r => r.AvailableTo == null || r.AvailableTo >= filter.AvailableFrom.Value);
+
+        if (filter.AvailableTo.HasValue)
+            query = query.Where(r => r.AvailableFrom <= filter.AvailableTo.Value);
+
+        if (!string.IsNullOrWhiteSpace(filter.Search))
+        {
+            var term = filter.Search.Trim();
+            query = query.Where(r =>
+                r.Title.Contains(term) ||
+                (r.Description != null && r.Description.Contains(term)) ||
+                r.Region.Contains(term));
+        }
+
+        query = filter.Sort switch
+        {
+            ResourceSortOption.CreatedAtAscending => query.OrderBy(r => r.CreatedAt),
+            ResourceSortOption.AvailableFromAscending => query.OrderBy(r => r.AvailableFrom),
+            _ => query.OrderByDescending(r => r.CreatedAt),
+        };
+
+        return await query.ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<string>> GetDistinctRegionsAsync(CancellationToken cancellationToken = default) =>
+    await _context.Resources
+        .AsNoTracking()
+        .Select(r => r.Region)
+        .Distinct()
+        .OrderBy(r => r)
+        .ToListAsync(cancellationToken);
 }

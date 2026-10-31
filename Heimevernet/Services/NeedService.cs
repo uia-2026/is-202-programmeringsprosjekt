@@ -7,6 +7,7 @@ using Heimevernet.Services.Interfaces;
 using Heimevernet.Services.Rules;
 using Heimevernet.ViewModels.Map;
 using Heimevernet.ViewModels.Need;
+using Heimevernet.DTOs.Needs;
 
 namespace Heimevernet.Services;
 
@@ -69,6 +70,22 @@ public class NeedService(
 
         return _needMapper.ToSummaryViewModels(needs);
     }
+
+    /// <summary>
+    /// Gets needs matching the given filter/sort criteria.
+    /// </summary>
+    /// <param name="filter">The filter and sort options to apply.</param>
+    /// <param name="cancellationToken">A token used to cancel the operation.</param>
+    /// <returns>A collection of mapped need view models.</returns>
+    public async Task<IEnumerable<NeedViewModel>> GetFilteredAsync(NeedFilterDto filter, CancellationToken cancellationToken = default)
+    {
+        var needs = await _needRepository.GetFilteredAsync(filter, cancellationToken);
+
+        return _needMapper.ToViewModels(needs);
+    }
+
+    public async Task<IReadOnlyList<string>> GetDistinctRegionsAsync(CancellationToken cancellationToken = default) =>
+    await _needRepository.GetDistinctRegionsAsync(cancellationToken);
 
     /// <summary>
     /// Gets a need by id.

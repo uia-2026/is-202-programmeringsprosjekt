@@ -5,6 +5,8 @@ using Heimevernet.Services.Interfaces;
 using Heimevernet.ViewModels.Need;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Heimevernet.DTOs.Needs;
+
 
 namespace Heimevernet.Controllers;
 
@@ -17,13 +19,15 @@ public class NeedController(
     ICategoryRepository categoryRepository,
     IResourceService resourceService,
     IRegionResolver regionResolver,
-    IMatchService matchService) : Controller
+    IMatchService matchService,
+    ILogger<NeedController> logger) : Controller
 {
     private readonly INeedService _needService = needService;
     private readonly ICategoryRepository _categoryRepository = categoryRepository;
     private readonly IResourceService _resourceService = resourceService;
     private readonly IRegionResolver _regionResolver = regionResolver;
     private readonly IMatchService _matchService = matchService;
+    private readonly ILogger<NeedController> _logger = logger;
 
     private const double NearbyResourcesRadiusKm = 50;
     private const int NearbyResourcesMaxResults = 5;
@@ -34,13 +38,35 @@ public class NeedController(
     /// </summary>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>An <see cref="IActionResult"/> that renders the Index view.</returns>
+    ///
     [HttpGet]
-    public async Task<IActionResult> Index(CancellationToken cancellationToken)
+    public async Task<IActionResult> Index(NeedFilterDto filter, CancellationToken cancellationToken)
     {
-        var needs = await _needService.GetAllAsync(cancellationToken);
+        try
+        {
+            var needs = await _needService.GetFilteredAsync(filter, cancellationToken);
+            var categories = await _categoryRepository.GetAllAsync();
+            var regions = await _needService.GetDistinctRegionsAsync(cancellationToken);
 
-        return View(needs);
+            var model = new NeedIndexViewModel
+            {
+                Filter = filter,
+                Items = needs,
+                AvailableCategories = categories,
+                AvailableRegions = regions
+            };
+
+            return View(model);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load the Need list for filter {@Filter}", filter);
+            ViewBag.LoadError = "Something went wrong while loading needs. Please try again.";
+            return View(new NeedIndexViewModel { Filter = filter });
+        }
     }
+
+
 
     /// <summary>
     /// Shows the create need form populated with available categories.

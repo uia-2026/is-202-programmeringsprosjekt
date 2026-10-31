@@ -5,6 +5,7 @@ using Heimevernet.Models;
 using Heimevernet.Repositories.Interfaces;
 using Heimevernet.ViewModels.Map;
 using Microsoft.EntityFrameworkCore;
+using Heimevernet.DTOs.Needs;
 
 namespace Heimevernet.Repositories;
 
@@ -95,5 +96,55 @@ public class NeedRepository : INeedRepository
             .Property(n => n.Version)
             .IsModified = true;
     }
+
+    public async Task<IReadOnlyList<Need>> GetFilteredAsync(NeedFilterDto filter, CancellationToken cancellationToken = default)
+    {
+        var query = _context.Needs
+            .AsNoTracking()
+            .Include(n => n.Category)
+            .AsQueryable();
+
+        if (filter.Status.HasValue)
+            query = query.Where(n => n.Status == filter.Status.Value);
+
+        if (filter.Priority.HasValue)
+            query = query.Where(n => n.Priority == filter.Priority.Value);
+
+        if (filter.CategoryId.HasValue)
+            query = query.Where(n => n.CategoryId == filter.CategoryId.Value);
+
+        if (!string.IsNullOrWhiteSpace(filter.Region))
+            query = query.Where(n => n.Region == filter.Region);
+
+        if (!string.IsNullOrWhiteSpace(filter.Search))
+        {
+            var term = filter.Search.Trim();
+            query = query.Where(n =>
+                n.Title.Contains(term) ||
+                (n.Description != null && n.Description.Contains(term)) ||
+                n.Region.Contains(term));
+        }
+
+        query = filter.Sort switch
+        {
+            NeedSortOption.CreatedAtAscending => query.OrderBy(n => n.CreatedAt),
+            NeedSortOption.PriorityDescending => query.OrderByDescending(n => n.Priority).ThenBy(n => n.Deadline),
+            NeedSortOption.DeadlineAscending => query.OrderBy(n => n.Deadline),
+            _ => query.OrderByDescending(n => n.CreatedAt),
+        };
+
+        return await query.ToListAsync(cancellationToken);
+
+        
+    }
+
+    public async Task<IReadOnlyList<string>> GetDistinctRegionsAsync(CancellationToken cancellationToken = default) =>
+    await _context.Needs
+        .AsNoTracking()
+        .Select(n => n.Region)
+        .Distinct()
+        .OrderBy(r => r)
+        .ToListAsync(cancellationToken);
+
 }
  

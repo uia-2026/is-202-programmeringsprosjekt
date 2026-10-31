@@ -6,20 +6,34 @@
 
     var need = Model.Need;
 
-    var (badgeClass, badgeText) = need.Priority switch
+    (string Css, string Label) PriorityChip(Heimevernet.Models.NeedPriority p) => p switch
     {
-        Heimevernet.Models.NeedPriority.Low =>
-            ("bg-primary", "Low"),
-
-        Heimevernet.Models.NeedPriority.Medium =>
-            ("bg-info text-dark", "Medium"),
-
-        Heimevernet.Models.NeedPriority.Critical =>
-            ("bg-danger", "Critical"),
-
-        _ =>
-            ("bg-secondary", "Unknown")
+        Heimevernet.Models.NeedPriority.Low => ("chip-priority-low", "Low"),
+        Heimevernet.Models.NeedPriority.Medium => ("chip-priority-medium", "Medium"),
+        Heimevernet.Models.NeedPriority.Critical => ("chip-priority-critical", "Critical"),
+        _ => ("chip-priority-medium", p.ToString())
     };
+
+    (string Css, string Label) StatusChip(Heimevernet.Models.NeedStatus s) => s switch
+    {
+        Heimevernet.Models.NeedStatus.New => ("chip-status-new", "New"),
+        Heimevernet.Models.NeedStatus.UnderReview => ("chip-status-underreview", "Under review"),
+        Heimevernet.Models.NeedStatus.Assigned => ("chip-status-assigned", "Assigned"),
+        Heimevernet.Models.NeedStatus.Resolved => ("chip-status-resolved", "Resolved"),
+        _ => ("chip-status-new", s.ToString())
+    };
+
+        (string Css, string Label) ResourceChip(string s) => s switch
+    {
+        "Available" => ("chip-resource-available", "Available"),
+        "Busy" => ("chip-resource-busy", "Busy"),
+        _ => ("chip-resource-busy", s)
+    };
+
+   
+
+    var (priorityCss, priorityLabel) = PriorityChip(need.Priority);
+    var (statusCss, statusLabel) = StatusChip(need.Status);
 
     // Invariant culture ensures JavaScript receives "." as the decimal separator.
     var lat = need.Latitude.ToString(CultureInfo.InvariantCulture);
@@ -34,190 +48,187 @@
 
     <style>
         #needMap {
-            height: 260px;
-            border-radius: 8px;
+            height: 220px;
         }
     </style>
 }
 
-<a asp-action="Index" class="btn btn-link ps-0 mb-3">
-    <i class="bi bi-arrow-left"></i> Back to Overview
+<a asp-action="Index" class="back-link">
+    <i class="bi bi-arrow-left"></i> Back to overview
 </a>
 
-<div class="row">
-    <div class="col-12 col-lg-8">
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <span class="badge @badgeClass mb-2">
-                    @badgeText
-                </span>
+<div class="detail-layout">
 
-                <h2 class="h4">@need.Title</h2>
+    <div class="detail-card">
 
-                <dl class="row mt-4">
-                    <dt class="col-sm-4">Category</dt>
-                    <dd class="col-sm-8">@need.CategoryName</dd>
-
-                    <dt class="col-sm-4">Region</dt>
-                    <dd class="col-sm-8">@need.Region</dd>
-
-                    <dt class="col-sm-4">Coordinates</dt>
-                    <dd class="col-sm-8">@need.Latitude, @need.Longitude</dd>
-
-                    <dt class="col-sm-4">Deadline</dt>
-                    <dd class="col-sm-8">
-                        @if (need.Deadline.HasValue)
-                        {
-                            @need.Deadline.Value.ToString("dddd dd.MM.yyyy, HH:mm")
-                        }
-                        else
-                        {
-                            <span class="text-muted">No deadline</span>
-                        }
-                    </dd>
-
-                    <dt class="col-sm-4">Contact</dt>
-                    <dd class="col-sm-8">@need.ContactPoint</dd>
-
-                    <dt class="col-sm-4">Quantity needed</dt>
-                    <dd class="col-sm-8">@need.QuantityNeeded</dd>
-
-                    <dt class="col-sm-4">Status</dt>
-                    <dd class="col-sm-8">
-                        <span class="badge bg-secondary">@need.Status</span>
-                    </dd>
-
-                    <dt class="col-sm-4">Created</dt>
-                    <dd class="col-sm-8">
-                        @need.CreatedAt.ToString("dd.MM.yyyy, HH:mm") UTC
-                    </dd>
-                </dl>
-
-                @if (!string.IsNullOrWhiteSpace(need.Description))
-                {
-                    <hr />
-
-                    <h6>Description</h6>
-                    <p class="mb-0">@need.Description</p>
-                }
+        <div class="detail-card-head">
+            <div>
+                <span class="chip @priorityCss"><span class="chip-dot"></span>@priorityLabel</span>
+                <h1 class="detail-title">@need.Title</h1>
             </div>
+            <span class="chip @statusCss">@statusLabel</span>
         </div>
+
+        <div class="detail-grid">
+
+            <div class="detail-field">
+                <i class="bi bi-tag"></i>
+                <div>
+                    <div class="detail-field-label">Category</div>
+                    <div class="detail-field-value">@need.CategoryName</div>
+                </div>
+            </div>
+
+            <div class="detail-field">
+                <i class="bi bi-geo-alt"></i>
+                <div>
+                    <div class="detail-field-label">Region</div>
+                    <div class="detail-field-value">@need.Region</div>
+                    <div class="detail-field-sub">@need.Latitude, @need.Longitude</div>
+                </div>
+            </div>
+
+            <div class="detail-field">
+                <i class="bi bi-clock"></i>
+                <div>
+                    <div class="detail-field-label">Deadline</div>
+                    @if (need.Deadline.HasValue)
+                    {
+                        <div class="detail-field-value">@need.Deadline.Value.ToString("dddd dd.MM.yyyy, HH:mm")</div>
+                    }
+                    else
+                    {
+                        <div class="detail-field-value is-muted">No deadline</div>
+                    }
+                </div>
+            </div>
+
+            <div class="detail-field">
+                <i class="bi bi-telephone"></i>
+                <div>
+                    <div class="detail-field-label">Contact</div>
+                    <div class="detail-field-value">@need.ContactPoint</div>
+                </div>
+            </div>
+
+            <div class="detail-field">
+                <i class="bi bi-boxes"></i>
+                <div>
+                    <div class="detail-field-label">Quantity needed</div>
+                    <div class="detail-field-value">@need.QuantityNeeded</div>
+                </div>
+            </div>
+
+            <div class="detail-field">
+                <i class="bi bi-calendar-plus"></i>
+                <div>
+                    <div class="detail-field-label">Created</div>
+                    <div class="detail-field-value is-muted">@need.CreatedAt.ToString("dd.MM.yyyy, HH:mm") UTC</div>
+                </div>
+            </div>
+
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(need.Description))
+        {
+            <hr class="detail-divider" />
+
+            <h2 class="detail-section-title">Description</h2>
+            <p class="detail-desc">@need.Description</p>
+        }
+
     </div>
 
-    <div class="col-12 col-lg-4 mt-3 mt-lg-0">
-        <div class="card shadow-sm mb-3">
-            <div class="card-body">
-                <h6 class="card-title">Location</h6>
-                <div id="needMap" data-lat="@lat" data-lng="@lng"></div>
-            </div>
+    <div>
+        <div class="side-card">
+            <h2 class="side-card-title">Location</h2>
+            <div id="needMap" class="map-panel" data-lat="@lat" data-lng="@lng"></div>
         </div>
 
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <h6 class="card-title">Actions</h6>
+        <div class="side-card">
+            <h2 class="side-card-title">Actions</h2>
 
-                @if (Model.CanProposeMatch)
+            @if (Model.CanProposeMatch)
+            {
+                <a asp-controller="Match"
+                   asp-action="Propose"
+                   asp-route-needId="@need.Id"
+                   class="btn btn-brand w-100 mb-2">
+                    Propose Match
+                </a>
+            }
+
+            <a href="#nearby-resources"
+               class="btn btn-brand w-100 mb-2">
+                Find Resources
+            </a>
+
+            @if (need.IsOwner)
+            {
+                @if (need.Status != Heimevernet.Models.NeedStatus.Resolved)
                 {
-                    <a asp-controller="Match"
-                       asp-action="Propose"
-                       asp-route-needId="@need.Id"
-                       class="btn btn-primary w-100 mb-2">
-                        Propose Match
+                    <a asp-action="Edit"
+                       asp-route-id="@need.Id"
+                       class="btn btn-outline-brand w-100 mb-2">
+                        Edit Need
                     </a>
                 }
 
-                <a href="#nearby-resources"
-                   class="btn btn-success w-100 mb-2">
-                    Find Resources
-                </a>
+                <form asp-action="Delete"
+                      asp-route-id="@need.Id"
+                      method="post"
+                      class="mb-2"
+                      onsubmit="return confirm('Delete this need? This cannot be undone.');">
+                    @Html.AntiForgeryToken()
 
-                @if (need.IsOwner)
-                {
-                    @if (need.Status != Heimevernet.Models.NeedStatus.Resolved)
-                    {
-                        <a asp-action="Edit"
-                           asp-route-id="@need.Id"
-                           class="btn btn-outline-primary w-100 mb-2">
-                            Edit Need
-                        </a>
-                    }
+                    <button type="submit" class="btn btn-danger-soft w-100">
+                        Delete Need
+                    </button>
+                </form>
+            }
 
-                    <form asp-action="Delete"
-                          asp-route-id="@need.Id"
-                          method="post"
-                          onsubmit="return confirm('Delete this need? This cannot be undone.');">
-                        @Html.AntiForgeryToken()
-
-                        <button type="submit" class="btn btn-outline-danger w-100 mb-2">
-                            Delete Need
-                        </button>
-                    </form>
-                }
-
-                <button class="btn btn-outline-secondary w-100" type="button">
-                    Mark as Resolved
-                </button>
-            </div>
+            <button class="btn btn-outline-brand w-100" type="button">
+                Mark as Resolved
+            </button>
         </div>
     </div>
+
 </div>
 
-<div class="row mt-4" id="nearby-resources">
-    <div class="col-12">
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <h6 class="card-title mb-3">
-                    Nearby Resources
-                    <span class="text-muted">
-                        (within @Model.NearbyResourcesRadiusKm km)
-                    </span>
-                </h6>
+<div class="detail-card mt-3" id="nearby-resources">
+    <h2 class="side-card-title">
+        Nearby Resources
+        <span class="detail-field-sub">(within @Model.NearbyResourcesRadiusKm km)</span>
+    </h2>
 
-                @if (Model.NearbyResources.Count > 0)
-                {
-                    <div class="list-group list-group-flush">
-                        @foreach (var resource in Model.NearbyResources)
-                        {
-                            <div class="list-group-item d-flex justify-content-between align-items-start">
-                                <div>
-                                    <div class="fw-semibold">@resource.Title</div>
+    @if (Model.NearbyResources.Count > 0)
+    {
+        <div class="nearby-list">
+            @foreach (var resource in Model.NearbyResources)
+            {
+                var (resourceCss, resourceLabel) = ResourceChip(resource.Status);
 
-                                    <div class="small text-muted">
-                                        @resource.CategoryName &middot; @resource.Region
-                                    </div>
-
-                                    <div class="small text-muted">
-                                        Contact: @resource.ContactPoint
-                                    </div>
-
-                                    <div class="small text-muted">
-                                        Quantity: @resource.QuantityOffered
-                                    </div>
-                                </div>
-
-                                <div class="text-end">
-                                    <span class="badge bg-secondary mb-1">
-                                        @resource.Status
-                                    </span>
-
-                                    <div class="small fw-semibold">
-                                        @resource.DistanceKm.ToString("0.0") km away
-                                    </div>
-                                </div>
-                            </div>
-                        }
+                <div class="nearby-row">
+                    <div>
+                        <div class="nearby-row-title">@resource.Title</div>
+                        <div class="nearby-row-meta">@resource.CategoryName &middot; @resource.Region</div>
+                        <div class="nearby-row-meta">Contact: @resource.ContactPoint &middot; Quantity: @resource.QuantityOffered</div>
                     </div>
-                }
-                else
-                {
-                    <p class="text-muted mb-0">
-                        No resources found within
-                        @Model.NearbyResourcesRadiusKm km of this need.
-                    </p>
-                }
-            </div>
+
+                    <div class="nearby-row-right">
+                        <span class="chip @resourceCss">@resourceLabel</span>
+                        <div class="nearby-row-distance">@resource.DistanceKm.ToString("0.0") km away</div>
+                    </div>
+                </div>
+            }
         </div>
-    </div>
+    }
+    else
+    {
+        <p class="detail-field-sub mb-0">
+            No resources found within @Model.NearbyResourcesRadiusKm km of this need.
+        </p>
+    }
 </div>
 
 @section Scripts {
