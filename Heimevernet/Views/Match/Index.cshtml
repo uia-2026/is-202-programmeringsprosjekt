@@ -2,70 +2,88 @@
 
 @{
     ViewData["Title"] = "My Matches";
+
+    (string Css, string Label) StatusChip(Heimevernet.Models.MatchStatus s) => s switch
+    {
+        Heimevernet.Models.MatchStatus.UnderReview => ("chip-status-underreview", "Under review"),
+        Heimevernet.Models.MatchStatus.Assigned => ("chip-status-assigned", "Assigned"),
+        Heimevernet.Models.MatchStatus.Resolved => ("chip-status-resolved", "Resolved"),
+        Heimevernet.Models.MatchStatus.Rejected => ("chip-status-rejected", "Rejected"),
+        Heimevernet.Models.MatchStatus.Cancelled => ("chip-status-cancelled", "Cancelled"),
+        _ => ("chip-status-new", s.ToString())
+    };
 }
 
-<h1>My Matches</h1>
-
-@if (Model.IsResourceProvider)
-{
-    <p class="text-muted">Proposals on your resources. Accept or reject the ones that are under review.</p>
-}
-else
-{
-    <p class="text-muted">Proposals on your needs and their status.</p>
-}
+<div class="page-header">
+    <div>
+        <h1>My Matches</h1>
+        <p>
+            @(Model.IsResourceProvider
+                ? "Proposals on your resources. Accept or reject the ones that are under review."
+                : "Proposals on your needs and their status.")
+        </p>
+    </div>
+</div>
 
 @if (Model.Matches.Count == 0)
 {
-    <p>You have no matches yet.</p>
+    <div class="state-panel">
+        <i class="bi bi-inbox fs-3"></i>
+        <strong>No matches yet</strong>
+        <span>Matches will show up here once a proposal is made.</span>
+    </div>
 }
 else
 {
-    <div class="table-responsive">
-    <table class="table align.middle">
-        <thead>
-            <tr>
-                <th>Need</th>
-                <th>Resource</th>
-                <th>Quantity</th>
-                <th>Status</th>
-                <th>Matched</th>
-                @if (Model.IsResourceProvider)
-                {
-                    <th></th>
-                }
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var match in Model.Matches)
-            {
-                <tr>
-                    <td>
-                        <a asp-controller="Need" asp-action="Details" asp-route-id="@match.NeedId">@match.NeedTitle</a>
-                    </td>
-                    <td>
-                        <a asp-controller="Resource" asp-action="Details" asp-route-id="@match.ResourceId">@match.ResourceTitle</a>
-                    </td>
-                    <td>@match.Quantity</td>
-                    <td>@match.Status</td>
-                    <td>@match.MatchedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
-                    @if (Model.IsResourceProvider)
+    <div class="detail-card p-0">
+        <div class="table-responsive">
+            <table class="table align-middle match-table mb-0">
+                <thead>
+                    <tr>
+                        <th>Need</th>
+                        <th>Resource</th>
+                        <th>Quantity</th>
+                        <th>Status</th>
+                        <th>Matched</th>
+                        @if (Model.IsResourceProvider)
+                        {
+                            <th></th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var match in Model.Matches)
                     {
-                        <td class="text-end">
-                            @if (match.CanDecide)
+                        var (statusCss, statusLabel) = StatusChip(match.Status);
+
+                        <tr>
+                            <td>
+                                <a asp-controller="Need" asp-action="Details" asp-route-id="@match.NeedId">@match.NeedTitle</a>
+                            </td>
+                            <td>
+                                <a asp-controller="Resource" asp-action="Details" asp-route-id="@match.ResourceId">@match.ResourceTitle</a>
+                            </td>
+                            <td>@match.Quantity</td>
+                            <td><span class="chip @statusCss"><span class="chip-dot"></span>@statusLabel</span></td>
+                            <td class="text-secondary">@match.MatchedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                            @if (Model.IsResourceProvider)
                             {
-                                <form asp-action="Accept" asp-route-id="@match.MatchId" method="post" class="d-inline">
-                                    <button type="submit" class="btn btn-success btn-sm">Accept</button>
-                                </form>
-                                <form asp-action="Reject" asp-route-id="@match.MatchId" method="post" class="d-inline">
-                                    <button type="submit" class="btn btn-outline-danger btn-sm">Reject</button>
-                                </form>
+                                <td class="text-end">
+                                    @if (match.CanDecide)
+                                    {
+                                        <form asp-action="Accept" asp-route-id="@match.MatchId" method="post" class="d-inline">
+                                            <button type="submit" class="btn btn-success btn-sm">Accept</button>
+                                        </form>
+                                        <form asp-action="Reject" asp-route-id="@match.MatchId" method="post" class="d-inline">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm">Reject</button>
+                                        </form>
+                                    }
+                                </td>
                             }
-                        </td>
+                        </tr>
                     }
-                </tr>
-            }
-        </tbody>
-    </table>
+                </tbody>
+            </table>
+        </div>
     </div>
 }
