@@ -28,19 +28,27 @@ jobs:
         run: dotnet build Heimevernet.slnx --no-restore --configuration Release
 
       - name: Test
+        env:
+          Storage__Endpoint: ${{ secrets.STORAGE_ENDPOINT }}
+          Storage__Region: ${{ secrets.STORAGE_REGION }}
+          Storage__AccessKeyId: ${{ secrets.STORAGE_ACCESS_KEY_ID }}
+          Storage__SecretAccessKey: ${{ secrets.STORAGE_SECRET_ACCESS_KEY }}
+          Storage__Bucket: ${{ secrets.STORAGE_BUCKET }}
+          Storage__PublicBaseUrl: ${{ secrets.STORAGE_PUBLIC_BASE_URL }}
         run: >
-          dotnet test Heimevernet.UnitTests/Heimevernet.UnitTests.csproj
+          dotnet test Heimevernet.slnx
           --no-build
           --configuration Release
           --logger "trx;LogFileName=test-results.trx"
 
-      - name: Publish test results
+      - name: Publish Test Results
         uses: dorny/test-reporter@v1
         if: always()
         with:
-          name: Test Results
+          name: Test Results (Unit & Integration)
           path: "**/test-results.trx"
           reporter: dotnet-trx
+
   docs:
     runs-on: ubuntu-latest
 

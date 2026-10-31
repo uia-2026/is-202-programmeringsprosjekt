@@ -12,6 +12,8 @@ public enum ProposeMatchResult
     ResourceNotAvailable,
     MatchAlreadyExists,
     UserIsNotNeedOwner,
+    ResourceNotSuitable,
+    ExceedsRemaining,
     ConcurrentChange
 }
 
@@ -23,6 +25,9 @@ public enum MatchDecisionResult
     UserIsNotResourceOwner,
     MatchNotUnderReview,
     InsufficientQuantity,
+    NeedNotOpen,
+    ResourceNotSuitable,
+    ResourceNotAvailable,
     ConcurrentChange
 }
 
@@ -49,9 +54,7 @@ public interface IMatchService
     /// Validates and creates a Match between the given Need and Resource.
     /// Only the Need's owner may propose a match for it.
     /// </summary>
-    Task<(ProposeMatchResult Result, int? MatchId)> ProposeAsync(int needId, int resourceId, int quantity, int userId, CancellationToken cancellationToken = default);
-
-    // ---------- NYTT I STEG 6 ----------
+    Task<(ProposeMatchResult Result, int? MatchId, int? MaxAllowedQuantity)> ProposeAsync(int needId, int resourceId, int quantity, int userId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Returns the "My Matches" page model for the given user.
