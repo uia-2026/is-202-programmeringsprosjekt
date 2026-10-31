@@ -545,29 +545,30 @@
 @media (max-width: 600px) {
     .map-legend-box {
         top: 64px;
-        left: 168px;
+        left: 8px;
         padding: 8px 10px;
-        min-width: 145px;
+        width: 140px;
+        min-width: 0;
         font-size: 11px;
     }
 
     .map-filter-box {
-        top: 8px;
+        top: 64px;
         right: 8px;
-        width: 220px;
+        width: 190px;
         max-height: calc(100% - 16px);
     }
 
     .map-empty-note {
         bottom: 8px;
-        left: 168px;
+        left: 8px;
         max-width: calc(100% - 16px);
     }
 
     .map-action-panel {
         top: 255px;
-        left: 168px;
-        width: min(260px, calc(100% - 176px));
+        left: 8px;
+        width: min(260px, calc(100% - 16px));
     }
 }
 

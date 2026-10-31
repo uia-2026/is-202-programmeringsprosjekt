@@ -19,12 +19,16 @@
 
 <body>
     <div class="app-shell">
-
         <header class="app-topbar">
+
+            <button type="button" class="app-nav-toggle" id="navToggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="appSidebar">
+                <i class="bi bi-list"></i>
+            </button>
 
             <a class="app-topbar-brand" asp-controller="Home" asp-action="Index">
                 Heimevernet
             </a>
+
 
             <div class="app-topbar-search">
                 <input type="search" id="globalSearchInput" placeholder= "Search for needs, resources, locations..." autocomplete="off" />
@@ -83,7 +87,7 @@
 
         <div class="app-body">
 
-            <aside class="app-sidebar">
+            <aside class="app-sidebar" id="appSidebar">
                 <nav class="app-sidebar-nav">
                     <ul class="navbar-nav">
 
@@ -142,6 +146,8 @@
                     </ul>
                 </nav>
             </aside>
+            
+            <div class="app-sidebar-backdrop" id="sidebarBackdrop"></div>
 
             <div class="app-content">
 
@@ -170,6 +176,7 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/custom-select.js" defer></script>
+    <script src="~/js/nav-toggle.js" defer></script>
 
 
 
