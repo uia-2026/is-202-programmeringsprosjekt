@@ -1,6 +1,7 @@
 using Heimevernet.DTOs.Map;
 using Heimevernet.Infrastructure.Geo;
 using Heimevernet.Models;
+using Heimevernet.DTOs.Needs;
 
 namespace Heimevernet.Repositories.Interfaces;
 
@@ -18,4 +19,6 @@ public interface INeedRepository
     Task<IReadOnlyList<MapMarkerDto>> GetMapMarkersAsync(GeoBox box, int limit, CancellationToken cancellationToken = default);
     void SetOriginalVersion(Need need, int version);
     void MarkForConcurrencyCheck(Need need);
+    Task<IReadOnlyList<Need>> GetFilteredAsync(NeedFilterDto filter, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<string>> GetDistinctRegionsAsync(CancellationToken cancellationToken = default);
 }

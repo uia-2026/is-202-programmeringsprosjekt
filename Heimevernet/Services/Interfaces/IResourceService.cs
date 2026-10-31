@@ -2,6 +2,7 @@ using Heimevernet.Infrastructure.Geo;
 using Heimevernet.ViewModels.Map;
 using Heimevernet.ViewModels.Need;
 using Heimevernet.ViewModels.Resource;
+using Heimevernet.DTOs.Resources;
 
 namespace Heimevernet.Services.Interfaces;
 
@@ -18,6 +19,15 @@ public interface IResourceService
     /// <returns>A read-only list of <see cref="ResourceViewModel"/>.</returns>
     Task<IReadOnlyList<ResourceViewModel>> GetAllAsync(
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns resources matching the given filter/sort criteria, mapped to view models.
+    /// </summary>
+    Task<IReadOnlyList<ResourceViewModel>> GetFilteredAsync(
+        ResourceFilterDto filter,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<string>> GetDistinctRegionsAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Retrieves a single resource by id and returns it mapped to a view model, or null when not found.

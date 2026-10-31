@@ -81,4 +81,7 @@ public interface IResourceRepository
 
     void SetOriginalVersion(Resource resource, int version);
     void MarkForConcurrencyCheck(Resource resource);
+
+    Task<IReadOnlyList<Resource>> GetFilteredAsync(ResourceFilterDto filter, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<string>> GetDistinctRegionsAsync(CancellationToken cancellationToken = default);
 }

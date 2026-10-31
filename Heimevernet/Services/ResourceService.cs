@@ -8,6 +8,7 @@ using Heimevernet.Services.Rules;
 using Heimevernet.ViewModels.Map;
 using Heimevernet.ViewModels.Need;
 using Heimevernet.ViewModels.Resource;
+using Heimevernet.DTOs.Resources;
 
 namespace Heimevernet.Services;
 
@@ -53,6 +54,21 @@ public class ResourceService : IResourceService
             .Select(r => _resourceMapper.ToViewModel(r))
             .ToList();
     }
+
+    public async Task<IReadOnlyList<ResourceViewModel>> GetFilteredAsync(
+    ResourceFilterDto filter,
+    CancellationToken cancellationToken = default)
+    {
+        var resources =
+            await _resourceRepository.GetFilteredAsync(filter, cancellationToken);
+
+        return resources
+            .Select(r => _resourceMapper.ToViewModel(r))
+            .ToList();
+    }
+
+    public async Task<IReadOnlyList<string>> GetDistinctRegionsAsync(CancellationToken cancellationToken = default) =>
+    await _resourceRepository.GetDistinctRegionsAsync(cancellationToken);
 
     public async Task<ResourceViewModel?> GetByIdAsync(
         int id,

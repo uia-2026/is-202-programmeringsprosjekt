@@ -6,6 +6,7 @@ using Heimevernet.ViewModels.Attachment;
 using Heimevernet.ViewModels.Resource;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Heimevernet.DTOs.Resources;
 
 namespace Heimevernet.Controllers;
 
@@ -17,12 +18,14 @@ public class ResourceController(
     IResourceService resourceService,
     ICategoryRepository categoryRepository,
     IAttachmentService attachmentService,
-    IRegionResolver regionResolver) : Controller
+    IRegionResolver regionResolver,
+    ILogger<ResourceController> logger) : Controller
 {
     private readonly IResourceService _resourceService = resourceService;
     private readonly ICategoryRepository _categoryRepository = categoryRepository;
     private readonly IAttachmentService _attachmentService = attachmentService;
     private readonly IRegionResolver _regionResolver = regionResolver;
+    private readonly ILogger<ResourceController> _logger = logger;
     private const int UnprocessableEntityStatusCode = 422;
     /// <summary>
     /// Lists resources (#37).
@@ -30,31 +33,51 @@ public class ResourceController(
     /// Public Actors see every resource by default and can filter by owner with <paramref name="ownerId"/>.
     /// All filtering happens in the database.
     /// </summary>
+    /// 
     [HttpGet]
     public async Task<IActionResult> Index(
-        int? ownerId,
-        CancellationToken cancellationToken)
+    ResourceFilterDto filter,
+    int? ownerId,
+    CancellationToken cancellationToken)
     {
-        IReadOnlyList<ResourceViewModel> resources;
-
-        if (User.IsInRole("ResourceProvider"))
+        try
         {
-            // Owner comes from the claims, never from the request.
-            resources = await _resourceService.GetByUserIdAsync(User.GetUserId(), cancellationToken);
+            if (User.IsInRole("ResourceProvider"))
+            {
+                filter.OwnerUserId = User.GetUserId();
+            }
+            else
+            {
+                filter.OwnerUserId = ownerId;
+
+                ViewBag.Owners = await _resourceService.GetOwnersAsync(cancellationToken);
+                ViewBag.SelectedOwnerId = ownerId;
+                ViewBag.CurrentUserId = User.GetUserId();
+            }
+
+            var resources = await _resourceService.GetFilteredAsync(filter, cancellationToken);
+            var categories = await _categoryRepository.GetAllAsync();
+            var regions = await _resourceService.GetDistinctRegionsAsync(cancellationToken);
+
+            var model = new ResourceIndexViewModel
+            {
+                Filter = filter,
+                Items = resources,
+                AvailableCategories = categories,
+                AvailableRegions = regions
+            };
+
+            return View(model);
         }
-        else
+        catch (Exception ex)
         {
-            resources = ownerId.HasValue
-                ? await _resourceService.GetByUserIdAsync(ownerId.Value, cancellationToken)
-                : await _resourceService.GetAllAsync(cancellationToken);
-
-            ViewBag.Owners = await _resourceService.GetOwnersAsync(cancellationToken);
-            ViewBag.SelectedOwnerId = ownerId;
-            ViewBag.CurrentUserId = User.GetUserId();
+            _logger.LogError(ex, "Failed to load the Resource list for filter {@Filter}", filter);
+            ViewBag.LoadError = "Something went wrong while loading resources. Please try again.";
+            return View(new ResourceIndexViewModel { Filter = filter });
         }
-
-        return View(resources);
     }
+
+
 
     [HttpGet]
     [Authorize(Roles = "PublicActor,ResourceProvider")]

@@ -1,27 +1,54 @@
-@model IEnumerable<Heimevernet.ViewModels.Resource.ResourceViewModel>
+@model Heimevernet.ViewModels.Resource.ResourceIndexViewModel
+
+@using Heimevernet.Models
+@using Heimevernet.DTOs.Resources
 
 @{
     ViewData["Title"] = "Registered Resources";
+
+    (string Css, string Label) StatusChip(ResourceStatus s) => s switch
+    {
+        ResourceStatus.Available => ("chip-resource-available", "Available"),
+        ResourceStatus.Busy => ("chip-resource-busy", "Busy"),
+        _ => ("chip-resource-busy", s.ToString())
+    };
+
+    string AccentFor(ResourceStatus s) => s == ResourceStatus.Available ? "#16a34a" : "#64748b";
+
+    var isResourceProvider = User.IsInRole("ResourceProvider");
+
+    var hasFilters = Model.Filter.CategoryId.HasValue
+        || Model.Filter.Status.HasValue
+        || !string.IsNullOrWhiteSpace(Model.Filter.Region)
+        || Model.Filter.AvailableFrom.HasValue
+        || Model.Filter.AvailableTo.HasValue
+        || !string.IsNullOrWhiteSpace(Model.Filter.Search)
+        || (!isResourceProvider && Model.Filter.OwnerUserId.HasValue);
+
+    var loadError = ViewBag.LoadError as string;
 }
 
-<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
-    <h1 class="h3 mb-0">Registered Resources</h1>
+<div id="resourceLoadingBar" class="list-loading-bar"></div>
 
-    <a asp-action="Create" class="btn btn-primary">
-        Register Resource
+<div class="page-header">
+    <div>
+        <h1>Registered Resources</h1>
+        <p>Overview of registered resources. Filter, sort and search to find what's available.</p>
+    </div>
+
+    <a asp-action="Create" class="btn btn-brand">
+        <i class="bi bi-plus-lg"></i> Register Resource
     </a>
 </div>
 
-@if (ViewBag.Owners is IReadOnlyList<Heimevernet.ViewModels.Resource.ResourceOwnerOptionViewModel> owners)
-{
-    int? selectedOwnerId = ViewBag.SelectedOwnerId;
-    int currentUserId = ViewBag.CurrentUserId;
+<form method="get" asp-action="Index" class="filter-bar" id="resourceFilterForm">
 
-    <form method="get" asp-action="Index" class="d-flex flex-wrap align-items-center gap-2 mb-4">
-        <label for="ownerId" class="form-label mb-0 small text-muted">Owner</label>
+    @if (ViewBag.Owners is IReadOnlyList<Heimevernet.ViewModels.Resource.ResourceOwnerOptionViewModel> owners)
+    {
+        int? selectedOwnerId = ViewBag.SelectedOwnerId;
+        int currentUserId = ViewBag.CurrentUserId;
 
-        <select id="ownerId" name="ownerId" class="form-select form-select-sm w-auto"
-                onchange="this.form.submit()">
+        <select id="ownerId" name="ownerId" class="form-select" onchange="this.form.submit()" aria-label="Filter by owner">
             <option value="">All owners</option>
             @foreach (var owner in owners)
             {
@@ -29,114 +56,139 @@
                 <option value="@owner.UserId" selected="@(owner.UserId == selectedOwnerId)">@label</option>
             }
         </select>
+    }
 
-        <noscript>
-            <button type="submit" class="btn btn-outline-secondary btn-sm">Filter</button>
-        </noscript>
-
-        @if (selectedOwnerId.HasValue)
+    <select name="CategoryId" class="form-select" onchange="this.form.submit()" aria-label="Filter by type">
+        <option value="">All types</option>
+        @foreach (var category in Model.AvailableCategories)
         {
-            <a asp-action="Index" class="btn btn-link btn-sm">Clear filter</a>
+            <option value="@category.Id" selected="@(category.Id == Model.Filter.CategoryId)">@category.Name</option>
         }
-    </form>
-}
+    </select>
 
-@if (Model.Any())
-{
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
-
-        @foreach (var resource in Model)
+    <select name="Status" class="form-select" onchange="this.form.submit()" aria-label="Filter by status">
+        <option value="">All status</option>
+        @foreach (ResourceStatus status in Enum.GetValues(typeof(ResourceStatus)))
         {
-            <div class="col">
+            <option value="@status" selected="@(status == Model.Filter.Status)">@StatusChip(status).Label</option>
+        }
+    </select>
 
-                <div class="card h-100 shadow-sm">
+    <select name="Region" class="form-select" onchange="this.form.submit()" aria-label="Filter by region">
+        <option value="">All regions</option>
+        @foreach (var region in Model.AvailableRegions)
+        {
+            <option value="@region" selected="@(region == Model.Filter.Region)">@region</option>
+        }
+    </select>
 
-                    <div class="card-body">
+    <span class="filter-bar-label">Available</span>
+    <input type="date" name="AvailableFrom" value="@Model.Filter.AvailableFrom?.ToString("yyyy-MM-dd")"
+           class="form-control" onchange="this.form.submit()" aria-label="Available from" />
+    <span class="filter-bar-label">to</span>
+    <input type="date" name="AvailableTo" value="@Model.Filter.AvailableTo?.ToString("yyyy-MM-dd")"
+           class="form-control" onchange="this.form.submit()" aria-label="Available to" />
 
-                        <div class="d-flex justify-content-between align-items-start mb-2">
+    <div class="input-group filter-bar-search">
+        <input type="text" name="Search" value="@Model.Filter.Search" placeholder="Search resources..." class="form-control" aria-label="Search resources" />
+        <button type="submit" class="btn filter-search-btn" aria-label="Search">
+            <i class="bi bi-search"></i>
+        </button>
+    </div>
 
-                            <span class="badge bg-primary">
-                                Resource #@resource.Id
-                            </span>
+    <select name="Sort" class="form-select" onchange="this.form.submit()" aria-label="Sort">
+        <option value="@ResourceSortOption.CreatedAtDescending" selected="@(Model.Filter.Sort == ResourceSortOption.CreatedAtDescending)">Newest first</option>
+        <option value="@ResourceSortOption.CreatedAtAscending" selected="@(Model.Filter.Sort == ResourceSortOption.CreatedAtAscending)">Oldest first</option>
+        <option value="@ResourceSortOption.AvailableFromAscending" selected="@(Model.Filter.Sort == ResourceSortOption.AvailableFromAscending)">Available soonest</option>
+    </select>
 
-                            @{
-                                var badgeClass = resource.Status switch
-                                {
-                                    ResourceStatus.Available => "bg-success",
-                                    ResourceStatus.Busy => "bg-warning text-dark",
-                                    _ => "bg-secondary"
-                                };
-                            }
+    @if (hasFilters)
+    {
+        <a asp-action="Index" class="filter-clear"><i class="bi bi-x-circle"></i> Clear filters</a>
+    }
 
-                            <span class="badge @badgeClass">
-                                @resource.Status
-                            </span>
+</form>
 
-                        </div>
+@if (loadError != null)
+{
+    <div class="state-panel state-error">
+        <i class="bi bi-exclamation-triangle fs-3"></i>
+        <strong>Couldn't load resources</strong>
+        <span>@loadError</span>
+        <a asp-action="Index" class="btn btn-brand btn-sm mt-2">Try again</a>
+    </div>
+}
+else if (Model.Items.Any())
+{
+    <div class="entity-grid">
+        @foreach (var resource in Model.Items)
+        {
+            var (statusCss, statusLabel) = StatusChip(resource.Status);
 
-                        <h2 class="h5">
-                            @resource.Title
-                        </h2>
+            <div class="entity-card" style="--entity-accent: @AccentFor(resource.Status)">
 
-                        <p class="text-muted small mb-1">
-                            @resource.CategoryName
-                        </p>
+                @{
+                    var thumb = resource.Attachments.FirstOrDefault();
+                }
+                @if (thumb != null)
+                {
+                    <img src="@thumb.PublicUrl" alt="" class="entity-card-thumb" />
+                }
 
-                        @if (!string.IsNullOrWhiteSpace(resource.Description))
-                        {
-                            <p class="small mb-2">
-                                @resource.Description
-                            </p>
-                        }
-
-                        <p class="text-muted small mb-1">
-                            <i class="bi bi-geo-alt"></i>
-                            @resource.Region
-                        </p>
-
-                        <p class="text-muted small mb-1">
-                            Quantity offered: @resource.QuantityOffered
-                        </p>
-
-                        <p class="text-muted small mb-1">
-                            Available
-                            @resource.AvailableFrom.ToString("dd.MM.yyyy HH:mm")
-                        </p>
-
-                        @if (resource.AvailableTo.HasValue)
-                        {
-                            <p class="text-muted small mb-1">
-                                Until
-                                @resource.AvailableTo.Value.ToString("dd.MM.yyyy HH:mm")
-                            </p>
-                        }
-
-                        <p class="text-muted small mb-0">
-                            @resource.ContactPoint
-                        </p>
-                        
-                        <a asp-action="Details" asp-route-id="@resource.Id" class="btn btn-outline-primary btn-sm w-100">
-                            View details
-                        </a>
-                    </div>
-
+                <div class="entity-card-head">
+                    <h2 class="entity-card-title">@resource.Title</h2>
+                    <span class="chip @statusCss"><span class="chip-dot"></span>@statusLabel</span>
                 </div>
 
+                <p class="entity-card-meta"><i class="bi bi-tag"></i> @resource.CategoryName</p>
+
+                @if (!string.IsNullOrWhiteSpace(resource.Description))
+                {
+                    <p class="entity-card-desc">@resource.Description</p>
+                }
+
+                <p class="entity-card-meta"><i class="bi bi-geo-alt"></i> @resource.Region</p>
+                <p class="entity-card-meta"><i class="bi bi-boxes"></i> Quantity offered: @resource.QuantityOffered</p>
+                <p class="entity-card-meta"><i class="bi bi-calendar-check"></i> Available: <strong>@resource.AvailableFrom.ToString("dd.MM.yyyy HH:mm")</strong></p>
+
+                @if (resource.AvailableTo.HasValue)
+                {
+                    <p class="entity-card-meta"><i class="bi bi-calendar-x"></i> Until: <strong>@resource.AvailableTo.Value.ToString("dd.MM.yyyy HH:mm")</strong></p>
+                }
+
+                <p class="entity-card-meta"><i class="bi bi-telephone"></i> @resource.ContactPoint</p>
+
+                <div class="entity-card-footer">
+                    <a asp-action="Details" asp-route-id="@resource.Id" class="btn btn-outline-brand btn-sm w-100">
+                        View details
+                    </a>
+                </div>
             </div>
         }
-
     </div>
 }
 else
 {
-    <p class="text-muted">
-        @if (ViewBag.SelectedOwnerId is int)
+    <div class="state-panel">
+        <i class="bi bi-inbox fs-3"></i>
+        <strong>No resources match your filters</strong>
+        <span>Try widening your search or clearing filters.</span>
+        @if (hasFilters)
         {
-            @:No resources found for this owner.
+            <a asp-action="Index" class="btn btn-outline-brand btn-sm mt-2">Clear filters</a>
         }
-        else
-        {
-            @:No resources have been registered yet.
-        }
-    </p>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        (function () {
+            var form = document.getElementById('resourceFilterForm');
+            var bar = document.getElementById('resourceLoadingBar');
+            if (!form || !bar) return;
+            form.addEventListener('submit', function () {
+                bar.classList.add('is-active');
+            });
+        })();
+    </script>
 }
