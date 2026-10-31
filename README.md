@@ -1,6 +1,6 @@
 ## Live Demo
 
-http://heimevernet.duckdns.org
+https://heimevernet.duckdns.org
 
 # Documentation
 
