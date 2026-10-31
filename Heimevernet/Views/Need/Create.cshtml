@@ -7,162 +7,115 @@
     ViewData["Title"] = pageTitle;
 }
 
-<a asp-action="@(isEdit ? "Details" : "Index")" asp-route-id="@(isEdit ? editNeedId : null)" class="btn btn-link ps-0 mb-3">
-    <i class="bi bi-arrow-left"></i> Back to Overview
+<a asp-action="@(isEdit ? "Details" : "Index")" asp-route-id="@(isEdit ? editNeedId : null)" class="back-link">
+    <i class="bi bi-arrow-left"></i> Back to overview
 </a>
 
-<div class="row justify-content-center">
-    <div class="col-12 col-lg-8 col-xl-6">
+<div class="form-card">
 
-        <div class="card shadow-sm" style="color-scheme: light;">
-            <div class="card-body">
+    <h1 class="form-card-title">@pageTitle</h1>
+    <p class="form-card-subtitle">
+        @(isEdit ? "Update the need's details." : "Describe what's needed so resource providers can respond.")
+    </p>
 
-                <h2 class="h4 mb-4">@pageTitle</h2>
+    <form id="need-create-form" asp-action="@(isEdit ? "Edit" : "Create")" asp-route-id="@(isEdit ? editNeedId : null)" method="post">
 
-                <form id="need-create-form" asp-action="@(isEdit ? "Edit" : "Create")" asp-route-id="@(isEdit ? editNeedId : null)" method="post">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
-                    <div asp-validation-summary="ModelOnly" class="alert alert-danger">
-                    </div>
-
-                    <div class="mb-3">
-                        <label asp-for="Title" class="form-label"></label>
-
-                        <input asp-for="Title" class="form-control" placeholder="E.g. Snow removal" />
-
-                        <span asp-validation-for="Title" class="text-danger small">
-                        </span>
-                    </div>
-
-                    <div class="mb-3">
-                        <label asp-for="CategoryId" class="form-label">
-                            Category
-                        </label>
-
-                        <select asp-for="CategoryId" class="form-select">
-
-                            <option value="">
-                                Select category...
-                            </option>
-
-                            @foreach (var category in Model.AvailableCategories)
-                            {
-                                <option value="@category.Id">
-                                    @category.Name
-                                </option>
-                            }
-
-                        </select>
-
-                        <span asp-validation-for="CategoryId" class="text-danger small">
-                        </span>
-                    </div>
-
-                    <div class="mb-3">
-                        <label asp-for="Description" class="form-label">
-                        </label>
-
-                        <textarea asp-for="Description" class="form-control" rows="4"
-                                  placeholder="Describe the need (optional)">
-                        </textarea>
-
-                        <span asp-validation-for="Description" class="text-danger small">
-                        </span>
-                    </div>
-
-                    <h6 class="mb-3 mt-4">Location</h6>
-
-                    <div class="row">
-
-                        <!-- Hidden latitude/longitude fields; selection is done on the map below -->
-                        <input asp-for="Latitude" type="hidden" />
-                        <input asp-for="Longitude" type="hidden" />
-
-                        <div class="col-12 mb-3">
-                            <div class="form-label">Pick location on the map</div>
-
-                            <div id="map" style="width:100%;height:660px;border:1px solid rgba(0,0,0,0.08);border-radius:.25rem"></div>
-
-                            <div class="small mt-2">
-                                <span id="selected-coords">@(Model.Latitude != 0 || Model.Longitude != 0 ? Model.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture) + ", " + Model.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")</span>
-                            </div>
-
-                            <span asp-validation-for="Latitude" class="text-danger small d-block">
-                            </span>
-                            <span asp-validation-for="Longitude" class="text-danger small d-block">
-                            </span>
-                        </div>
-
-                        <div class="col-12 mb-3">
-
-                        <span asp-validation-for="Region" id="map-error" class="text-danger small mt-1 d-block"></span>
-                        </div>
-
-                    </div>
-
-                    <div class="row">
-
-                        <div class="col-12 col-sm-6 mb-3">
-                            <label asp-for="Priority" class="form-label">
-                            </label>
-
-                            <select asp-for="Priority" class="form-select"
-                                    asp-items="Html.GetEnumSelectList<Heimevernet.Models.NeedPriority>()">
-                            </select>
-
-                            <span asp-validation-for="Priority" class="text-danger small">
-                            </span>
-                        </div>
-
-                        <div class="col-12 col-sm-6 mb-3">
-                            <label asp-for="Deadline" class="form-label">
-                            </label>
-
-                            <input asp-for="Deadline" class="form-control" type="datetime-local" />
-
-                            <span asp-validation-for="Deadline" class="text-danger small">
-                            </span>
-                        </div>
-
-                    </div>
-
-                    <div class="mb-4">
-                        <label asp-for="QuantityNeeded" class="form-label"></label>
-
-                        <input asp-for="QuantityNeeded" class="form-control" type="number" min="1" max="10000" />
-
-                        <span asp-validation-for="QuantityNeeded" class="text-danger small">
-                        </span>
-                    </div>
-
-                    <div class="mb-4">
-                        <label asp-for="ContactPoint" class="form-label">
-                        </label>
-
-                        <input asp-for="ContactPoint" class="form-control"
-                               placeholder="Phone, email, or other contact information" />
-
-                        <span asp-validation-for="ContactPoint" class="text-danger small">
-                        </span>
-                    </div>
-
-                    <div class="d-flex flex-column flex-sm-row gap-2">
-
-                        <button type="submit" class="btn btn-primary">
-                            @(isEdit ? "Save changes" : "Register Need")
-                        </button>
-
-                        <a asp-action="@(isEdit ? "Details" : "Index")" asp-route-id="@(isEdit ? editNeedId : null)" class="btn btn-outline-secondary">
-                            Cancel
-                        </a>
-
-                    </div>
-
-                </form>
-
-            </div>
+        <div class="form-field-group">
+            <label asp-for="Title"></label>
+            <input asp-for="Title" class="form-control" placeholder="E.g. Snow removal" />
+            <span asp-validation-for="Title" class="text-danger small"></span>
         </div>
 
-    </div>
+        <div class="form-field-group">
+            <label asp-for="CategoryId">Category</label>
+            <select asp-for="CategoryId" class="form-select">
+                <option value="">Select category...</option>
+                @foreach (var category in Model.AvailableCategories)
+                {
+                    <option value="@category.Id">@category.Name</option>
+                }
+            </select>
+            <span asp-validation-for="CategoryId" class="text-danger small"></span>
+        </div>
+
+        <div class="form-field-group">
+            <label asp-for="Description"></label>
+            <textarea asp-for="Description" class="form-control" rows="4"
+                      placeholder="Describe the need (optional)"></textarea>
+            <span asp-validation-for="Description" class="text-danger small"></span>
+        </div>
+
+        <h2 class="form-section-title">Location</h2>
+
+        <!-- Hidden latitude/longitude fields; selection is done on the map below -->
+        <input asp-for="Latitude" type="hidden" />
+        <input asp-for="Longitude" type="hidden" />
+
+        <div class="form-field-group">
+            <label>Pick location on the map</label>
+
+            <div id="map" class="form-map"></div>
+
+            <div class="small mt-2">
+                <span id="selected-coords">@(Model.Latitude != 0 || Model.Longitude != 0 ? Model.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture) + ", " + Model.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")</span>
+            </div>
+
+            <span asp-validation-for="Latitude" class="text-danger small d-block"></span>
+            <span asp-validation-for="Longitude" class="text-danger small d-block"></span>
+            <span asp-validation-for="Region" id="map-error" class="text-danger small mt-1 d-block"></span>
+        </div>
+
+        <h2 class="form-section-title">Details</h2>
+
+        <div class="form-row-2">
+
+            <div class="form-field-group">
+                <label asp-for="Priority"></label>
+                <select asp-for="Priority" class="form-select"
+                        asp-items="Html.GetEnumSelectList<Heimevernet.Models.NeedPriority>()">
+                </select>
+                <span asp-validation-for="Priority" class="text-danger small"></span>
+            </div>
+
+            <div class="form-field-group">
+                <label asp-for="Deadline"></label>
+                <input asp-for="Deadline" class="form-control" type="datetime-local" />
+                <span asp-validation-for="Deadline" class="text-danger small"></span>
+            </div>
+
+        </div>
+
+        <div class="form-row-2">
+
+            <div class="form-field-group">
+                <label asp-for="QuantityNeeded"></label>
+                <input asp-for="QuantityNeeded" class="form-control" type="number" min="1" max="10000" />
+                <span asp-validation-for="QuantityNeeded" class="text-danger small"></span>
+            </div>
+
+            <div class="form-field-group">
+                <label asp-for="ContactPoint"></label>
+                <input asp-for="ContactPoint" class="form-control"
+                       placeholder="Phone, email, or other contact information" />
+                <span asp-validation-for="ContactPoint" class="text-danger small"></span>
+            </div>
+
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-brand">
+                @(isEdit ? "Save changes" : "Register Need")
+            </button>
+
+            <a asp-action="@(isEdit ? "Details" : "Index")" asp-route-id="@(isEdit ? editNeedId : null)" class="btn btn-outline-brand">
+                Cancel
+            </a>
+        </div>
+
+    </form>
+
 </div>
 
 @section Scripts {
@@ -267,40 +220,6 @@
             }
         })();
     </script>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     <script>
         (function () {

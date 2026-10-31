@@ -150,20 +150,19 @@
             <div class="app-sidebar-backdrop" id="sidebarBackdrop"></div>
 
             <div class="app-content">
-
-                <main class="app-main @ViewData["MainClass"]" role="main">
+               <main class="app-main @ViewData["MainClass"]" role="main">
 
                     @await Html.PartialAsync("_TempDataAlerts")
 
                     @RenderBody()
-                </main>
 
-                <footer class="border-top footer text-muted">
-                    <div class="container">
-                        &copy; 2026 - Heimevernet -
-                        <a asp-controller="Home" asp-action="Privacy">Privacy</a>
-                    </div>
-                </footer>
+                    <footer class="border-top footer text-muted">
+                        <div class="container">
+                            &copy; 2026 - Heimevernet -
+                            <a asp-controller="Home" asp-action="Privacy">Privacy</a>
+                        </div>
+                    </footer>
+                </main>
 
             </div>
 

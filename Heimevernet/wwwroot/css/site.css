@@ -26,10 +26,6 @@ html {
   min-height: 100%;
 }
 
-body {
-  margin-bottom: 60px;
-}
-
 .form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
   color: var(--bs-secondary-color);
   text-align: end;
@@ -42,7 +38,8 @@ body {
 .app-shell {
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
 }
 
 .app-topbar {
@@ -143,6 +140,7 @@ body {
     display: flex;
     flex: 1;
     min-height: 0;
+    overflow: hidden;
 }
 
 .app-sidebar {
@@ -176,27 +174,23 @@ body {
     display: flex;
     flex-direction: column;
     min-width: 0;
-}
-
-.app-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
     min-height: 0;
+    overflow: hidden;
 }
-
 
 .app-main--full {
     padding: 0;
     display: flex;
     flex-direction: column;
     min-height: 0;
+    overflow: hidden;
 }
 
 .app-main {
     flex: 1;
+    min-height: 0;
     padding: 24px;
+    overflow-y: auto;
 }
 
 
@@ -229,7 +223,7 @@ body {
         box-shadow: 2px 0 16px rgba(0, 0, 0, .18);
     }
 
-    .app-shell:has(.map-page-full) .app-content > footer {
+    .app-shell:has(.map-page-full) .app-main > footer {
         display: none;
     }
 
@@ -646,6 +640,16 @@ body {
 }
 
 .chip-status-resolved {
+    color: #6b7a90;
+    background: #eef1f5;
+}
+
+.chip-status-rejected {
+    color: #c0392b;
+    background: #fdf1f1;
+}
+
+.chip-status-cancelled {
     color: #6b7a90;
     background: #eef1f5;
 }
@@ -1272,4 +1276,161 @@ body {
     .app-shell:has(.map-page-full) .app-sidebar {
         z-index: 2200;
     }
+}
+
+/* ===== Need / Resource create & edit forms (#83 Figma alignment) ===== */
+
+.form-card {
+    background: #fff;
+    border: 1px solid #e3e9f2;
+    border-radius: 12px;
+    padding: 28px;
+    max-width: 760px;
+    margin: 0 auto;
+}
+
+.form-card-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #1d385a;
+    margin-bottom: 4px;
+}
+
+.form-card-subtitle {
+    color: #6b7a90;
+    font-size: .85rem;
+    margin-bottom: 20px;
+}
+
+.form-section-title {
+    font-size: .78rem;
+    font-weight: 700;
+    color: #1d385a;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    margin: 28px 0 14px;
+    padding-top: 20px;
+    border-top: 1px solid #e3e9f2;
+}
+
+.form-field-group {
+    margin-bottom: 18px;
+}
+
+    .form-field-group > label {
+        font-size: .78rem;
+        font-weight: 600;
+        color: #4b5a6e;
+        margin-bottom: 6px;
+        display: block;
+    }
+
+.form-row-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(min(240px, 100%), 1fr));
+    gap: 16px;
+}
+
+.form-card .form-control,
+.form-card .form-select {
+    border: 1px solid #d7e0ec;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: .9rem;
+    color: #1d385a;
+    background-color: #f9fbfd;
+}
+
+    .form-card .form-control:focus,
+    .form-card .form-select:focus {
+        border-color: #1d385a;
+        box-shadow: 0 0 0 .15rem rgba(29, 56, 90, .12);
+        background-color: #fff;
+    }
+
+.form-map {
+    border: 1px solid #d7e0ec;
+    border-radius: 10px;
+    overflow: hidden;
+    height: clamp(260px, 42vh, 420px);
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 28px;
+    flex-wrap: wrap;
+}
+
+.resource-upload-area {
+    position: relative;
+    display: block;
+    border: 1px dashed #d7e0ec;
+    background: #f9fbfd;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: border-color .15s ease, background-color .15s ease;
+}
+
+    .resource-upload-area:hover {
+        border-color: #1d385a;
+        background: #eef3fa;
+    }
+
+.resource-upload-icon {
+    font-size: 2rem;
+    color: #1d385a;
+}
+
+.form-field-group .custom-select {
+    display: block;
+    width: 100%;
+}
+
+.form-field-group .custom-select-trigger {
+    width: 100%;
+}
+
+.custom-select-trigger:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+}
+
+.match-table thead th {
+    background: #f4f7fb;
+    color: #1d385a;
+    font-size: .78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    border-bottom: 1px solid #e3e9f2;
+    padding: 12px 16px;
+}
+
+.match-table td {
+    padding: 12px 16px;
+    font-size: .88rem;
+    border-bottom: 1px solid #f0f3f7;
+    color: #33425a;
+}
+
+.match-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.match-table a {
+    color: #1d385a;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+    .match-table a:hover {
+        text-decoration: underline;
+    }
+.app-main {
+    overscroll-behavior: contain;
+}
+
+html, body {
+    overscroll-behavior: none;
 }
