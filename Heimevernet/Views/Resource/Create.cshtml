@@ -7,188 +7,159 @@
     ViewData["Title"] = pageTitle;
 }
 
-<a asp-action="@(isEdit ? "Details" : "Index")" asp-route-id="@(isEdit ? editResourceId : null)" class="btn btn-link link-secondary text-decoration-none ps-0 mb-3">
-    <i class="bi bi-arrow-left me-1"></i>
-    Back to overview
+<a asp-action="@(isEdit ? "Details" : "Index")" asp-route-id="@(isEdit ? editResourceId : null)" class="back-link">
+    <i class="bi bi-arrow-left"></i> Back to overview
 </a>
 
-<div class="row justify-content-center">
-    <div class="col-12 col-lg-8 col-xl-6">
-        <div class="card border-0 shadow-sm" style="color-scheme: light;">
-            <div class="card-body p-4 p-md-5">
+<div class="form-card">
 
-                <div class="mb-4">
-                    <h1 class="h4 mb-1">@pageTitle</h1>
-                    <p class="text-secondary small mb-0">
-                        @(isEdit ? "Update resource details." : "Provide the resource details and optionally upload a photo.")
-                    </p>
-                </div>
+    <h1 class="form-card-title">@pageTitle</h1>
+    <p class="form-card-subtitle">
+        @(isEdit ? "Update resource details." : "Provide the resource details and optionally upload a photo.")
+    </p>
 
-                <form asp-action="@(isEdit ? "Edit" : "Create")" asp-route-id="@(isEdit ? editResourceId : null)" method="post" enctype="multipart/form-data">
-                    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+    <form asp-action="@(isEdit ? "Edit" : "Create")" asp-route-id="@(isEdit ? editResourceId : null)" method="post" enctype="multipart/form-data">
 
-                    <div class="mb-3">
-                        <label asp-for="Title" class="form-label"></label>
-                        <input asp-for="Title" class="form-control" placeholder="E.g. Snow plow" />
-                        <span asp-validation-for="Title" class="text-danger small"></span>
-                    </div>
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
-                    <div class="mb-3">
-                        <label asp-for="CategoryId" class="form-label">Category</label>
-                        <select asp-for="CategoryId" class="form-select">
-                            <option value="">Select category...</option>
-                            @foreach (var category in Model.AvailableCategories)
-                            {
-                                <option value="@category.Id">@category.Name</option>
-                            }
-                        </select>
-                        <span asp-validation-for="CategoryId" class="text-danger small"></span>
-                    </div>
-
-                    <div class="mb-3">
-                        <label asp-for="Description" class="form-label"></label>
-                        <textarea asp-for="Description" class="form-control" rows="4"
-                                  placeholder="Describe the resource (optional)"></textarea>
-                        <span asp-validation-for="Description" class="text-danger small"></span>
-                    </div>
-
-                    <hr class="my-4" />
-
-                    <h2 class="h6 mb-3">Location</h2>
-
-                    <div class="row">
-                        <input asp-for="Latitude" type="hidden" />
-                        <input asp-for="Longitude" type="hidden" />
-
-                        <div class="col-12 mb-3">
-                            <div class="form-label">Pick location on the map</div>
-
-                            <div id="map" style="width:100%;height:660px;border:1px solid rgba(0,0,0,0.08);border-radius:.25rem"></div>
-
-                            <div class="small mt-2">
-                                <span id="selected-coords">@(Model.Latitude != 0 || Model.Longitude != 0 ? Model.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture) + ", " + Model.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")</span>
-                            </div>
-
-                            <span asp-validation-for="Latitude" class="text-danger small d-block"></span>
-                            <span asp-validation-for="Longitude" class="text-danger small d-block"></span>
-                        </div>
-
-                        <div class="col-12 mb-3">
-                            <span asp-validation-for="Region" id="map-error" class="text-danger small mt-1 d-block"></span>
-                        </div>
-                    </div>
-
-                    <hr class="my-4" />
-
-                    <h2 class="h6 mb-3">Availability</h2>
-
-                    <div class="row">
-                        <div class="col-12 col-sm-6 mb-3">
-                            <label asp-for="AvailableFrom" class="form-label"></label>
-                            <input asp-for="AvailableFrom" class="form-control" type="datetime-local" />
-                            <span asp-validation-for="AvailableFrom" class="text-danger small"></span>
-                        </div>
-
-                        <div class="col-12 col-sm-6 mb-3">
-                            <label asp-for="AvailableTo" class="form-label"></label>
-                            <input asp-for="AvailableTo" class="form-control" type="datetime-local" />
-                            <span asp-validation-for="AvailableTo" class="text-danger small"></span>
-                        </div>
-                    </div>
-
-                    <div class="mb-4">
-                        <label asp-for="QuantityOffered" class="form-label"></label>
-                        <input asp-for="QuantityOffered" class="form-control" type="number" min="1" max="10000" />
-                        <span asp-validation-for="QuantityOffered" class="text-danger small"></span>
-                    </div>
-
-                    <div class="mb-4">
-                        <label asp-for="ContactPoint" class="form-label"></label>
-                        <input asp-for="ContactPoint" class="form-control"
-                               placeholder="Phone, email, or other contact information" />
-                        <span asp-validation-for="ContactPoint" class="text-danger small"></span>
-                    </div>
-
-                    @if (!isEdit)
-                    {
-                        <hr class="my-4" />
-
-                        <h2 class="h6 mb-1">Resource photo</h2>
-                        <p class="text-secondary small mb-3">
-                            Add a photo to help others identify the resource. This is optional.
-                        </p>
-
-                        <label for="Image" class="resource-upload-area w-100 rounded-3 p-4 text-center">
-                            <div class="resource-upload-icon mb-2">
-                                <i class="bi bi-cloud-arrow-up"></i>
-                            </div>
-
-                            <div class="fw-medium mb-1" id="upload-label">
-                                Click to choose an image
-                            </div>
-
-                            <div class="text-secondary small">
-                                JPG, PNG or WebP · Maximum 5 MB
-                            </div>
-
-                            <input asp-for="Image" id="Image" type="file" class="visually-hidden"
-                                   accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" />
-                        </label>
-
-                        <span asp-validation-for="Image" class="text-danger small"></span>
-
-                        <div id="image-preview-container" class="mt-3 d-none">
-                            <div class="d-flex align-items-center gap-3 p-2 border rounded-3">
-                                <img id="image-preview" src="" alt="Selected resource photo"
-                                     class="rounded object-fit-cover" style="width: 84px; height: 64px;" />
-
-                                <div class="flex-grow-1 min-width-0">
-                                    <div id="image-name" class="small fw-medium text-break"></div>
-                                    <div id="image-size" class="small text-secondary"></div>
-                                </div>
-
-                                <button type="button" id="remove-image" class="btn btn-sm btn-outline-secondary">
-                                    Remove
-                                </button>
-                            </div>
-                        </div>
-                    }
-
-                    <div class="d-flex flex-column flex-sm-row gap-2 mt-4">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi @(isEdit ? "bi-check2" : "bi-plus-lg") me-1"></i>
-                            @(isEdit ? "Save changes" : "Register Resource")
-                        </button>
-
-                        <a asp-action="@(isEdit ? "Details" : "Index")" asp-route-id="@(isEdit ? editResourceId : null)" class="btn btn-outline-secondary">
-                            Cancel
-                        </a>
-                    </div>
-                </form>
-            </div>
+        <div class="form-field-group">
+            <label asp-for="Title"></label>
+            <input asp-for="Title" class="form-control" placeholder="E.g. Snow plow" />
+            <span asp-validation-for="Title" class="text-danger small"></span>
         </div>
-    </div>
+
+        <div class="form-field-group">
+            <label asp-for="CategoryId">Category</label>
+            <select asp-for="CategoryId" class="form-select">
+                <option value="">Select category...</option>
+                @foreach (var category in Model.AvailableCategories)
+                {
+                    <option value="@category.Id">@category.Name</option>
+                }
+            </select>
+            <span asp-validation-for="CategoryId" class="text-danger small"></span>
+        </div>
+
+        <div class="form-field-group">
+            <label asp-for="Description"></label>
+            <textarea asp-for="Description" class="form-control" rows="4"
+                      placeholder="Describe the resource (optional)"></textarea>
+            <span asp-validation-for="Description" class="text-danger small"></span>
+        </div>
+
+        <h2 class="form-section-title">Location</h2>
+
+        <input asp-for="Latitude" type="hidden" />
+        <input asp-for="Longitude" type="hidden" />
+
+        <div class="form-field-group">
+            <label>Pick location on the map</label>
+
+            <div id="map" class="form-map"></div>
+
+            <div class="small mt-2">
+                <span id="selected-coords">@(Model.Latitude != 0 || Model.Longitude != 0 ? Model.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture) + ", " + Model.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")</span>
+            </div>
+
+            <span asp-validation-for="Latitude" class="text-danger small d-block"></span>
+            <span asp-validation-for="Longitude" class="text-danger small d-block"></span>
+            <span asp-validation-for="Region" id="map-error" class="text-danger small mt-1 d-block"></span>
+        </div>
+
+        <h2 class="form-section-title">Availability</h2>
+
+        <div class="form-row-2">
+
+            <div class="form-field-group">
+                <label asp-for="AvailableFrom"></label>
+                <input asp-for="AvailableFrom" class="form-control" type="datetime-local" />
+                <span asp-validation-for="AvailableFrom" class="text-danger small"></span>
+            </div>
+
+            <div class="form-field-group">
+                <label asp-for="AvailableTo"></label>
+                <input asp-for="AvailableTo" class="form-control" type="datetime-local" />
+                <span asp-validation-for="AvailableTo" class="text-danger small"></span>
+            </div>
+
+        </div>
+
+        <div class="form-row-2">
+
+            <div class="form-field-group">
+                <label asp-for="QuantityOffered"></label>
+                <input asp-for="QuantityOffered" class="form-control" type="number" min="1" max="10000" />
+                <span asp-validation-for="QuantityOffered" class="text-danger small"></span>
+            </div>
+
+            <div class="form-field-group">
+                <label asp-for="ContactPoint"></label>
+                <input asp-for="ContactPoint" class="form-control"
+                       placeholder="Phone, email, or other contact information" />
+                <span asp-validation-for="ContactPoint" class="text-danger small"></span>
+            </div>
+
+        </div>
+
+        @if (!isEdit)
+        {
+            <h2 class="form-section-title">Resource photo</h2>
+            <p class="form-card-subtitle" style="margin-top:-8px;">
+                Add a photo to help others identify the resource. This is optional.
+            </p>
+
+            <div class="form-field-group">
+                <label for="Image" class="resource-upload-area w-100 rounded-3 p-4 text-center">
+                    <div class="resource-upload-icon mb-2">
+                        <i class="bi bi-cloud-arrow-up"></i>
+                    </div>
+
+                    <div class="fw-medium mb-1" id="upload-label">
+                        Click to choose an image
+                    </div>
+
+                    <div class="text-secondary small">
+                        JPG, PNG or WebP &middot; Maximum 5 MB
+                    </div>
+
+                    <input asp-for="Image" id="Image" type="file" class="visually-hidden"
+                           accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" />
+                </label>
+
+                <span asp-validation-for="Image" class="text-danger small"></span>
+
+                <div id="image-preview-container" class="mt-3 d-none">
+                    <div class="d-flex align-items-center gap-3 p-2 border rounded-3">
+                        <img id="image-preview" src="" alt="Selected resource photo"
+                             class="rounded object-fit-cover" style="width: 84px; height: 64px;" />
+
+                        <div class="flex-grow-1 min-width-0">
+                            <div id="image-name" class="small fw-medium text-break"></div>
+                            <div id="image-size" class="small text-secondary"></div>
+                        </div>
+
+                        <button type="button" id="remove-image" class="btn btn-sm btn-outline-secondary">
+                            Remove
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-brand">
+                <i class="bi @(isEdit ? "bi-check2" : "bi-plus-lg") me-1"></i>
+                @(isEdit ? "Save changes" : "Register Resource")
+            </button>
+
+            <a asp-action="@(isEdit ? "Details" : "Index")" asp-route-id="@(isEdit ? editResourceId : null)" class="btn btn-outline-brand">
+                Cancel
+            </a>
+        </div>
+
+    </form>
+
 </div>
-
-<style>
-    .resource-upload-area {
-        display: block;
-        border: 1px dashed var(--bs-border-color);
-        background: var(--bs-tertiary-bg);
-        cursor: pointer;
-        transition: border-color .15s ease, background-color .15s ease;
-    }
-
-    .resource-upload-area:hover {
-        border-color: var(--bs-primary);
-        background: var(--bs-secondary-bg);
-    }
-
-    .resource-upload-icon {
-        font-size: 2rem;
-        color: var(--bs-primary);
-    }
-</style>
 
 @section Scripts {
     @await Html.PartialAsync("_ValidationScriptsPartial")
@@ -266,259 +237,6 @@
             }
         })();
     </script>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     <script>
         (() => {

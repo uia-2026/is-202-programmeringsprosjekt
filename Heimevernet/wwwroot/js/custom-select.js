@@ -1,7 +1,7 @@
-// Progressive-enhancement custom dropdown for .filter-bar selects.
+// Progressive-enhancement custom dropdown for every navy-styled <select> in the app.
 // Keeps the real <select> in the DOM (hidden, but still the thing that
-// submits the form) and layers a navy-styled button + listbox on top of it,
-// so no Razor markup or controller code has to change.
+// submits the form / gets read by page JS) and layers a navy-styled button +
+// listbox on top of it, so no Razor markup or controller code has to change.
 (function () {
     function enhance(select) {
         if (select.dataset.enhanced) return;
@@ -32,7 +32,7 @@
         var chevron = document.createElement("span");
         chevron.className = "custom-select-chevron";
         chevron.setAttribute("aria-hidden", "true");
-        chevron.textContent = "\u25BE";
+        chevron.textContent = "▾";
         trigger.appendChild(chevron);
 
         var panel = document.createElement("ul");
@@ -65,12 +65,18 @@
         }
         syncLabel();
 
+        function syncDisabled() {
+            trigger.disabled = select.disabled;
+        }
+        syncDisabled();
+
         function closePanel() {
             wrapper.classList.remove("is-open");
             trigger.setAttribute("aria-expanded", "false");
         }
 
         function openPanel() {
+            if (select.disabled) return;
             document.querySelectorAll(".custom-select.is-open").forEach(function (w) {
                 if (w !== wrapper) w.classList.remove("is-open");
             });
@@ -123,10 +129,39 @@
         document.addEventListener("keydown", function (e) {
             if (e.key === "Escape") closePanel();
         });
+
+        // Some pages (e.g. the Map filters) fill a <select>'s options in with
+        // JavaScript after this enhancer already ran, or flip its `disabled`
+        // state later (e.g. the distance filter, disabled until a location is
+        // picked). Watch the real select and keep the custom UI in sync.
+        var observer = new MutationObserver(function (mutations) {
+            var optionsChanged = mutations.some(function (m) {
+                return m.type === "childList" || m.type === "characterData";
+            });
+            var disabledChanged = mutations.some(function (m) {
+                return m.type === "attributes" && m.attributeName === "disabled";
+            });
+
+            if (optionsChanged) {
+                buildOptions();
+                syncLabel();
+            }
+            if (disabledChanged) {
+                syncDisabled();
+            }
+        });
+
+        observer.observe(select, {
+            childList: true,
+            subtree: true,
+            characterData: true,
+            attributes: true,
+            attributeFilter: ["disabled"]
+        });
     }
 
     function enhanceAll() {
-        document.querySelectorAll(".filter-bar select.form-select").forEach(enhance);
+        document.querySelectorAll("select.form-select, select.map-filter-select").forEach(enhance);
     }
 
     if (document.readyState === "loading") {
