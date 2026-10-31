@@ -644,6 +644,16 @@ html {
     background: #eef1f5;
 }
 
+.chip-status-rejected {
+    color: #c0392b;
+    background: #fdf1f1;
+}
+
+.chip-status-cancelled {
+    color: #6b7a90;
+    background: #eef1f5;
+}
+
 .chip-resource-available {
     color: #0a7a3d;
     background: #e3f6ea;
