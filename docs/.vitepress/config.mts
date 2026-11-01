@@ -35,6 +35,7 @@ export default defineConfig({
           { text: "Architecture", link: "/architecture" },
           { text: "Design decisions", link: "/design-decisions" },
           { text: "Database", link: "/database" },
+          { text: "Concurrency", link: "/concurrency" },
         ],
       },
       {
