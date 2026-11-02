@@ -23,6 +23,13 @@ public class MatchListItemViewModel
 
     public DateTime MatchedAt { get; set; }
 
-    // True only for the Resource Provider when the match is UnderReview.
+    // True when the current user owns the Need in this match.
+    public bool IsNeedOwner { get; set; }
+
+    // True when the current user owns the Resource in this match.
+    public bool IsResourceOwner { get; set; }
+
+    // True when the current user owns the Resource and the match is UnderReview.
+    // Only controls whether Accept/Reject buttons are shown; MatchService enforces ownership.
     public bool CanDecide { get; set; }
 }

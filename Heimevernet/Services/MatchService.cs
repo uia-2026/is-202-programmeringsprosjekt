@@ -11,7 +11,7 @@ namespace Heimevernet.Services;
 /// <summary>
 /// Business logic for the Match flow.
 /// Propose (#40): suggests candidate Resources for a Need and creates a Match.
-/// My Matches: lists matches and lets the Resource Provider accept or reject them.
+/// My Matches: lists matches on the user's own Needs and Resources; the Resource owner can accept or reject.
 /// </summary>
 public class MatchService : IMatchService
 {
@@ -171,18 +171,16 @@ public class MatchService : IMatchService
 
     public async Task<MatchIndexViewModel> GetMyMatchesAsync(
         int userId,
-        bool isResourceProvider,
         CancellationToken cancellationToken = default)
     {
-        var matches = isResourceProvider
-            ? await _matchRepository.GetForResourceOwnerAsync(userId, cancellationToken)
-            : await _matchRepository.GetForNeedOwnerAsync(userId, cancellationToken);
+        // One query for both ownership sides, so a user who owns both
+        // the Need and the Resource sees the match only once.
+        var matches = await _matchRepository.GetForUserAsync(userId, cancellationToken);
 
         return new MatchIndexViewModel
         {
-            IsResourceProvider = isResourceProvider,
             Matches = matches
-                .Select(m => _matchListMapper.ToListItem(m, isResourceProvider))
+                .Select(m => _matchListMapper.ToListItem(m, userId))
                 .ToList()
         };
     }

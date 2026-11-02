@@ -6,8 +6,10 @@ namespace Heimevernet.Mappers;
 
 public class MatchListMapper : IMatchListMapper
 {
-    public MatchListItemViewModel ToListItem(Match match, bool isResourceProvider)
+    public MatchListItemViewModel ToListItem(Match match, int currentUserId)
     {
+        var isResourceOwner = match.Resource.UserId == currentUserId;
+
         return new MatchListItemViewModel
         {
             MatchId = match.Id,
@@ -18,7 +20,9 @@ public class MatchListMapper : IMatchListMapper
             Quantity = match.Quantity,
             Status = match.Status,
             MatchedAt = match.MatchedAt,
-            CanDecide = isResourceProvider && match.Status == MatchStatus.UnderReview
+            IsNeedOwner = match.Need.UserId == currentUserId,
+            IsResourceOwner = isResourceOwner,
+            CanDecide = isResourceOwner && match.Status == MatchStatus.UnderReview
         };
     }
 }

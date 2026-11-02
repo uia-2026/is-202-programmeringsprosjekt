@@ -5,5 +5,5 @@ namespace Heimevernet.Mappers.Interfaces;
 
 public interface IMatchListMapper
 {
-    MatchListItemViewModel ToListItem(Match match, bool isResourceProvider);
-}
+    MatchListItemViewModel ToListItem(Match match, int currentUserId);
+} 

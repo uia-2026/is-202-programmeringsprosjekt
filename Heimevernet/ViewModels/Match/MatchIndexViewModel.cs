@@ -5,7 +5,8 @@ namespace Heimevernet.ViewModels.Match;
 /// </summary>
 public class MatchIndexViewModel
 {
-    public bool IsResourceProvider { get; set; }
-
     public IReadOnlyList<MatchListItemViewModel> Matches { get; set; } = [];
+
+    // True when at least one row can be accepted or rejected by the current user.
+    public bool ShowActions => Matches.Any(m => m.CanDecide);
 }

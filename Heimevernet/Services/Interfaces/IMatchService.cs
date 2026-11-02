@@ -58,9 +58,9 @@ public interface IMatchService
 
     /// <summary>
     /// Returns the "My Matches" page model for the given user.
-    /// Resource Providers see matches on their resources; Public Actors see matches on their needs.
+    /// Includes every match where the user owns the Need, the Resource, or both, regardless of role.
     /// </summary>
-    Task<MatchIndexViewModel> GetMyMatchesAsync(int userId, bool isResourceProvider, CancellationToken cancellationToken = default);
+    Task<MatchIndexViewModel> GetMyMatchesAsync(int userId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Accepts a match. Only the owner of the match's Resource may accept,
