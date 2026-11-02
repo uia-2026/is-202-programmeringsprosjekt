@@ -3,6 +3,7 @@ import { state, cacheElements, elements } from "./state.js";
 import { wireFilterControls } from "./filters.js";
 import { wireLocationControls } from "./location.js";
 import { loadMarkers, scheduleLoad } from "./data.js";
+import { readMapRequest } from "./focus.js";
 
 const mapElement = document.getElementById("leafletMap");
 
@@ -129,6 +130,15 @@ if (!mapElement || typeof L === "undefined") {
     state.map.on("moveend", scheduleLoad);
     loadMarkers();
     updateMapActionDisplay();
+}
+
+// Opened from the search box on another page
+const request = readMapRequest(new URLSearchParams(window.location.search));
+if (request) {
+    state.pendingFocus = request.focus;
+    state.map.setView([request.lat, request.lng],
+        request.focus ? CONFIG.focusZoom : CONFIG.addressZoom, { animate: false });
+    history.replaceState(null, "", window.location.pathname);   // a refresh must not repeat it
 }
 
 

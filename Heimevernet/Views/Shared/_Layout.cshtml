@@ -29,14 +29,19 @@
                 Heimevernet
             </a>
 
-
             <div class="app-topbar-search">
-                <input type="search" id="globalSearchInput" placeholder= "Search for needs, resources, locations..." autocomplete="off" />
+                @{
+                    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+                    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+                    var isMapPage = currentController == "Map" && currentAction == "Index";
+                }
+                @if (isMapPage)
+                {
+                    <input type="search" id="globalSearchInput" placeholder= "Search for needs, resources, locations..." autocomplete="off" />
+                }
             </div>
 
             @{
-                var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
-                var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
                 var isAuthenticated = User.Identity?.IsAuthenticated == true;
                 var isPublicActor = User.IsInRole("PublicActor");
                 var isResourceProvider = User.IsInRole("ResourceProvider");
@@ -176,6 +181,7 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/custom-select.js" defer></script>
     <script src="~/js/nav-toggle.js" defer></script>
+    <script type="module" src="~/js/map/global-search.js" asp-append-version="true"></script>
 
 
 
