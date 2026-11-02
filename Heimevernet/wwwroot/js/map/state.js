@@ -7,7 +7,11 @@ export const state = {
     hasLoadedMarkers: false,
     isLoading: false,
     searchLocation: null, // { lat, lng, label }
-    mapActionPoints: []
+    mapActionPoints: [],
+
+
+    markerIndex: new Map(),
+    pendingFocus: null, 
 };
 
 export const elements = {};

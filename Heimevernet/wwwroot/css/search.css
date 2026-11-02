@@ -1,0 +1,42 @@
+.app-search-suggestion-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.app-search-result-type {
+    flex-shrink: 0;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 4px 7px;
+    border-radius: 4px;
+}
+
+.app-search-result-type.address {
+    background: #e0e7ff;
+    color: #3730a3;
+}
+
+.app-search-result-type.need {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.app-search-result-type.resource {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.app-search-result-content {
+    min-width: 0;
+}
+
+.app-search-result-title {
+    font-weight: 500;
+}
+
+.app-search-result-subtitle {
+    font-size: 0.8rem;
+    opacity: 0.65;
+    margin-top: 2px;
+}
