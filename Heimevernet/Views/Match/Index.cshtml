@@ -18,9 +18,7 @@
     <div>
         <h1>My Matches</h1>
         <p>
-            @(Model.IsResourceProvider
-                ? "Proposals on your resources. Accept or reject the ones that are under review."
-                : "Proposals on your needs and their status.")
+            Proposals on your needs and resources. Accept or reject proposals on your own resources while they are under review.
         </p>
     </div>
 </div>
@@ -45,7 +43,7 @@ else
                         <th>Quantity</th>
                         <th>Status</th>
                         <th>Matched</th>
-                        @if (Model.IsResourceProvider)
+                        @if (Model.ShowActions)
                         {
                             <th></th>
                         }
@@ -59,14 +57,22 @@ else
                         <tr>
                             <td>
                                 <a asp-controller="Need" asp-action="Details" asp-route-id="@match.NeedId">@match.NeedTitle</a>
+                                @if (match.IsNeedOwner)
+                                {
+                                    <div class="small text-secondary">Your need</div>
+                                }
                             </td>
                             <td>
                                 <a asp-controller="Resource" asp-action="Details" asp-route-id="@match.ResourceId">@match.ResourceTitle</a>
+                                @if (match.IsResourceOwner)
+                                {
+                                    <div class="small text-secondary">Your resource</div>
+                                }
                             </td>
                             <td>@match.Quantity</td>
                             <td><span class="chip @statusCss"><span class="chip-dot"></span>@statusLabel</span></td>
                             <td class="text-secondary">@match.MatchedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
-                            @if (Model.IsResourceProvider)
+                            @if (Model.ShowActions)
                             {
                                 <td class="text-end">
                                     @if (match.CanDecide)

@@ -49,29 +49,16 @@ public class MatchRepository : IMatchRepository
     }
 
     /// <summary>
-    /// Returns all matches for needs owned by the given user (Public Actor view).
+    /// Returns all matches where the given user owns the need, the resource, or both.
+    /// A single query with OR returns each match once, even when the user owns both sides.
     /// </summary>
-    public async Task<IReadOnlyList<Match>> GetForNeedOwnerAsync(int userId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<Match>> GetForUserAsync(int userId, CancellationToken cancellationToken = default)
     {
         return await _context.Matches
             .AsNoTracking()
             .Include(m => m.Need)
             .Include(m => m.Resource)
-            .Where(m => m.Need.UserId == userId)
-            .OrderByDescending(m => m.MatchedAt)
-            .ToListAsync(cancellationToken);
-    }
-
-    /// <summary>
-    /// Returns all matches for resources owned by the given user (Resource Provider view).
-    /// </summary>
-    public async Task<IReadOnlyList<Match>> GetForResourceOwnerAsync(int userId, CancellationToken cancellationToken = default)
-    {
-        return await _context.Matches
-            .AsNoTracking()
-            .Include(m => m.Need)
-            .Include(m => m.Resource)
-            .Where(m => m.Resource.UserId == userId)
+            .Where(m => m.Need.UserId == userId || m.Resource.UserId == userId)
             .OrderByDescending(m => m.MatchedAt)
             .ToListAsync(cancellationToken);
     }

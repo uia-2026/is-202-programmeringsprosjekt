@@ -9,11 +9,12 @@ namespace Heimevernet.Controllers;
 /// <summary>
 /// MVC controller for the Match flow.
 /// Propose (#40): lets a Need's owner pick a candidate Resource and propose it as a match.
-/// My Matches (#64): role-specific list of matches, where the Resource Provider can accept or reject.
+/// My Matches (#64, #96): lists matches on the user's own Needs and Resources.
+/// The owner of the Resource can accept or reject, regardless of role.
 /// </summary>
 public class MatchController(IMatchService matchService, INeedService needService) : Controller
 {
-    private const string ResourceProviderRole = "ResourceProvider"; // NYTT I STEG 8
+    private const string AnyAppRole = "PublicActor,ResourceProvider";
 
     private readonly IMatchService _matchService = matchService;
     private readonly INeedService _needService = needService;
@@ -137,24 +138,22 @@ public class MatchController(IMatchService matchService, INeedService needServic
     }
 
     /// <summary>
-    /// "My Matches": Public Actors see matches on their needs,
-    /// Resource Providers see matches on their resources.
+    /// "My Matches": every match where the current user owns the Need, the Resource, or both.
     /// </summary>
-    [Authorize(Roles = "PublicActor," + ResourceProviderRole)]
+    [Authorize(Roles = AnyAppRole)]
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
-        var isResourceProvider = User.IsInRole(ResourceProviderRole);
-
-        var model = await _matchService.GetMyMatchesAsync(User.GetUserId(), isResourceProvider, cancellationToken);
+        var model = await _matchService.GetMyMatchesAsync(User.GetUserId(), cancellationToken);
 
         return View(model);
     }
 
     /// <summary>
-    /// Resource Provider accepts a proposed match.
+    /// The owner of the match's Resource accepts a proposed match.
+    /// Ownership is enforced in MatchService.AcceptAsync, not by role.
     /// </summary>
-    [Authorize(Roles = ResourceProviderRole)]
+    [Authorize(Roles = AnyAppRole)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Accept(int id, CancellationToken cancellationToken)
@@ -165,9 +164,10 @@ public class MatchController(IMatchService matchService, INeedService needServic
     }
 
     /// <summary>
-    /// Resource Provider rejects a proposed match.
+    /// The owner of the match's Resource rejects a proposed match.
+    /// Ownership is enforced in MatchService.RejectAsync, not by role.
     /// </summary>
-    [Authorize(Roles = ResourceProviderRole)]
+    [Authorize(Roles = AnyAppRole)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Reject(int id, CancellationToken cancellationToken)

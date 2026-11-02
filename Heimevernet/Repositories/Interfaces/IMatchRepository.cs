@@ -35,14 +35,9 @@ public interface IMatchRepository
     Task<int> GetAllocatedQuantityForResourceAsync(int resourceId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Returns all matches for needs owned by the given user (Public Actor view).
+    /// Returns all matches where the given user owns the need, the resource, or both.
     /// </summary>
-    Task<IReadOnlyList<Match>> GetForNeedOwnerAsync(int userId, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Returns all matches for resources owned by the given user (Resource Provider view).
-    /// </summary>
-    Task<IReadOnlyList<Match>> GetForResourceOwnerAsync(int userId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Match>> GetForUserAsync(int userId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Returns a tracked match including its Need and Resource, or null.
