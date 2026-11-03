@@ -12,13 +12,12 @@
     <link rel="stylesheet"
           href="~/css/map.css"
           asp-append-version="true" />
-              <link rel="stylesheet"
-          href="~/css/search.css"
-          asp-append-version="true" />
-}
-}
+                  <link rel="stylesheet"
+                        href="~/css/search.css"
+                        asp-append-version="true" />
+              }
 
-<div class="map-page-full">
+              <div class="map-page-full">
     <div id="leafletMap"></div>
 
     <div class="map-legend-box" id="mapLegendBox" aria-label="Map legend">
@@ -65,8 +64,20 @@
         </div>
     </div>
 
+    <button type="button"
+            id="mapActionToggle"
+            class="map-action-toggle"
+            aria-expanded="false"
+            aria-controls="mapActionPanel">
+        <span>Actions</span>
+        <span class="map-filter-toggle-icon" aria-hidden="true">▾</span>
+    </button>
+
     <div id="mapActionPanel" class="map-action-panel" hidden>
-        <div class="map-action-title">Map action</div>
+        <div class="map-action-header">
+            <div class="map-action-title">Map action</div>
+            <button type="button" class="map-action-close" id="mapActionClose" aria-label="Hide actions panel">×</button>
+        </div>
 
         <div class="map-action-distance-row">
             <span class="map-action-label">Distance</span>
@@ -83,7 +94,7 @@
                 <a id="mapActionNeedCreate" href="@Url.Action("Create", "Need")">Register Need</a>
             }
 
-            @if (User.IsInRole("ResourceProvider"))
+            @if (User.IsInRole("PublicActor") || User.IsInRole("ResourceProvider"))
             {
                 <a id="mapActionResourceCreate" href="@Url.Action("Create", "Resource")">Register Resource</a>
             }
