@@ -9,7 +9,10 @@ export const CONFIG = {
     autocompleteMinChars: 3,
     defaultRadiusKm: 10, // matches the selected option in the radius dropdown
     tileUrl: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    tileAttribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    tileAttribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'.at,
+
+    focusZoom: 15,
+    addressZoom: 14,
 };
 
 export const PRIORITIES = ["Low", "Medium", "Critical"];

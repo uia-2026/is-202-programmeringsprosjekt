@@ -46,3 +46,5 @@ export function distanceFromPoint(marker, point) {
     if (!point || !hasValidCoordinates(marker)) return null;
     return distanceKm(point.lat, point.lng, Number(marker.latitude), Number(marker.longitude));
 }
+
+export const markerKey = (kind, id) => `${normalize(kind)}:${id}`;

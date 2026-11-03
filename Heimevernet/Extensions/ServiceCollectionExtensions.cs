@@ -22,6 +22,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IMatchRepository, MatchRepository>();
+        services.AddScoped<ISearchRepository, SearchRepository>();
+
         return services;
     }
 
@@ -63,6 +65,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAttachmentService, AttachmentService>();
         services.AddScoped<IMatchService, MatchService>();
         services.AddScoped<IMapService, MapService>();
+        services.AddScoped<ISearchService, SearchService>();
 
         // Region resolver and HTTP client used for reverse geocoding
         services.AddHttpClient("nominatim", client =>

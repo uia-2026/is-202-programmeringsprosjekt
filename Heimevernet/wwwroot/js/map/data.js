@@ -58,3 +58,8 @@ export async function loadMarkers() {
         if (request === requestSequence) state.isLoading = false;
     }
 }
+
+export function loadMarkersNow() {
+    window.clearTimeout(debounceTimeout);
+    return loadMarkers();
+}

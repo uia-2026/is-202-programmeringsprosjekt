@@ -3,6 +3,7 @@ import { state, elements } from "./state.js";
 import { applyFilters } from "./filters.js";
 import { initAutocomplete } from "./autocomplete.js";
 import { escapeHtml } from "./utils.js";
+import { focusItem } from "./focus.js";
 
 const getRadiusKm = () => Number(elements.mapFilterRadius?.value) || CONFIG.defaultRadiusKm;
 
@@ -97,7 +98,12 @@ export function wireLocationControls() {
     });
 
     if (elements.globalSearchInput) {
-        initAutocomplete(elements.globalSearchInput, item =>
-            setSearchLocation({ lat: item.lat, lng: item.lng, label: item.label }));
+        initAutocomplete(elements.globalSearchInput, item => {
+            if (item.type === "address") {
+                setSearchLocation({ lat: item.lat, lng: item.lng, label: item.label });
+            } else {
+                focusItem(item);
+            }
+        });
     }
 }
