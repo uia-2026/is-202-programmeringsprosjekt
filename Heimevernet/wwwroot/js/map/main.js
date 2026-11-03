@@ -1,4 +1,4 @@
-import { CONFIG } from "./config.js";
+import { CONFIG, createBaseLayers } from "./config.js";
 import { state, cacheElements, elements } from "./state.js";
 import { wireFilterControls } from "./filters.js";
 import { wireLocationControls } from "./location.js";
@@ -127,10 +127,24 @@ if (!mapElement || typeof L === "undefined") {
     cacheElements();
 
     state.map = L.map(mapElement, { zoomControl: false }).setView(CONFIG.initialCenter, CONFIG.initialZoom);
-    L.tileLayer(CONFIG.tileUrl, {
-        attribution: CONFIG.tileAttribution,
-        maxZoom: CONFIG.maxZoom
+
+    const baseLayers = createBaseLayers();
+    const defaultBaseLayerName = CONFIG.defaultBaseLayerName ?? Object.keys(baseLayers)[0];
+    const defaultBaseLayer = baseLayers[defaultBaseLayerName] ?? Object.values(baseLayers)[0];
+
+    if (defaultBaseLayer) {
+        defaultBaseLayer.addTo(state.map);
+    }
+
+    const validBaseLayers = Object.fromEntries(
+        Object.entries(baseLayers).filter(([, layer]) => !!layer)
+    );
+
+    L.control.layers(validBaseLayers, {}, {
+        position: "bottomright",
+        collapsed: true
     }).addTo(state.map);
+
     L.control.zoom({ position: "bottomright" }).addTo(state.map);
 
     state.markerLayer = L.layerGroup().addTo(state.map);

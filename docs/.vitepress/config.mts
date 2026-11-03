@@ -14,27 +14,21 @@ export default defineConfig({
   cleanUrls: true,
 
   themeConfig: {
-    nav: [
-      { text: "Getting started", link: "/getting-started" },
-      { text: "Architecture", link: "/architecture" },
-      { text: "Testing", link: "/testing" },
-    ],
-
     sidebar: [
       {
         text: "Start",
         items: [
           { text: "Overview", link: "/" },
           { text: "Getting started", link: "/getting-started" },
-          { text: "Deployment", link: "/deployment" },
         ],
       },
       {
-        text: "Design",
+        text: "Architecture",
         items: [
-          { text: "Architecture", link: "/architecture" },
-          { text: "Design decisions", link: "/design-decisions" },
+          { text: "System architecture", link: "/architecture" },
           { text: "Database", link: "/database" },
+          { text: "Concurrency", link: "/concurrency" },
+          { text: "Design decisions", link: "/design-decisions" },
         ],
       },
       {
@@ -47,6 +41,10 @@ export default defineConfig({
         ],
       },
       {
+        text: "Infrastructure",
+        items: [{ text: "Deployment", link: "/deployment" }],
+      },
+      {
         text: "Project",
         items: [
           { text: "Testing", link: "/testing" },
@@ -54,14 +52,6 @@ export default defineConfig({
         ],
       },
     ],
-
-    outline: [2, 3],
-    search: { provider: "local" },
-
-    editLink: {
-      pattern: `${repoUrl}/edit/main/docs/:path`,
-      text: "Edit this page on GitHub",
-    },
 
     socialLinks: [{ icon: "github", link: repoUrl }],
 
