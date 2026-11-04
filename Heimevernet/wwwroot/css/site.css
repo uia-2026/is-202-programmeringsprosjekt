@@ -187,10 +187,24 @@ html {
 }
 
 .app-main {
+    display: flex;
+    flex-direction: column;
     flex: 1;
     min-height: 0;
     padding: 24px;
     overflow-y: auto;
+}
+
+.app-main > footer {
+    margin-top: auto;
+}
+
+.form-card {
+    width: 100%;
+}
+
+.back-link {
+    align-self: flex-start;
 }
 
 
@@ -216,7 +230,7 @@ html {
 
     .app-shell:has(.map-page-full) .app-sidebar {
         position: absolute;
-        top: 0;
+        top: 57px;
         bottom: 0;
         left: 0;
         z-index: 2000;
@@ -1275,6 +1289,7 @@ html {
 @media (max-width: 900px) {
     .app-shell:has(.map-page-full) .app-sidebar {
         z-index: 2200;
+        top: 0;
     }
 }
 
@@ -1329,6 +1344,12 @@ html {
     display: grid;
     grid-template-columns: repeat(2, minmax(min(240px, 100%), 1fr));
     gap: 16px;
+}
+
+@media (max-width: 600px) {
+    .form-row-2 {
+        grid-template-columns: 1fr;
+    }
 }
 
 .form-card .form-control,
