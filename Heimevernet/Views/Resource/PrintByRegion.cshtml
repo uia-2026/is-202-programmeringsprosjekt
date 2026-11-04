@@ -31,6 +31,23 @@
             table {
                 width: 100% !important;
             }
+
+            .pbr-table {
+                table-layout: fixed;
+            }
+
+            .pbr-table th,
+            .pbr-table td {
+                overflow-wrap: anywhere;
+            }
+
+            .pbr-table th:nth-child(1), .pbr-table td:nth-child(1) { width: 13%; } /* Title */
+            .pbr-table th:nth-child(2), .pbr-table td:nth-child(2) { width: 12%; } /* Category */
+            .pbr-table th:nth-child(3), .pbr-table td:nth-child(3) { width: 20%; } /* Description */
+            .pbr-table th:nth-child(4), .pbr-table td:nth-child(4) { width: 13%; } /* Region */
+            .pbr-table th:nth-child(5), .pbr-table td:nth-child(5) { width: 13%; } /* Availability */
+            .pbr-table th:nth-child(6), .pbr-table td:nth-child(6) { width: 12%; } /* Status */
+            .pbr-table th:nth-child(7), .pbr-table td:nth-child(7) { width: 17%; } /* Contact */
         }
 
         .pbr-back-link {
