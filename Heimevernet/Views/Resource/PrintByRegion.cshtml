@@ -31,6 +31,23 @@
             table {
                 width: 100% !important;
             }
+
+            .pbr-table {
+                table-layout: fixed;
+            }
+
+            .pbr-table th,
+            .pbr-table td {
+                overflow-wrap: anywhere;
+            }
+
+            .pbr-table th:nth-child(1), .pbr-table td:nth-child(1) { width: 13%; } /* Title */
+            .pbr-table th:nth-child(2), .pbr-table td:nth-child(2) { width: 12%; } /* Category */
+            .pbr-table th:nth-child(3), .pbr-table td:nth-child(3) { width: 20%; } /* Description */
+            .pbr-table th:nth-child(4), .pbr-table td:nth-child(4) { width: 13%; } /* Region */
+            .pbr-table th:nth-child(5), .pbr-table td:nth-child(5) { width: 13%; } /* Availability */
+            .pbr-table th:nth-child(6), .pbr-table td:nth-child(6) { width: 12%; } /* Status */
+            .pbr-table th:nth-child(7), .pbr-table td:nth-child(7) { width: 17%; } /* Contact */
         }
 
         .pbr-back-link {
@@ -193,6 +210,18 @@
                 <button type="button" class="btn pbr-btn-print" onclick="window.print()">
                     <i class="bi bi-printer"></i> Print
                 </button>
+            </div>
+
+            <div class="col-auto">
+                <a asp-action="ExportCsv" asp-route-region="@Model.SelectedRegion" class="btn pbr-btn-outline">
+                    <i class="bi bi-filetype-csv"></i> Export CSV
+                </a>
+            </div>
+
+            <div class="col-auto">
+                <a asp-action="ExportJson" asp-route-region="@Model.SelectedRegion" class="btn pbr-btn-outline">
+                    <i class="bi bi-filetype-json"></i> Export JSON
+                </a>
             </div>
 
         </form>

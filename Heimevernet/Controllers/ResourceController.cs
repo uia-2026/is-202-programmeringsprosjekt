@@ -1,6 +1,7 @@
 using Heimevernet.Extensions;
 using Heimevernet.Models;
 using Heimevernet.Repositories.Interfaces;
+using Heimevernet.Services;
 using Heimevernet.Services.Interfaces;
 using Heimevernet.ViewModels.Attachment;
 using Heimevernet.ViewModels.Resource;
@@ -307,18 +308,57 @@ public class ResourceController(
             .OrderBy(r => r)
             .ToList();
 
-        var filtered = string.IsNullOrWhiteSpace(region)
-            ? availableResources
-            : [.. availableResources.Where(r => r.Region == region)];
-
         var model = new PrintByRegionViewModel
         {
             SelectedRegion = region,
             AvailableRegions = availableRegions,
-            Resources = [.. filtered.OrderBy(r => r.Title)]
+            Resources = FilterByRegion(availableResources, region)
         };
 
         return View(model);
+    }
+
+    /// <summary>Downloads the same list as <see cref="PrintByRegion"/> as a CSV file (#94).</summary>
+    [HttpGet]
+    [Authorize(Roles = "PublicActor")]
+    public async Task<IActionResult> ExportCsv(string? region, CancellationToken cancellationToken)
+    {
+        var availableResources = await _resourceService.GetAvailableAsync(cancellationToken);
+        var csv = ResourceExporter.ToCsv(FilterByRegion(availableResources, region));
+
+        return File(csv, "text/csv; charset=utf-8", ExportFileName(region, "csv"));
+    }
+
+    /// <summary>Downloads the same list as <see cref="PrintByRegion"/> as a JSON file (#94).</summary>
+    [HttpGet]
+    [Authorize(Roles = "PublicActor")]
+    public async Task<IActionResult> ExportJson(string? region, CancellationToken cancellationToken)
+    {
+        var availableResources = await _resourceService.GetAvailableAsync(cancellationToken);
+        var json = ResourceExporter.ToJson(FilterByRegion(availableResources, region));
+
+        return File(json, "application/json", ExportFileName(region, "json"));
+    }
+
+    private static List<ResourceViewModel> FilterByRegion(
+        IEnumerable<ResourceViewModel> resources,
+        string? region)
+    {
+        var filtered = string.IsNullOrWhiteSpace(region)
+            ? resources
+            : resources.Where(r => r.Region == region);
+
+        return [.. filtered.OrderBy(r => r.Title)];
+    }
+
+    private static string ExportFileName(string? region, string extension)
+    {
+        if (string.IsNullOrWhiteSpace(region))
+            return $"available-resources.{extension}";
+
+        // The region comes from the query string, so keep only safe characters for the file name.
+        var safeRegion = new string([.. region.Select(c => char.IsLetterOrDigit(c) ? c : '-')]);
+        return $"available-resources-{safeRegion}.{extension}";
     }
 
     /// <summary>Uploads a photo to a resource owned by the current user.</summary>
