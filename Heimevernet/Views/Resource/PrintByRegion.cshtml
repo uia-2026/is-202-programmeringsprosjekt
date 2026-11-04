@@ -195,6 +195,18 @@
                 </button>
             </div>
 
+            <div class="col-auto">
+                <a asp-action="ExportCsv" asp-route-region="@Model.SelectedRegion" class="btn pbr-btn-outline">
+                    <i class="bi bi-filetype-csv"></i> Export CSV
+                </a>
+            </div>
+
+            <div class="col-auto">
+                <a asp-action="ExportJson" asp-route-region="@Model.SelectedRegion" class="btn pbr-btn-outline">
+                    <i class="bi bi-filetype-json"></i> Export JSON
+                </a>
+            </div>
+
         </form>
 
     </div>
