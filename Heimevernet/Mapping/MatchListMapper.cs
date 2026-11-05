@@ -7,7 +7,7 @@ namespace Heimevernet.Mappers;
 
 public class MatchListMapper : IMatchListMapper
 {
-    public MatchListItemViewModel ToListItem(Match match, double currentUserId, double needLatitude, double needLongitude, double resourceLatitude, double resourceLongitude)
+    public MatchListItemViewModel ToListItem(Match match, int currentUserId, double needLatitude, double needLongitude, double resourceLatitude, double resourceLongitude)
     {
         var isResourceOwner = match.Resource.UserId == currentUserId;
 
