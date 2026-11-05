@@ -21,6 +21,7 @@ public class NeedServiceTests
     private readonly Mock<INeedMapper> _mapperMock;
     private readonly Mock<IMapMarkerMapper> _mapMarkerMapperMock;
     private readonly Mock<IUnitOfWork> _uowMock;
+    private readonly Mock<IAuditLogger> _auditLoggerMock;
     private readonly NeedService _sut;
 
     public NeedServiceTests()
@@ -32,7 +33,15 @@ public class NeedServiceTests
         _mapperMock = new Mock<INeedMapper>();
         _mapMarkerMapperMock = new Mock<IMapMarkerMapper>();
         _uowMock = new Mock<IUnitOfWork>();
-        _sut = new NeedService(_needRepoMock.Object, _categoryRepoMock.Object, _mapperMock.Object, _mapMarkerMapperMock.Object, _uowMock.Object);
+        _auditLoggerMock = new Mock<IAuditLogger>();
+        _uowMock
+            .Setup(u => u.ExecuteInTransactionAsync(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()))
+            .Returns(async (Func<CancellationToken, Task> operation, CancellationToken ct) =>
+            {
+                await operation(ct);
+                await _uowMock.Object.CommitAsync(ct);
+            });
+        _sut = new NeedService(_needRepoMock.Object, _categoryRepoMock.Object, _mapperMock.Object, _mapMarkerMapperMock.Object, _uowMock.Object, _auditLoggerMock.Object);
     }
 
     /// <summary>

@@ -21,6 +21,7 @@ public class MatchService : IMatchService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMatchCandidateMapper _matchCandidateMapper;
     private readonly IMatchListMapper _matchListMapper;
+    private readonly IAuditLogger _auditLogger;
 
     public MatchService(
         INeedRepository needRepository,
@@ -28,7 +29,8 @@ public class MatchService : IMatchService
         IMatchRepository matchRepository,
         IUnitOfWork unitOfWork,
         IMatchCandidateMapper matchCandidateMapper,
-        IMatchListMapper matchListMapper)
+        IMatchListMapper matchListMapper,
+        IAuditLogger auditLogger)
     {
         _needRepository = needRepository;
         _resourceRepository = resourceRepository;
@@ -36,6 +38,7 @@ public class MatchService : IMatchService
         _unitOfWork = unitOfWork;
         _matchCandidateMapper = matchCandidateMapper;
         _matchListMapper = matchListMapper;
+        _auditLogger = auditLogger;
     }
 
     public async Task<IReadOnlyList<MatchCandidateViewModel>> GetCandidateResourcesAsync(
@@ -143,8 +146,6 @@ public class MatchService : IMatchService
             Quantity = quantity
         };
 
-        await _matchRepository.AddAsync(match, cancellationToken);
-
         if (need.Status == NeedStatus.New)
         {
             need.Status = NeedStatus.UnderReview;
@@ -155,7 +156,13 @@ public class MatchService : IMatchService
 
         try
         {
-            await _unitOfWork.CommitAsync(cancellationToken);
+            await _unitOfWork.ExecuteInTransactionAsync(async ct =>
+            {
+                await _matchRepository.AddAsync(match, ct);
+                await _unitOfWork.SaveChangesAsync(ct);
+                _auditLogger.Record(AuditAction.MatchProposed, "Match", match.Id);
+                await _unitOfWork.SaveChangesAsync(ct);
+            }, cancellationToken);
         }
         catch (DuplicateRecordException)
         {
@@ -305,7 +312,11 @@ public class MatchService : IMatchService
 
         try
         {
-            await _unitOfWork.CommitAsync(cancellationToken);
+            await _unitOfWork.ExecuteInTransactionAsync(async ct =>
+            {
+                _auditLogger.Record(AuditAction.MatchAccepted, "Match", match.Id);
+                await _unitOfWork.SaveChangesAsync(ct);
+            }, cancellationToken);
         }
         catch (ConcurrencyConflictException)
         {
@@ -356,7 +367,11 @@ public class MatchService : IMatchService
 
         try
         {
-            await _unitOfWork.CommitAsync(cancellationToken);
+            await _unitOfWork.ExecuteInTransactionAsync(async ct =>
+            {
+                _auditLogger.Record(AuditAction.MatchRejected, "Match", match.Id);
+                await _unitOfWork.SaveChangesAsync(ct);
+            }, cancellationToken);
         }
         catch (ConcurrencyConflictException)
         {

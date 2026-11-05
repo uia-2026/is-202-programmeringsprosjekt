@@ -28,4 +28,5 @@ public class User
     public ICollection<Resource> Resources { get; set; } = [];
     public ICollection<Attachment> UploadedAttachments { get; set; } = [];
     public ICollection<Match> MatchesCreated { get; set; } = [];
+    public ICollection<AuditLog> AuditLogs { get; set; } = [];
 }

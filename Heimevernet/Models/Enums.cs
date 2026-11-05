@@ -60,3 +60,29 @@ public enum CategoryAppliesTo
     Resource,
     Both
 }
+
+/// <summary>
+/// Meaningful application events recorded in the audit history.
+/// </summary>
+public enum AuditAction
+{
+    LoginSucceeded,
+    LoginFailed,
+    TwoFactorEnabled,
+
+    NeedCreated,
+    NeedEdited,
+    NeedResolved,
+
+    ResourceCreated,
+    ResourceEdited,
+    ResourceDeleted,
+
+    AttachmentUploaded,
+    AttachmentDeleted,
+
+    MatchProposed,
+    MatchAccepted,
+    MatchRejected,
+    MatchResolved
+}

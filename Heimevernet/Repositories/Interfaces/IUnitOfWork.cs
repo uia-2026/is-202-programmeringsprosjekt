@@ -10,4 +10,10 @@ public interface IUnitOfWork
     /// Persists any pending changes to the underlying store.
     /// </summary>
     Task CommitAsync(CancellationToken cancellationToken = default);
+
+    Task SaveChangesAsync(CancellationToken cancellationToken = default);
+
+    Task ExecuteInTransactionAsync(
+        Func<CancellationToken, Task> operation,
+        CancellationToken cancellationToken = default);
 }

@@ -19,6 +19,7 @@ public class AppDbContext : DbContext
     public DbSet<Resource> Resources => Set<Resource>();
     public DbSet<Attachment> Attachments => Set<Attachment>();
     public DbSet<Match> Matches => Set<Match>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -100,6 +101,21 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<User>()
             .HasIndex(u => u.Email)
             .IsUnique();
+
+        modelBuilder.Entity<AuditLog>(b =>
+        {
+            b.Property(a => a.ActorName).HasMaxLength(FieldLimits.AuditActorName);
+            b.Property(a => a.Action).HasConversion<string>().HasMaxLength(FieldLimits.EnumText);
+            b.Property(a => a.EntityType).HasMaxLength(FieldLimits.AuditEntityType);
+            b.Property(a => a.Details).HasMaxLength(FieldLimits.AuditDetails);
+            b.Property(a => a.TraceId).HasMaxLength(FieldLimits.AuditTraceId);
+            b.HasIndex(a => new { a.EntityType, a.EntityId });
+            b.HasIndex(a => a.OccurredAt);
+            b.HasOne(a => a.ActorUser)
+                .WithMany(u => u.AuditLogs)
+                .HasForeignKey(a => a.ActorUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
 
         // Concurrency tokens for optimistic concurrency control
         modelBuilder.Entity<Need>().Property(n => n.Version).IsConcurrencyToken();

@@ -14,11 +14,13 @@ namespace Heimevernet.Services;
 public class AuthService(
     IUserRepository userRepository,
     IPasswordHasher<User> passwordHasher,
-    IUnitOfWork unitOfWork) : IAuthService
+    IUnitOfWork unitOfWork,
+    IAuditLogger auditLogger) : IAuthService
 {
     private readonly IUserRepository _userRepository = userRepository;
     private readonly IPasswordHasher<User> _passwordHasher = passwordHasher;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
+    private readonly IAuditLogger _auditLogger = auditLogger;
 
     public async Task<RegisterResult> RegisterAsync(
         RegisterViewModel model,
@@ -59,6 +61,15 @@ public class AuthService(
 
         if (user == null)
         {
+            _auditLogger.Record(
+                AuditAction.LoginFailed,
+                "User",
+                null,
+                actorUserId: null,
+                actorName: "Unknown",
+                details: "Invalid credentials.");
+            await _unitOfWork.CommitAsync(ct);
+
             return new LoginResult(
                 Success: false,
                 Error: "Invalid email or password.");
@@ -71,6 +82,15 @@ public class AuthService(
 
         if (verification == PasswordVerificationResult.Failed)
         {
+            _auditLogger.Record(
+                AuditAction.LoginFailed,
+                "User",
+                user.Id,
+                user.Id,
+                user.Username,
+                "Invalid credentials.");
+            await _unitOfWork.CommitAsync(ct);
+
             return new LoginResult(
                 Success: false,
                 Error: "Invalid email or password.");
@@ -83,6 +103,9 @@ public class AuthService(
                 RequiresTwoFactor: true,
                 UserId: user.Id);
         }
+
+        _auditLogger.Record(AuditAction.LoginSucceeded, "User", user.Id);
+        await _unitOfWork.CommitAsync(ct);
 
         return new LoginResult(
             Success: true,
@@ -125,6 +148,9 @@ public class AuthService(
                 Error: "Invalid verification code.");
         }
 
+        _auditLogger.Record(AuditAction.LoginSucceeded, "User", user.Id);
+        await _unitOfWork.CommitAsync(ct);
+
         return new TwoFactorVerifyResult(
             Success: true,
             User: user);
@@ -154,6 +180,8 @@ public class AuthService(
 
         user.TwoFactorSecret = secret;
         user.TwoFactorEnabled = true;
+
+        _auditLogger.Record(AuditAction.TwoFactorEnabled, "User", user.Id);
 
         await _unitOfWork.CommitAsync(ct);
 

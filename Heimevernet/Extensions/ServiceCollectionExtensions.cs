@@ -17,6 +17,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IAttachmentRepository, AttachmentRepository>();
+        services.AddScoped<IAuditRepository, AuditRepository>();
         services.AddScoped<IResourceRepository, ResourceRepository>();
         services.AddScoped<INeedRepository, NeedRepository>();
         services.AddScoped<ICategoryRepository, CategoryRepository>();
@@ -59,6 +60,9 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUser, CurrentUser>();
+        services.AddScoped<IAuditLogger, AuditLogger>();
         services.AddScoped<IResourceService, ResourceService>();
         services.AddScoped<INeedService, NeedService>();
         services.AddScoped<IUserService, UserService>();

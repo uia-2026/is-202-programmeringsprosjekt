@@ -1,5 +1,6 @@
 using Heimevernet.Infrastructure.Geo;
 using Heimevernet.Exceptions;
+using Heimevernet.Models;
 using Heimevernet.Mappers;
 using Heimevernet.Mappers.Interfaces;
 using Heimevernet.Repositories.Interfaces;
@@ -20,13 +21,15 @@ public class NeedService(
     ICategoryRepository categoryRepository,
     INeedMapper needMapper,
     IMapMarkerMapper mapMarkerMapper,
-    IUnitOfWork unitOfWork) : INeedService
+    IUnitOfWork unitOfWork,
+    IAuditLogger auditLogger) : INeedService
 {
     private readonly INeedRepository _needRepository = repository;
     private readonly INeedMapper _needMapper = needMapper;
     private readonly ICategoryRepository _categoryRepository = categoryRepository;
     private readonly IMapMarkerMapper _mapMarkerMapper = mapMarkerMapper;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
+    private readonly IAuditLogger _auditLogger = auditLogger;
 
     /// <summary>
     /// Creates a new need for the specified user.
@@ -41,8 +44,13 @@ public class NeedService(
     {
         var need = _needMapper.ToEntity(model, userId);
 
-        await _needRepository.AddAsync(need, cancellationToken);
-        await _unitOfWork.CommitAsync(cancellationToken);
+        await _unitOfWork.ExecuteInTransactionAsync(async ct =>
+        {
+            await _needRepository.AddAsync(need, ct);
+            await _unitOfWork.SaveChangesAsync(ct);
+            _auditLogger.Record(AuditAction.NeedCreated, "Need", need.Id);
+            await _unitOfWork.SaveChangesAsync(ct);
+        }, cancellationToken);
 
         return need.Id;
     }
@@ -139,10 +147,19 @@ public class NeedService(
             return (OwnedRecordMutationResult.ValidationError, "Please select a valid category.");
         }
 
+        var changedFields = GetChangedFields(need, model);
         _needMapper.ApplyEditableFields(need, model);
         try
         {
-            await _unitOfWork.CommitAsync(cancellationToken);
+            await _unitOfWork.ExecuteInTransactionAsync(async ct =>
+            {
+                _auditLogger.Record(
+                    AuditAction.NeedEdited,
+                    "Need",
+                    need.Id,
+                    $"Changed fields: {string.Join(", ", changedFields)}");
+                await _unitOfWork.SaveChangesAsync(ct);
+            }, cancellationToken);
         }
         catch (ConcurrencyConflictException)
         {
@@ -178,7 +195,10 @@ public class NeedService(
         _needRepository.Remove(need);
         try
         {
-            await _unitOfWork.CommitAsync(cancellationToken);
+            await _unitOfWork.ExecuteInTransactionAsync(async ct =>
+            {
+                await _unitOfWork.SaveChangesAsync(ct);
+            }, cancellationToken);
         }
         catch (ConcurrencyConflictException)
         {
@@ -186,5 +206,71 @@ public class NeedService(
         }
 
         return (OwnedRecordMutationResult.Success, "Need deleted.");
+    }
+
+    public async Task<(OwnedRecordMutationResult Result, string Message)> ResolveAsync(
+        int id,
+        int userId,
+        CancellationToken cancellationToken = default)
+    {
+        var need = await _needRepository.GetByIdForUpdateAsync(id, cancellationToken);
+
+        if (need is null)
+        {
+            return (OwnedRecordMutationResult.NotFound, "Need not found.");
+        }
+
+        if (need.UserId != userId)
+        {
+            return (OwnedRecordMutationResult.Forbidden, "You do not own this need.");
+        }
+
+        if (need.Status == NeedStatus.Resolved)
+        {
+            return (OwnedRecordMutationResult.Conflict, "Need is already resolved.");
+        }
+
+        var assignedMatches = need.Matches
+            .Where(m => m.Status == MatchStatus.Assigned)
+            .ToList();
+
+        need.Status = NeedStatus.Resolved;
+
+        try
+        {
+            await _unitOfWork.ExecuteInTransactionAsync(async ct =>
+            {
+                foreach (var match in assignedMatches)
+                {
+                    match.Status = MatchStatus.Resolved;
+                    _auditLogger.Record(AuditAction.MatchResolved, "Match", match.Id);
+                }
+
+                _auditLogger.Record(AuditAction.NeedResolved, "Need", need.Id);
+                await _unitOfWork.SaveChangesAsync(ct);
+            }, cancellationToken);
+        }
+        catch (ConcurrencyConflictException)
+        {
+            return (OwnedRecordMutationResult.Conflict, "This need changed while it was being resolved. Please try again.");
+        }
+
+        return (OwnedRecordMutationResult.Success, "Need resolved.");
+    }
+
+    private static IReadOnlyList<string> GetChangedFields(Need need, NeedCreateViewModel model)
+    {
+        var fields = new List<string>();
+        if (need.Title != model.Title) fields.Add(nameof(Need.Title));
+        if (need.Description != model.Description) fields.Add(nameof(Need.Description));
+        if (need.CategoryId != model.CategoryId) fields.Add(nameof(Need.CategoryId));
+        if (need.Region != model.Region) fields.Add(nameof(Need.Region));
+        if (need.Priority != model.Priority) fields.Add(nameof(Need.Priority));
+        if (need.Deadline != model.Deadline) fields.Add(nameof(Need.Deadline));
+        if (need.ContactPoint != model.ContactPoint) fields.Add(nameof(Need.ContactPoint));
+        if (need.Latitude != model.Latitude) fields.Add(nameof(Need.Latitude));
+        if (need.Longitude != model.Longitude) fields.Add(nameof(Need.Longitude));
+        if (need.QuantityNeeded != model.QuantityNeeded) fields.Add(nameof(Need.QuantityNeeded));
+        return fields;
     }
 }
