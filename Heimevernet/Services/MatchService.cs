@@ -180,7 +180,7 @@ public class MatchService : IMatchService
         return new MatchIndexViewModel
         {
             Matches = matches
-                .Select(m => _matchListMapper.ToListItem(m, userId))
+                .Select(m => _matchListMapper.ToListItem(m, userId, m.Need.Latitude, m.Need.Longitude, m.Resource.Latitude, m.Resource.Longitude))
                 .ToList()
         };
     }

@@ -18,7 +18,7 @@ public class MatchListItemViewModel
     public string ResourceTitle { get; set; } = string.Empty;
 
     public int Quantity { get; set; }
-
+    public double DistanceKm { get; set; }
     public MatchStatus Status { get; set; }
 
     public DateTime MatchedAt { get; set; }
