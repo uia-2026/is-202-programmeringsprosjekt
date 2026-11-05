@@ -41,6 +41,7 @@ else
                         <th>Need</th>
                         <th>Resource</th>
                         <th>Quantity</th>
+                        <th>Distance KM</th>
                         <th>Status</th>
                         <th>Matched</th>
                         @if (Model.ShowActions)
@@ -70,6 +71,7 @@ else
                                 }
                             </td>
                             <td>@match.Quantity</td>
+                            <td>@match.DistanceKm.ToString("F2")</td>
                             <td><span class="chip @statusCss"><span class="chip-dot"></span>@statusLabel</span></td>
                             <td class="text-secondary">@match.MatchedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
                             @if (Model.ShowActions)

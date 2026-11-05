@@ -1,3 +1,4 @@
+using Heimevernet.Infrastructure.Geo;
 using Heimevernet.Mappers.Interfaces;
 using Heimevernet.Models;
 using Heimevernet.ViewModels.Match;
@@ -6,7 +7,7 @@ namespace Heimevernet.Mappers;
 
 public class MatchListMapper : IMatchListMapper
 {
-    public MatchListItemViewModel ToListItem(Match match, int currentUserId)
+    public MatchListItemViewModel ToListItem(Match match, int currentUserId, double needLatitude, double needLongitude, double resourceLatitude, double resourceLongitude)
     {
         var isResourceOwner = match.Resource.UserId == currentUserId;
 
@@ -18,6 +19,7 @@ public class MatchListMapper : IMatchListMapper
             ResourceId = match.ResourceId,
             ResourceTitle = match.Resource.Title,
             Quantity = match.Quantity,
+            DistanceKm = GeoMath.DistanceKm(needLatitude, needLongitude, resourceLatitude, resourceLongitude),
             Status = match.Status,
             MatchedAt = match.MatchedAt,
             IsNeedOwner = match.Need.UserId == currentUserId,
