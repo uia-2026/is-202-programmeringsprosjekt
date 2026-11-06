@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text;
 using System.Text.Json;
 using Heimevernet.Data;
 using Heimevernet.IntegrationTests.Infrastructure;
@@ -28,6 +29,7 @@ public sealed class ExportResourceTests
     [Theory]
     [InlineData("/Resource/ExportCsv")]
     [InlineData("/Resource/ExportGeoJson")]
+    [InlineData("/Resource/ExportGeoParquet")]
     public async Task Export_AnonymousUser_RedirectsToLogin(string url)
     {
         using var client = _factory.CreateClient(
@@ -47,6 +49,7 @@ public sealed class ExportResourceTests
     [Theory]
     [InlineData("/Resource/ExportCsv")]
     [InlineData("/Resource/ExportGeoJson")]
+    [InlineData("/Resource/ExportGeoParquet")]
     public async Task Export_ResourceProvider_IsDenied(string url)
     {
         var data = new TestDataFactory(_factory.Services);
@@ -110,6 +113,28 @@ public sealed class ExportResourceTests
     }
 
     /// <summary>
+    /// Verifies that the GeoParquet download has the right headers and contains only
+    /// available Resources from the requested region.
+    /// </summary>
+    [Fact]
+    public async Task ExportGeoParquet_WithRegion_ReturnsOnlyAvailableResourcesInRegion()
+    {
+        var seed = await SeedResourcesAsync();
+        using var client = await CreatePublicActorClientAsync();
+
+        using var response = await client.GetAsync($"/Resource/ExportGeoParquet?region={seed.Region}");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("application/vnd.apache.parquet", response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal("attachment", response.Content.Headers.ContentDisposition?.DispositionType);
+        Assert.EndsWith(".geoparquet", response.Content.Headers.ContentDisposition?.FileNameStar);
+
+        var bytes = await response.Content.ReadAsByteArrayAsync();
+        Assert.NotEmpty(bytes);
+        Assert.StartsWith("PAR1", Encoding.ASCII.GetString(bytes.Take(4).ToArray()));
+    }
+
+    /// <summary>
     /// Verifies that exporting without a region includes every region.
     /// </summary>
     [Fact]
@@ -141,6 +166,7 @@ public sealed class ExportResourceTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains($"href=\"/Resource/ExportCsv?region={seed.Region}\"", html);
         Assert.Contains($"href=\"/Resource/ExportGeoJson?region={seed.Region}\"", html);
+        Assert.Contains($"href=\"/Resource/ExportGeoParquet?region={seed.Region}\"", html);
     }
 
     private async Task<HttpClient> CreatePublicActorClientAsync()

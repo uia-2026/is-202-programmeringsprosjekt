@@ -340,6 +340,17 @@ public class ResourceController(
         return File(geoJson, "application/geo+json", ExportFileName(region, "geojson"));
     }
 
+    /// <summary>Downloads the same list as <see cref="PrintByRegion"/> as a GeoParquet file.</summary>
+    [HttpGet]
+    [Authorize(Roles = "PublicActor")]
+    public async Task<IActionResult> ExportGeoParquet(string? region, CancellationToken cancellationToken)
+    {
+        var availableResources = await _resourceService.GetAvailableAsync(cancellationToken);
+        var geoParquet = ResourceExporter.ToGeoParquet(FilterByRegion(availableResources, region));
+
+        return File(geoParquet, "application/vnd.apache.parquet", ExportFileName(region, "geoparquet"));
+    }
+
     private static List<ResourceViewModel> FilterByRegion(
         IEnumerable<ResourceViewModel> resources,
         string? region)
