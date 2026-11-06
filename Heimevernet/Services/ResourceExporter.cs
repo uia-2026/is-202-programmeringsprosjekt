@@ -131,7 +131,6 @@ public static class ResourceExporter
     }
 
     private static bool HasLocation(ResourceViewModel resource) =>
-        (resource.Latitude != 0 || resource.Longitude != 0) &&
         double.IsFinite(resource.Latitude) &&
         double.IsFinite(resource.Longitude) &&
         resource.Latitude is >= -90 and <= 90 &&

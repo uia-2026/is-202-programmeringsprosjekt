@@ -143,6 +143,27 @@ public class ResourceExporterTests
     }
 
     [Fact]
+    public void ToGeoJson_Accepts_Zero_Zero_Coordinates()
+    {
+        using var json = JsonDocument.Parse(ResourceExporter.ToGeoJson([new ResourceViewModel
+        {
+            Title = "Origin point",
+            CategoryName = "Equipment",
+            Region = "Kristiansand",
+            AvailableFrom = new DateTime(2026, 11, 4, 8, 30, 0),
+            Status = ResourceStatus.Available,
+            ContactPoint = "owner@example.com",
+            UserId = 42,
+            Latitude = 0,
+            Longitude = 0,
+        }]));
+
+        var feature = Assert.Single(json.RootElement.GetProperty("features").EnumerateArray());
+        Assert.Equal("Point", feature.GetProperty("geometry").GetProperty("type").GetString());
+        Assert.Equal([0, 0], feature.GetProperty("geometry").GetProperty("coordinates").EnumerateArray().Select(c => c.GetDouble()));
+    }
+
+    [Fact]
     public void ToGeoJson_Is_Indented_And_Keeps_Norwegian_Letters_Readable()
     {
         var text = Encoding.UTF8.GetString(ResourceExporter.ToGeoJson([CreateResource(title: "Snøfres på Sørlandet")]));
