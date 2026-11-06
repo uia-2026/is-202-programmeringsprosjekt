@@ -48,7 +48,6 @@ export default defineConfig({
         text: "Project",
         items: [
           { text: "Testing", link: "/testing" },
-          { text: "Security testing", link: "/security" },
           { text: "AI usage", link: "/ai-usage" },
         ],
       },
