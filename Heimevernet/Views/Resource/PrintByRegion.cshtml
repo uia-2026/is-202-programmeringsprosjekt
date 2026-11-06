@@ -219,8 +219,14 @@
             </div>
 
             <div class="col-auto">
-                <a asp-action="ExportJson" asp-route-region="@Model.SelectedRegion" class="btn pbr-btn-outline">
-                    <i class="bi bi-filetype-json"></i> Export JSON
+                <a asp-action="ExportGeoJson" asp-route-region="@Model.SelectedRegion" class="btn pbr-btn-outline">
+                    <i class="bi bi-filetype-json"></i> Export GeoJSON
+                </a>
+            </div>
+
+            <div class="col-auto">
+                <a asp-action="ExportGeoParquet" asp-route-region="@Model.SelectedRegion" class="btn pbr-btn-outline">
+                    <i class="bi bi-file-earmark-arrow-down"></i> Export GeoParquet
                 </a>
             </div>
 

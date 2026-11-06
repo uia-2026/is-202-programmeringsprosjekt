@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text;
 using System.Text.Json;
 using Heimevernet.Data;
 using Heimevernet.IntegrationTests.Infrastructure;
@@ -10,7 +11,7 @@ namespace Heimevernet.IntegrationTests.ResourceTests;
 
 /// <summary>
 /// Integration tests verifying authorization, region filtering, and file
-/// responses for the Resource CSV and JSON exports (#94).
+/// responses for the Resource CSV and GeoJSON exports (#94).
 /// </summary>
 public sealed class ExportResourceTests
     : IClassFixture<HeimevernetWebApplicationFactory>
@@ -27,7 +28,8 @@ public sealed class ExportResourceTests
     /// </summary>
     [Theory]
     [InlineData("/Resource/ExportCsv")]
-    [InlineData("/Resource/ExportJson")]
+    [InlineData("/Resource/ExportGeoJson")]
+    [InlineData("/Resource/ExportGeoParquet")]
     public async Task Export_AnonymousUser_RedirectsToLogin(string url)
     {
         using var client = _factory.CreateClient(
@@ -46,7 +48,8 @@ public sealed class ExportResourceTests
     /// </summary>
     [Theory]
     [InlineData("/Resource/ExportCsv")]
-    [InlineData("/Resource/ExportJson")]
+    [InlineData("/Resource/ExportGeoJson")]
+    [InlineData("/Resource/ExportGeoParquet")]
     public async Task Export_ResourceProvider_IsDenied(string url)
     {
         var data = new TestDataFactory(_factory.Services);
@@ -85,25 +88,50 @@ public sealed class ExportResourceTests
     }
 
     /// <summary>
-    /// Verifies that the JSON download has the right headers and contains only
+    /// Verifies that the GeoJSON download has the right headers and contains only
     /// available Resources from the requested region.
     /// </summary>
     [Fact]
-    public async Task ExportJson_WithRegion_ReturnsOnlyAvailableResourcesInRegion()
+    public async Task ExportGeoJson_WithRegion_ReturnsOnlyAvailableResourcesInRegion()
     {
         var seed = await SeedResourcesAsync();
         using var client = await CreatePublicActorClientAsync();
 
-        using var response = await client.GetAsync($"/Resource/ExportJson?region={seed.Region}");
+        using var response = await client.GetAsync($"/Resource/ExportGeoJson?region={seed.Region}");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal("application/geo+json", response.Content.Headers.ContentType?.MediaType);
         Assert.Equal("attachment", response.Content.Headers.ContentDisposition?.DispositionType);
+        Assert.EndsWith(".geojson", response.Content.Headers.ContentDisposition?.FileNameStar);
 
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        var row = Assert.Single(json.RootElement.EnumerateArray());
-        Assert.Equal(seed.MatchingTitle, row.GetProperty("Title").GetString());
-        Assert.Equal("Available", row.GetProperty("Status").GetString());
+        Assert.Equal("FeatureCollection", json.RootElement.GetProperty("type").GetString());
+        var feature = Assert.Single(json.RootElement.GetProperty("features").EnumerateArray());
+        Assert.Equal(seed.MatchingTitle, feature.GetProperty("properties").GetProperty("Title").GetString());
+        Assert.Equal("Available", feature.GetProperty("properties").GetProperty("Status").GetString());
+        Assert.Equal("Point", feature.GetProperty("geometry").GetProperty("type").GetString());
+    }
+
+    /// <summary>
+    /// Verifies that the GeoParquet download has the right headers and contains only
+    /// available Resources from the requested region.
+    /// </summary>
+    [Fact]
+    public async Task ExportGeoParquet_WithRegion_ReturnsOnlyAvailableResourcesInRegion()
+    {
+        var seed = await SeedResourcesAsync();
+        using var client = await CreatePublicActorClientAsync();
+
+        using var response = await client.GetAsync($"/Resource/ExportGeoParquet?region={seed.Region}");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("application/vnd.apache.parquet", response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal("attachment", response.Content.Headers.ContentDisposition?.DispositionType);
+        Assert.EndsWith(".geoparquet", response.Content.Headers.ContentDisposition?.FileNameStar);
+
+        var bytes = await response.Content.ReadAsByteArrayAsync();
+        Assert.NotEmpty(bytes);
+        Assert.StartsWith("PAR1", Encoding.ASCII.GetString(bytes.Take(4).ToArray()));
     }
 
     /// <summary>
@@ -137,7 +165,8 @@ public sealed class ExportResourceTests
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains($"href=\"/Resource/ExportCsv?region={seed.Region}\"", html);
-        Assert.Contains($"href=\"/Resource/ExportJson?region={seed.Region}\"", html);
+        Assert.Contains($"href=\"/Resource/ExportGeoJson?region={seed.Region}\"", html);
+        Assert.Contains($"href=\"/Resource/ExportGeoParquet?region={seed.Region}\"", html);
     }
 
     private async Task<HttpClient> CreatePublicActorClientAsync()
