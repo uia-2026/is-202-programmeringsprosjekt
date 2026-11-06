@@ -329,15 +329,15 @@ public class ResourceController(
         return File(csv, "text/csv; charset=utf-8", ExportFileName(region, "csv"));
     }
 
-    /// <summary>Downloads the same list as <see cref="PrintByRegion"/> as a JSON file (#94).</summary>
+    /// <summary>Downloads the same list as <see cref="PrintByRegion"/> as a GeoJSON file (#94).</summary>
     [HttpGet]
     [Authorize(Roles = "PublicActor")]
-    public async Task<IActionResult> ExportJson(string? region, CancellationToken cancellationToken)
+    public async Task<IActionResult> ExportGeoJson(string? region, CancellationToken cancellationToken)
     {
         var availableResources = await _resourceService.GetAvailableAsync(cancellationToken);
-        var json = ResourceExporter.ToJson(FilterByRegion(availableResources, region));
+        var geoJson = ResourceExporter.ToGeoJson(FilterByRegion(availableResources, region));
 
-        return File(json, "application/json", ExportFileName(region, "json"));
+        return File(geoJson, "application/geo+json", ExportFileName(region, "geojson"));
     }
 
     private static List<ResourceViewModel> FilterByRegion(

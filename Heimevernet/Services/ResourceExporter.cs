@@ -7,7 +7,7 @@ using Heimevernet.ViewModels.Resource;
 namespace Heimevernet.Services;
 
 /// <summary>
-/// Converts Resources to downloadable CSV and JSON files (#94).
+/// Converts Resources to downloadable CSV and GeoJSON files (#94).
 /// </summary>
 public static class ResourceExporter
 {
@@ -54,25 +54,48 @@ public static class ResourceExporter
     }
 
     /// <summary>
-    /// Builds an indented UTF-8 JSON file. Dates use ISO 8601 and Status is written
-    /// by name, so the file is machine-readable.
+    /// Builds an indented UTF-8 GeoJSON FeatureCollection. Dates use ISO 8601 and
+    /// Status is written by name, so the file is machine-readable.
     /// </summary>
-    public static byte[] ToJson(IEnumerable<ResourceViewModel> resources)
+    public static byte[] ToGeoJson(IEnumerable<ResourceViewModel> resources)
     {
-        var rows = resources.Select(resource => new
+        var featureCollection = new
         {
-            resource.Title,
-            Category = resource.CategoryName,
-            resource.Description,
-            resource.Region,
-            resource.AvailableFrom,
-            resource.AvailableTo,
-            Status = resource.Status.ToString(),
-            resource.ContactPoint
-        });
+            type = "FeatureCollection",
+            features = resources.Select(resource => new
+            {
+                type = "Feature",
+                id = resource.Id,
+                geometry = HasLocation(resource)
+                    ? new
+                    {
+                        type = "Point",
+                        coordinates = new[] { resource.Longitude, resource.Latitude }
+                    }
+                    : null,
+                properties = new
+                {
+                    resource.Title,
+                    Category = resource.CategoryName,
+                    resource.Description,
+                    resource.Region,
+                    resource.AvailableFrom,
+                    resource.AvailableTo,
+                    Status = resource.Status.ToString(),
+                    resource.ContactPoint
+                }
+            })
+        };
 
-        return JsonSerializer.SerializeToUtf8Bytes(rows, JsonOptions);
+        return JsonSerializer.SerializeToUtf8Bytes(featureCollection, JsonOptions);
     }
+
+    private static bool HasLocation(ResourceViewModel resource) =>
+        (resource.Latitude != 0 || resource.Longitude != 0) &&
+        double.IsFinite(resource.Latitude) &&
+        double.IsFinite(resource.Longitude) &&
+        resource.Latitude is >= -90 and <= 90 &&
+        resource.Longitude is >= -180 and <= 180;
 
     private static void AppendCsvRow(StringBuilder csv, IEnumerable<string?> fields)
     {

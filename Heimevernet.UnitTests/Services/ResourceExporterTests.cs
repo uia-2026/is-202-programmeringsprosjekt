@@ -117,50 +117,55 @@ public class ResourceExporterTests
     }
 
     [Fact]
-    public void ToJson_Exports_Only_The_Agreed_Fields()
+    public void ToGeoJson_Exports_Only_The_Agreed_Fields()
     {
-        using var json = JsonDocument.Parse(ResourceExporter.ToJson([CreateResource()]));
+        using var json = JsonDocument.Parse(ResourceExporter.ToGeoJson([CreateResource()]));
 
-        var names = json.RootElement[0].EnumerateObject().Select(p => p.Name);
-
+        Assert.Equal("FeatureCollection", json.RootElement.GetProperty("type").GetString());
+        var feature = Assert.Single(json.RootElement.GetProperty("features").EnumerateArray());
         Assert.Equal(
             ["Title", "Category", "Description", "Region", "AvailableFrom", "AvailableTo", "Status", "ContactPoint"],
-            names);
+            feature.GetProperty("properties").EnumerateObject().Select(p => p.Name));
     }
 
     [Fact]
-    public void ToJson_Uses_Iso_Dates_And_Status_Name()
+    public void ToGeoJson_Uses_Iso_Dates_Status_Name_And_Point_Coordinates()
     {
-        using var json = JsonDocument.Parse(ResourceExporter.ToJson([CreateResource()]));
-        var row = json.RootElement[0];
+        using var json = JsonDocument.Parse(ResourceExporter.ToGeoJson([CreateResource()]));
+        var feature = Assert.Single(json.RootElement.GetProperty("features").EnumerateArray());
+        var properties = feature.GetProperty("properties");
 
-        Assert.Equal("2026-11-04T08:30:00", row.GetProperty("AvailableFrom").GetString());
-        Assert.Equal(JsonValueKind.Null, row.GetProperty("AvailableTo").ValueKind);
-        Assert.Equal("Available", row.GetProperty("Status").GetString());
+        Assert.Equal("2026-11-04T08:30:00", properties.GetProperty("AvailableFrom").GetString());
+        Assert.Equal(JsonValueKind.Null, properties.GetProperty("AvailableTo").ValueKind);
+        Assert.Equal("Available", properties.GetProperty("Status").GetString());
+        Assert.Equal("Point", feature.GetProperty("geometry").GetProperty("type").GetString());
+        Assert.Equal([0, 58.1], feature.GetProperty("geometry").GetProperty("coordinates").EnumerateArray().Select(c => c.GetDouble()));
     }
 
     [Fact]
-    public void ToJson_Is_Indented_And_Keeps_Norwegian_Letters_Readable()
+    public void ToGeoJson_Is_Indented_And_Keeps_Norwegian_Letters_Readable()
     {
-        var text = Encoding.UTF8.GetString(ResourceExporter.ToJson([CreateResource(title: "Snøfres på Sørlandet")]));
+        var text = Encoding.UTF8.GetString(ResourceExporter.ToGeoJson([CreateResource(title: "Snøfres på Sørlandet")]));
 
         Assert.Contains("Snøfres på Sørlandet", text);
         Assert.Contains("\n", text);
     }
 
     [Fact]
-    public void ToJson_Does_Not_Apply_Csv_Formula_Prefix()
+    public void ToGeoJson_Does_Not_Apply_Csv_Formula_Prefix()
     {
-        using var json = JsonDocument.Parse(ResourceExporter.ToJson([CreateResource(title: "=1+1")]));
+        using var json = JsonDocument.Parse(ResourceExporter.ToGeoJson([CreateResource(title: "=1+1")]));
 
-        Assert.Equal("=1+1", json.RootElement[0].GetProperty("Title").GetString());
+        var feature = Assert.Single(json.RootElement.GetProperty("features").EnumerateArray());
+        Assert.Equal("=1+1", feature.GetProperty("properties").GetProperty("Title").GetString());
     }
 
     [Fact]
-    public void ToJson_With_No_Resources_Writes_Empty_Array()
+    public void ToGeoJson_With_No_Resources_Writes_Empty_FeatureCollection()
     {
-        using var json = JsonDocument.Parse(ResourceExporter.ToJson([]));
+        using var json = JsonDocument.Parse(ResourceExporter.ToGeoJson([]));
 
-        Assert.Equal(0, json.RootElement.GetArrayLength());
+        Assert.Equal("FeatureCollection", json.RootElement.GetProperty("type").GetString());
+        Assert.Empty(json.RootElement.GetProperty("features").EnumerateArray());
     }
 }
