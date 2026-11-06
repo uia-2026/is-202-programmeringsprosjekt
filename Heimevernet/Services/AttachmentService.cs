@@ -22,6 +22,7 @@ public sealed class AttachmentService : IAttachmentService
     private readonly IResourceRepository _resources;
     private readonly IFileStorage _storage;
     private readonly IUnitOfWork _uow;
+    private readonly IAuditLogger _auditLogger;
     private readonly ILogger<AttachmentService> _logger;
 
     public AttachmentService(
@@ -29,12 +30,14 @@ public sealed class AttachmentService : IAttachmentService
         IResourceRepository resources,
         IFileStorage storage,
         IUnitOfWork uow,
+        IAuditLogger auditLogger,
         ILogger<AttachmentService> logger)
     {
         _attachments = attachments;
         _resources = resources;
         _storage = storage;
         _uow = uow;
+        _auditLogger = auditLogger;
         _logger = logger;
     }
 
@@ -69,14 +72,21 @@ public sealed class AttachmentService : IAttachmentService
 
         try
         {
-            await _attachments.AddAsync(new Attachment
+            await _uow.ExecuteInTransactionAsync(async transactionCt =>
             {
-                ResourceId = resourceId,
-                StorageKey = key,
-                UploadedByUserId = userId,
-                UploadedAt = DateTime.UtcNow
+                var attachment = new Attachment
+                {
+                    ResourceId = resourceId,
+                    StorageKey = key,
+                    UploadedByUserId = userId,
+                    UploadedAt = DateTime.UtcNow
+                };
+
+                await _attachments.AddAsync(attachment, transactionCt);
+                await _uow.SaveChangesAsync(transactionCt);
+                _auditLogger.Record(AuditAction.AttachmentUploaded, "Attachment", attachment.Id);
+                await _uow.SaveChangesAsync(transactionCt);
             }, ct);
-            await _uow.CommitAsync(ct);
         }
         catch
         {
@@ -94,7 +104,11 @@ public sealed class AttachmentService : IAttachmentService
             return new(false, "Attachment not found.");
 
         _attachments.Remove(attachment);
-        await _uow.CommitAsync(ct);
+        await _uow.ExecuteInTransactionAsync(async transactionCt =>
+        {
+            _auditLogger.Record(AuditAction.AttachmentDeleted, "Attachment", attachment.Id);
+            await _uow.SaveChangesAsync(transactionCt);
+        }, ct);
         await TryDeleteFileAsync(attachment.StorageKey);
 
         return new(true, null);

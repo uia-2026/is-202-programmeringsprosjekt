@@ -38,6 +38,7 @@ export default defineConfig({
           { text: "Matching", link: "/features/matching" },
           { text: "Map", link: "/features/map" },
           { text: "Attachments", link: "/features/attachments" },
+          { text: "Audit logging", link: "/features/audit-log" },
         ],
       },
       {

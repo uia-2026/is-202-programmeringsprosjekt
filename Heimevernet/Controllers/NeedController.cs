@@ -269,6 +269,14 @@ public class NeedController(
         return ToApiResult(result, message);
     }
 
+    [HttpPost("/api/needs/{id:int}/resolve")]
+    [Authorize(Roles = "PublicActor")]
+    public async Task<IActionResult> ResolveApi(int id, CancellationToken cancellationToken)
+    {
+        var (result, message) = await _needService.ResolveAsync(id, User.GetUserId(), cancellationToken);
+        return ToApiResult(result, message);
+    }
+
     /// <summary>
     /// Shows a single need's details, plus a distance-sorted list of the nearest
     /// available resources (within <see cref="NearbyResourcesRadiusKm"/> km), capped at

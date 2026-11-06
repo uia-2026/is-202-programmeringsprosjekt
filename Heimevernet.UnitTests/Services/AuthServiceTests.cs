@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Heimevernet.Models;
 using Heimevernet.Repositories.Interfaces;
 using Heimevernet.Services;
+using Heimevernet.Services.Interfaces;
 using Heimevernet.ViewModels.Account;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
@@ -21,6 +22,7 @@ public sealed class AuthServiceTests
     private readonly Mock<IUserRepository> _userRepositoryMock = new();
     private readonly Mock<IPasswordHasher<User>> _passwordHasherMock = new();
     private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
+    private readonly Mock<IAuditLogger> _auditLoggerMock = new();
     private readonly AuthService _sut;
 
     public AuthServiceTests()
@@ -28,7 +30,8 @@ public sealed class AuthServiceTests
         _sut = new AuthService(
             _userRepositoryMock.Object,
             _passwordHasherMock.Object,
-            _unitOfWorkMock.Object);
+            _unitOfWorkMock.Object,
+            _auditLoggerMock.Object);
     }
 
     #region RegisterAsync Tests

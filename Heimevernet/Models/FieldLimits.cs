@@ -20,4 +20,8 @@ public static class FieldLimits
     public const int CategoryName = 100;
     public const int StorageKey = 512;
     public const int EnumText = 32;
+    public const int AuditActorName = 100;
+    public const int AuditEntityType = 100;
+    public const int AuditDetails = 500;
+    public const int AuditTraceId = 200;
 }

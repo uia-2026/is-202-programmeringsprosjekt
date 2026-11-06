@@ -59,4 +59,9 @@ public interface INeedService
         int id,
         int userId,
         CancellationToken cancellationToken = default);
+
+    Task<(OwnedRecordMutationResult Result, string Message)> ResolveAsync(
+        int id,
+        int userId,
+        CancellationToken cancellationToken = default);
 }

@@ -23,6 +23,7 @@ public class ResourceServiceTests
     private readonly Mock<IMapMarkerMapper> _mapMarkerMapperMock;
     private readonly Mock<INearbyResourceMapper> _mapNearbyResourceMapperMock;
     private readonly Mock<IUnitOfWork> _uowMock;
+    private readonly Mock<IAuditLogger> _auditLoggerMock;
     private readonly ResourceService _sut;
 
     public ResourceServiceTests()
@@ -36,7 +37,15 @@ public class ResourceServiceTests
         _mapMarkerMapperMock = new Mock<IMapMarkerMapper>();
         _mapNearbyResourceMapperMock = new Mock<INearbyResourceMapper>();
         _uowMock = new Mock<IUnitOfWork>();
-        _sut = new ResourceService(_repoMock.Object, _categoryRepoMock.Object, _attachmentServiceMock.Object, _mapperMock.Object, _mapMarkerMapperMock.Object, _mapNearbyResourceMapperMock.Object, _uowMock.Object);
+        _auditLoggerMock = new Mock<IAuditLogger>();
+        _uowMock
+            .Setup(u => u.ExecuteInTransactionAsync(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()))
+            .Returns(async (Func<CancellationToken, Task> operation, CancellationToken ct) =>
+            {
+                await operation(ct);
+                await _uowMock.Object.CommitAsync(ct);
+            });
+        _sut = new ResourceService(_repoMock.Object, _categoryRepoMock.Object, _attachmentServiceMock.Object, _mapperMock.Object, _mapMarkerMapperMock.Object, _mapNearbyResourceMapperMock.Object, _uowMock.Object, _auditLoggerMock.Object);
     }
 
     /// <summary>
