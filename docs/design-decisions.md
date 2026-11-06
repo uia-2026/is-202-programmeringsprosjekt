@@ -2,11 +2,23 @@
 
 Each entry names the decision, the alternatives we rejected and the main trade-off.
 
-## MVC with Razor views instead of a React front end
+## Coordinates as two numbers instead of NetTopologySuite geometry
 
-- **Alternatives:** ASP.NET Core Web API with a separate React application.
-- **Why:** The assignment asks for a controller, view model and view, and one project keeps login, roles and two-factor simple. JavaScript is used only where the browser must do the work: the map.
-- **Trade-off:** Less client-side interactivity. We accept this because the map is the only highly interactive page.
+- **Alternatives:** NetTopologySuite with a MariaDB `POINT` column (via `Pomelo.EntityFrameworkCore.MySql.NetTopologySuite`, which also supports MariaDB).
+- **Why:** We only store points. A region is a text field, not a polygon, so we need no geometry operations such as contains, intersects or buffer. Distance must be in kilometres on a sphere. NetTopologySuite calculates on a plane, so with latitude and longitude it returns degrees. `Latitude` and `Longitude` are stored as two `DOUBLE` columns, and `GeoMath` (`Infrastructure/Geo/GeoMath.cs`) computes the Haversine distance and a bounding box. It is small, pure and easy to unit test, and the entities do not depend on a geometry library.
+- **Trade-off:** We can't answer polygon questions such as "which HV district contains this point" or import GeoJSON shapes. If regions become real borders, NetTopologySuite becomes the right tool.
+
+## B-tree indexes instead of a spatial (R-tree) index
+
+- **Alternatives:** A `SPATIAL` index on a `POINT` column.
+- **Why:** MariaDB treats geometry as flat (Cartesian) coordinates. Its only spherical distance function, `ST_DISTANCE_SPHERE`, can't use a spatial index directly. The textbook query therefore still filters with a box (`MBRContains`) first and then computes the exact distance. Our queries do the same: a bounding-box range on latitude and longitude in SQL, then Haversine on the remaining rows. Ordinary B-tree indexes on the equality filters (`CategoryId`, `UserId`) narrow the rows before the coordinate check. A spatial index would also require a `NOT NULL` `POINT` column, and so would bring in NetTopologySuite and a migration of every coordinate.
+- **Trade-off:** A B-tree can only seek on one range column, so latitude is used to seek while longitude is only checked. A spatial index would handle both dimensions at once.
+
+## Live bounds API instead of FlatGeobuf files
+
+- **Alternatives:** Export the markers to a [FlatGeobuf](https://flatgeobuf.org/) file in object storage. The file has a built-in spatial index, so the browser can fetch only the features in view with HTTP range requests.
+- **Why:** FlatGeobuf is made for large, static datasets. Our data changes all the time: resources are created and edited, statuses go from `Available` to `Busy`, and needs are resolved. Each change would mean regenerating the file. A static file is also the same for everyone, while the map depends on the user: providers see their own resources, others see only available ones. A public file would leak contact points that the API filters out. It also can't apply per-request rules such as "critical needs first" or the 500-marker cap. Our map already loads only the visible area (see [Map data loaded by visible bounds](#map-data-loaded-by-visible-bounds-filtered-on-the-server)).
+- **Trade-off:** Every pan or zoom costs a server request and a database query. The requests are debounced. FlatGeobuf could still fit later as a static background layer, such as HV district borders under the live markers.
 
 ## Entity Framework Core instead of Dapper
 
@@ -65,11 +77,3 @@ Each entry names the decision, the alternatives we rejected and the main trade-o
 
 - **Alternatives:** Docker Compose, which the assignment also allows.
 - **Why:** Aspire expresses startup order (`WaitForCompletion`) directly, injects connection strings and gives a dashboard with logs. Docker Compose is used for deployment, see [Deployment](./deployment.md).
-
-## Persistent development database, never-edited migrations
-
-- Data survives restarts, so teammates keep their test data. The rule that follows is that every schema change is a new migration.
-
-## Not built, on purpose
-
-- **Admin role and OAuth login:** not required, and categories are seeded. They are candidates for future work.
