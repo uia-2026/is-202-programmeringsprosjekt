@@ -233,6 +233,9 @@ public class NeedService(
         var assignedMatches = need.Matches
             .Where(m => m.Status == MatchStatus.Assigned)
             .ToList();
+        var pendingMatches = need.Matches
+            .Where(m => m.Status == MatchStatus.UnderReview)
+            .ToList();
 
         need.Status = NeedStatus.Resolved;
 
@@ -244,6 +247,11 @@ public class NeedService(
                 {
                     match.Status = MatchStatus.Resolved;
                     _auditLogger.Record(AuditAction.MatchResolved, "Match", match.Id);
+                }
+
+                foreach (var match in pendingMatches)
+                {
+                    match.Status = MatchStatus.Cancelled;
                 }
 
                 _auditLogger.Record(AuditAction.NeedResolved, "Need", need.Id);
@@ -261,13 +269,13 @@ public class NeedService(
     private static IReadOnlyList<string> GetChangedFields(Need need, NeedCreateViewModel model)
     {
         var fields = new List<string>();
-        if (need.Title != model.Title) fields.Add(nameof(Need.Title));
-        if (need.Description != model.Description) fields.Add(nameof(Need.Description));
+        if (need.Title != model.Title.Trim()) fields.Add(nameof(Need.Title));
+        if (need.Description != model.Description?.Trim()) fields.Add(nameof(Need.Description));
         if (need.CategoryId != model.CategoryId) fields.Add(nameof(Need.CategoryId));
-        if (need.Region != model.Region) fields.Add(nameof(Need.Region));
+        if (need.Region != model.Region.Trim()) fields.Add(nameof(Need.Region));
         if (need.Priority != model.Priority) fields.Add(nameof(Need.Priority));
         if (need.Deadline != model.Deadline) fields.Add(nameof(Need.Deadline));
-        if (need.ContactPoint != model.ContactPoint) fields.Add(nameof(Need.ContactPoint));
+        if (need.ContactPoint != model.ContactPoint.Trim()) fields.Add(nameof(Need.ContactPoint));
         if (need.Latitude != model.Latitude) fields.Add(nameof(Need.Latitude));
         if (need.Longitude != model.Longitude) fields.Add(nameof(Need.Longitude));
         if (need.QuantityNeeded != model.QuantityNeeded) fields.Add(nameof(Need.QuantityNeeded));

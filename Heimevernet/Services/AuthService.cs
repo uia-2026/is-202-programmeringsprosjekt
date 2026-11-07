@@ -104,7 +104,7 @@ public class AuthService(
                 UserId: user.Id);
         }
 
-        _auditLogger.Record(AuditAction.LoginSucceeded, "User", user.Id);
+        _auditLogger.Record(AuditAction.LoginSucceeded, "User", user.Id, user.Id, user.Username);
         await _unitOfWork.CommitAsync(ct);
 
         return new LoginResult(
@@ -148,7 +148,7 @@ public class AuthService(
                 Error: "Invalid verification code.");
         }
 
-        _auditLogger.Record(AuditAction.LoginSucceeded, "User", user.Id);
+        _auditLogger.Record(AuditAction.LoginSucceeded, "User", user.Id, user.Id, user.Username);
         await _unitOfWork.CommitAsync(ct);
 
         return new TwoFactorVerifyResult(

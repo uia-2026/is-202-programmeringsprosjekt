@@ -432,4 +432,36 @@ public class NeedServiceTests
         Assert.Equal(NeedStatus.UnderReview, need.Status);
         Assert.Equal(createdAt, need.CreatedAt);
     }
+
+    [Fact]
+    public async Task ResolveAsync_Cancels_Pending_Matches_And_Resolves_Assigned_Matches()
+    {
+        var assignedMatch = new Heimevernet.Models.Match { Id = 1, Status = MatchStatus.Assigned };
+        var pendingMatch = new Heimevernet.Models.Match { Id = 2, Status = MatchStatus.UnderReview };
+        var rejectedMatch = new Heimevernet.Models.Match { Id = 3, Status = MatchStatus.Rejected };
+        var need = new Need
+        {
+            Id = 10,
+            UserId = 42,
+            Status = NeedStatus.UnderReview,
+            Matches = [assignedMatch, pendingMatch, rejectedMatch]
+        };
+
+        _needRepoMock.Setup(r => r.GetByIdForUpdateAsync(10, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(need);
+
+        var (result, _) = await _sut.ResolveAsync(10, 42);
+
+        Assert.Equal(OwnedRecordMutationResult.Success, result);
+        Assert.Equal(NeedStatus.Resolved, need.Status);
+        Assert.Equal(MatchStatus.Resolved, assignedMatch.Status);
+        Assert.Equal(MatchStatus.Cancelled, pendingMatch.Status);
+        Assert.Equal(MatchStatus.Rejected, rejectedMatch.Status);
+        _auditLoggerMock.Verify(
+            l => l.Record(AuditAction.MatchResolved, "Match", assignedMatch.Id, It.IsAny<string?>()),
+            Times.Once);
+        _auditLoggerMock.Verify(
+            l => l.Record(AuditAction.NeedResolved, "Need", need.Id, It.IsAny<string?>()),
+            Times.Once);
+    }
 }

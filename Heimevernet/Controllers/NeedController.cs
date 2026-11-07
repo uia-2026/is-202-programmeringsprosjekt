@@ -270,6 +270,7 @@ public class NeedController(
     }
 
     [HttpPost("/api/needs/{id:int}/resolve")]
+    [ValidateAntiForgeryToken]
     [Authorize(Roles = "PublicActor")]
     public async Task<IActionResult> ResolveApi(int id, CancellationToken cancellationToken)
     {

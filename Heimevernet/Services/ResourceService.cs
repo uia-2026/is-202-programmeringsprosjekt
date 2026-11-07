@@ -267,13 +267,13 @@ public class ResourceService : IResourceService
     private static IReadOnlyList<string> GetChangedFields(Resource resource, ResourceCreateViewModel model)
     {
         var fields = new List<string>();
-        if (resource.Title != model.Title) fields.Add(nameof(Resource.Title));
-        if (resource.Description != model.Description) fields.Add(nameof(Resource.Description));
+        if (resource.Title != model.Title.Trim()) fields.Add(nameof(Resource.Title));
+        if (resource.Description != model.Description?.Trim()) fields.Add(nameof(Resource.Description));
         if (resource.CategoryId != model.CategoryId) fields.Add(nameof(Resource.CategoryId));
-        if (resource.Region != model.Region) fields.Add(nameof(Resource.Region));
+        if (resource.Region != model.Region.Trim()) fields.Add(nameof(Resource.Region));
         if (resource.AvailableFrom != model.AvailableFrom) fields.Add(nameof(Resource.AvailableFrom));
         if (resource.AvailableTo != model.AvailableTo) fields.Add(nameof(Resource.AvailableTo));
-        if (resource.ContactPoint != model.ContactPoint) fields.Add(nameof(Resource.ContactPoint));
+        if (resource.ContactPoint != model.ContactPoint.Trim()) fields.Add(nameof(Resource.ContactPoint));
         if (resource.Latitude != model.Latitude) fields.Add(nameof(Resource.Latitude));
         if (resource.Longitude != model.Longitude) fields.Add(nameof(Resource.Longitude));
         if (resource.QuantityOffered != model.QuantityOffered) fields.Add(nameof(Resource.QuantityOffered));

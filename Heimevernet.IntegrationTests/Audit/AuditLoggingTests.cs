@@ -114,18 +114,18 @@ public sealed class AuditLoggingTests : IClassFixture<HeimevernetWebApplicationF
         using var scope = _factory.Services.CreateScope();
         var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
         var auditLogger = scope.ServiceProvider.GetRequiredService<Heimevernet.Services.Interfaces.IAuditLogger>();
-        var traceValue = $"rollback-{Guid.NewGuid():N}";
+        var detailsMarker = $"rollback-{Guid.NewGuid():N}";
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => unitOfWork.ExecuteInTransactionAsync(async ct =>
         {
-            auditLogger.Record(AuditAction.NeedCreated, "Need", 999999, traceValue);
+            auditLogger.Record(AuditAction.NeedCreated, "Need", 999999, detailsMarker);
             await unitOfWork.SaveChangesAsync(ct);
             throw new InvalidOperationException("rollback test");
         }));
 
         using var verificationScope = _factory.Services.CreateScope();
         var db = verificationScope.ServiceProvider.GetRequiredService<AppDbContext>();
-        Assert.False(await db.AuditLogs.AnyAsync(a => a.TraceId == traceValue));
+        Assert.False(await db.AuditLogs.AnyAsync(a => a.Details == detailsMarker));
     }
 
     [Fact]
