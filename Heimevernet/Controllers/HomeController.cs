@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Heimevernet.Controllers;
@@ -16,8 +17,11 @@ public class HomeController : Controller
     }
 
     /// <summary>
-    /// Displays the privacy page.
+    /// Displays the public privacy policy. Reachable without logging in so
+    /// visitors can read it before creating an account.
     /// </summary>
+    [AllowAnonymous]
+    [HttpGet("/Privacy")]
     public IActionResult Privacy()
     {
         return View();
