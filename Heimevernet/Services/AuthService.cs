@@ -143,6 +143,15 @@ public class AuthService(
 
         if (!VerifyTwoFactorCode(user.TwoFactorSecret, code))
         {
+            _auditLogger.Record(
+                AuditAction.LoginFailed,
+                "User",
+                user.Id,
+                user.Id,
+                user.Username,
+                "Invalid two-factor verification code.");
+            await _unitOfWork.CommitAsync(ct);
+
             return new TwoFactorVerifyResult(
                 Success: false,
                 Error: "Invalid verification code.");

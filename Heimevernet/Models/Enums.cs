@@ -72,6 +72,7 @@ public enum AuditAction
 
     NeedCreated,
     NeedEdited,
+    NeedDeleted,
     NeedResolved,
 
     ResourceCreated,

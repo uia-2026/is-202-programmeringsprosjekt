@@ -197,6 +197,7 @@ public class NeedService(
         {
             await _unitOfWork.ExecuteInTransactionAsync(async ct =>
             {
+                _auditLogger.Record(AuditAction.NeedDeleted, "Need", need.Id);
                 await _unitOfWork.SaveChangesAsync(ct);
             }, cancellationToken);
         }
