@@ -129,6 +129,49 @@ public sealed class AuditLoggingTests : IClassFixture<HeimevernetWebApplicationF
     }
 
     [Fact]
+    public async Task CreatingNeed_RollsBackWhenAuditPersistenceFails()
+    {
+        var data = new TestDataFactory(_factory.Services);
+        var user = await data.CreateUserAsync();
+        var categoryId = await data.GetCategoryIdAsync(_factory);
+        var title = $"Rolled back need {Guid.NewGuid():N}";
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+        var auditLogger = scope.ServiceProvider.GetRequiredService<Heimevernet.Services.Interfaces.IAuditLogger>();
+        var need = new Need
+        {
+            UserId = user.Id,
+            CategoryId = categoryId,
+            Title = title,
+            Region = "Agder",
+            Priority = NeedPriority.Medium,
+            ContactPoint = "contact",
+            QuantityNeeded = 1
+        };
+
+        await Assert.ThrowsAsync<DbUpdateException>(() => unitOfWork.ExecuteInTransactionAsync(async ct =>
+        {
+            db.Needs.Add(need);
+            await unitOfWork.SaveChangesAsync(ct);
+
+            auditLogger.Record(
+                AuditAction.NeedCreated,
+                "Need",
+                need.Id,
+                actorUserId: int.MaxValue,
+                actorName: "Invalid actor");
+            await unitOfWork.SaveChangesAsync(ct);
+        }));
+
+        using var verificationScope = _factory.Services.CreateScope();
+        var verificationDb = verificationScope.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.False(await verificationDb.Needs.AnyAsync(n => n.Title == title));
+        Assert.False(await verificationDb.AuditLogs.AnyAsync(a => a.EntityType == "Need" && a.EntityId == need.Id));
+    }
+
+    [Fact]
     public async Task DeletingUser_SetsAuditActorToNullAndPreservesHistory()
     {
         var data = new TestDataFactory(_factory.Services);

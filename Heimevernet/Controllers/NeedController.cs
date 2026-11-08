@@ -350,7 +350,8 @@ public class NeedController(
 
         // Preserve user-entered region data when reverse geocoding is unavailable. A transient
         // geocoder failure should not block submission or force tests to depend on live network access.
-        if (string.IsNullOrWhiteSpace(model.Region))
+        if (res.Status == RegionResolutionStatus.NoAddress
+            || string.IsNullOrWhiteSpace(model.Region))
         {
             ModelState.AddModelError(nameof(model.Region), "Please select a location on land (not in the ocean).");
         }

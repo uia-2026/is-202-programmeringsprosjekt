@@ -26,13 +26,21 @@ public class RegionResolver : Services.Interfaces.IRegionResolver
             var url = $"reverse?format=jsonv2&lat={latitude}&lon={longitude}&accept-language=nb";
             using var resp = await client.GetAsync(url, cancellationToken);
             if (!resp.IsSuccessStatusCode)
-                return new RegionResolutionResult { Success = false };
+                return new RegionResolutionResult
+                {
+                    Success = false,
+                    Status = RegionResolutionStatus.Unavailable
+                };
 
             await using var stream = await resp.Content.ReadAsStreamAsync(cancellationToken);
             using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
 
             if (!doc.RootElement.TryGetProperty("address", out var addr))
-                return new RegionResolutionResult { Success = false };
+                return new RegionResolutionResult
+                {
+                    Success = false,
+                    Status = RegionResolutionStatus.NoAddress
+                };
 
             var countryCode = addr.TryGetProperty("country_code", out var ccEl) ? ccEl.GetString()?.ToLowerInvariant() : null;
             var isNorway = countryCode == "no" || countryCode == "sj";
@@ -50,13 +58,18 @@ public class RegionResolver : Services.Interfaces.IRegionResolver
             {
                 Success = true,
                 IsInNorway = isNorway,
-                Region = county
+                Region = county,
+                Status = RegionResolutionStatus.Resolved
             };
         }
         catch
         {
-            // Network error, timeout or JSON parse failure. Signal failure so caller can apply an explicit fallback.
-            return new RegionResolutionResult { Success = false };
+            // Network error, timeout or JSON parse failure. Signal that the lookup was unavailable.
+            return new RegionResolutionResult
+            {
+                Success = false,
+                Status = RegionResolutionStatus.Unavailable
+            };
         }
     }
 }

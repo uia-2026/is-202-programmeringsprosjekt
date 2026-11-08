@@ -90,6 +90,33 @@ public class NeedServiceTests
         _uowMock.Verify(u => u.CommitAsync(), Times.Never);
     }
 
+    [Fact]
+    public async Task CreateAsync_SavesEntityBeforeAuditFailure_AndDoesNotCommit()
+    {
+        var model = new NeedCreateViewModel
+        {
+            CategoryId = 1,
+            Title = "Audit failure",
+            Region = "Agder",
+            ContactPoint = "contact",
+            Priority = NeedPriority.Medium
+        };
+        var mappedNeed = new Need { Id = 1, Title = model.Title };
+        _mapperMock.Setup(m => m.ToEntity(model, 42)).Returns(mappedNeed);
+
+        _uowMock
+            .SetupSequence(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask)
+            .ThrowsAsync(new InvalidOperationException("audit persistence failed"));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.CreateAsync(model, 42));
+
+        _uowMock.Verify(
+            u => u.SaveChangesAsync(It.IsAny<CancellationToken>()),
+            Times.Exactly(2));
+        _uowMock.Verify(u => u.CommitAsync(), Times.Never);
+    }
+
     /// <summary>
     /// Ensures CreateAsync calls the mapper and forwards the mapped entity to the repository.
     /// </summary>

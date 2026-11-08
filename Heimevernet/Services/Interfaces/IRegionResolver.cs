@@ -12,9 +12,17 @@ public interface IRegionResolver
     Task<RegionResolutionResult> TryResolveRegionAsync(double latitude, double longitude, CancellationToken cancellationToken);
 }
 
+public enum RegionResolutionStatus
+{
+    Resolved,
+    NoAddress,
+    Unavailable
+}
+
 public sealed class RegionResolutionResult
 {
     public bool Success { get; init; }
     public bool IsInNorway { get; init; }
     public string? Region { get; init; }
+    public RegionResolutionStatus Status { get; init; } = RegionResolutionStatus.Unavailable;
 }
