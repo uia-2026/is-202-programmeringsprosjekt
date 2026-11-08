@@ -21,6 +21,7 @@ var host = Host.CreateDefaultBuilder(args)
         {
             services.AddPersistence()
                     .AddFileStorage()
+                    .AddScoped<IAuditLogger, AuditLogger>()
                     .AddScoped<IAttachmentService, AttachmentService>();
         }
     })
