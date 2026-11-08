@@ -1,7 +1,7 @@
 ﻿using Heimevernet.Data;
+using Heimevernet.Infrastructure.Storage;
 using Heimevernet.Migrator;
-using Heimevernet.Services;
-using Heimevernet.Services.Interfaces;
+using Heimevernet.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,9 +20,7 @@ var host = Host.CreateDefaultBuilder(args)
         if (context.HostingEnvironment.IsDevelopment())
         {
             services.AddPersistence()
-                    .AddFileStorage()
-                    .AddScoped<IAuditLogger, AuditLogger>()
-                    .AddScoped<IAttachmentService, AttachmentService>();
+                    .AddFileStorage();
         }
     })
     .Build();
@@ -40,7 +38,10 @@ await SeedData.SeedReferenceDataAsync(db, CancellationToken.None);   // categori
 
 if (env.IsDevelopment())
 {
-    var attachments = sp.GetRequiredService<IAttachmentService>();
-    await SeedData.SeedDevDataAsync(db, attachments, CancellationToken.None);
+    var attachmentRepository = sp.GetRequiredService<IAttachmentRepository>();
+    var fileStorage = sp.GetRequiredService<IFileStorage>();
+    var unitOfWork = sp.GetRequiredService<IUnitOfWork>();
+    await SeedData.SeedDevDataAsync(
+        db, attachmentRepository, fileStorage, unitOfWork, CancellationToken.None);
     Console.WriteLine("Development seed data inserted");
 }

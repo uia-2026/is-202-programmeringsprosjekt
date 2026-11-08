@@ -1,6 +1,7 @@
 using Heimevernet.Data;
+using Heimevernet.Infrastructure.Storage;
 using Heimevernet.Models;
-using Heimevernet.Services.Interfaces;
+using Heimevernet.Repositories.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -45,7 +46,9 @@ public static class SeedData
     /// </summary>
     public static async Task SeedDevDataAsync(
         AppDbContext db,
-        IAttachmentService attachmentService,
+        IAttachmentRepository attachmentRepository,
+        IFileStorage fileStorage,
+        IUnitOfWork unitOfWork,
         CancellationToken ct)
     {
         var publicActor = await GetOrCreateUserAsync(
@@ -132,8 +135,10 @@ public static class SeedData
 
         await db.SaveChangesAsync(ct);
 
-        await SeedAttachmentAsync(db, attachmentService, tractor, "isbil.jpg", ct);
-        await SeedAttachmentAsync(db, attachmentService, drone, "drone.jpg", ct);
+        await SeedAttachmentAsync(
+            db, attachmentRepository, fileStorage, unitOfWork, tractor, "isbil.jpg", ct);
+        await SeedAttachmentAsync(
+            db, attachmentRepository, fileStorage, unitOfWork, drone, "drone.jpg", ct);
     }
 
     private static async Task<User> GetOrCreateUserAsync(
@@ -174,7 +179,9 @@ public static class SeedData
 
     private static async Task SeedAttachmentAsync(
         AppDbContext db,
-        IAttachmentService attachmentService,
+        IAttachmentRepository attachmentRepository,
+        IFileStorage fileStorage,
+        IUnitOfWork unitOfWork,
         Resource resource,
         string fileName,
         CancellationToken ct)
@@ -192,11 +199,50 @@ public static class SeedData
         try
         {
             await using var stream = File.OpenRead(path);
-            var result = await attachmentService.UploadAsync(
-                resource.Id, stream, fileName, stream.Length, resource.UserId, ct);
+            if (stream.Length <= 0 || stream.Length > 5 * 1024 * 1024
+                || !FileValidation.IsValidImage(stream))
+            {
+                Console.WriteLine($"Warning: seed image '{fileName}' is not a valid image.");
+                return;
+            }
 
-            if (!result.Success)
-                Console.WriteLine($"Warning: seed image '{fileName}' was not uploaded: {result.Error}");
+            var extension = Path.GetExtension(fileName).ToLowerInvariant();
+            var contentType = extension switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".webp" => "image/webp",
+                _ => null
+            };
+
+            if (contentType is null)
+            {
+                Console.WriteLine($"Warning: seed image '{fileName}' has an unsupported type.");
+                return;
+            }
+
+            var key = $"resources/{resource.Id}/{Guid.NewGuid():N}{extension}";
+            await fileStorage.UploadAsync(key, stream, contentType, ct);
+
+            try
+            {
+                await unitOfWork.ExecuteInTransactionAsync(async transactionCt =>
+                {
+                    await attachmentRepository.AddAsync(new Attachment
+                    {
+                        ResourceId = resource.Id,
+                        StorageKey = key,
+                        UploadedByUserId = resource.UserId,
+                        UploadedAt = DateTime.UtcNow
+                    }, transactionCt);
+                    await unitOfWork.SaveChangesAsync(transactionCt);
+                }, ct);
+            }
+            catch
+            {
+                await fileStorage.DeleteAsync(key, CancellationToken.None);
+                throw;
+            }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
