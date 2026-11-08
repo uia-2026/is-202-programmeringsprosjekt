@@ -39,7 +39,6 @@ public class NeedServiceTests
             .Returns(async (Func<CancellationToken, Task> operation, CancellationToken ct) =>
             {
                 await operation(ct);
-                await _uowMock.Object.CommitAsync(ct);
             });
         _sut = new NeedService(_needRepoMock.Object, _categoryRepoMock.Object, _mapperMock.Object, _mapMarkerMapperMock.Object, _uowMock.Object, _auditLoggerMock.Object);
     }
@@ -48,7 +47,7 @@ public class NeedServiceTests
     /// Ensures CreateAsync maps the create model, saves the entity and commits the unit of work.
     /// </summary>
     [Fact]
-    public async Task CreateAsync_Saves_Entity_And_Commits()
+    public async Task CreateAsync_Saves_Entity_And_Audit_Log()
     {
         var model = new NeedCreateViewModel
         {
@@ -64,14 +63,14 @@ public class NeedServiceTests
         await _sut.CreateAsync(model, 42);
 
         _needRepoMock.Verify(r => r.AddAsync(mappedNeed, It.IsAny<CancellationToken>()), Times.Once);
-        _uowMock.Verify(u => u.CommitAsync(), Times.Once);
+        _uowMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
     /// <summary>
     /// Verifies that when the repository throws, the unit of work is not committed.
     /// </summary>
     [Fact]
-    public async Task CreateAsync_Does_Not_Commit_When_Repository_Throws()
+    public async Task CreateAsync_Does_Not_Save_When_Repository_Throws()
     {
         var model = new NeedCreateViewModel
         {
@@ -87,7 +86,7 @@ public class NeedServiceTests
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.CreateAsync(model, 1));
 
-        _uowMock.Verify(u => u.CommitAsync(), Times.Never);
+        _uowMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -114,7 +113,6 @@ public class NeedServiceTests
         _uowMock.Verify(
             u => u.SaveChangesAsync(It.IsAny<CancellationToken>()),
             Times.Exactly(2));
-        _uowMock.Verify(u => u.CommitAsync(), Times.Never);
     }
 
     /// <summary>
@@ -296,7 +294,7 @@ public class NeedServiceTests
         await _sut.UpdateAsync(10, model, 42);
 
         _mapperMock.Verify(m => m.ApplyEditableFields(need, model), Times.Once);
-        _uowMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _uowMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -310,7 +308,7 @@ public class NeedServiceTests
 
         Assert.Equal(OwnedRecordMutationResult.Forbidden, result);
         _mapperMock.Verify(m => m.ApplyEditableFields(It.IsAny<Need>(), It.IsAny<NeedCreateViewModel>()), Times.Never);
-        _uowMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _uowMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -323,7 +321,7 @@ public class NeedServiceTests
         var (result, _) = await _sut.UpdateAsync(10, model, 42);
 
         Assert.Equal(OwnedRecordMutationResult.Conflict, result);
-        _uowMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _uowMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -352,7 +350,7 @@ public class NeedServiceTests
         var (result, _) = await _sut.UpdateAsync(10, model, 42);
 
         Assert.Equal(OwnedRecordMutationResult.Conflict, result);
-        _uowMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _uowMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -367,7 +365,7 @@ public class NeedServiceTests
 
         Assert.Equal(OwnedRecordMutationResult.ValidationError, result);
         _mapperMock.Verify(m => m.ApplyEditableFields(It.IsAny<Need>(), It.IsAny<NeedCreateViewModel>()), Times.Never);
-        _uowMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _uowMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -380,7 +378,7 @@ public class NeedServiceTests
 
         Assert.Equal(OwnedRecordMutationResult.Success, result);
         _needRepoMock.Verify(r => r.Remove(need), Times.Once);
-        _uowMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _uowMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -402,12 +400,12 @@ public class NeedServiceTests
     }
 
     [Fact]
-    public async Task UpdateAsync_Returns_Conflict_When_Commit_Has_Concurrency_Conflict()
+    public async Task UpdateAsync_Returns_Conflict_When_SaveChanges_Has_Concurrency_Conflict()
     {
         var need = new Need { Id = 10, UserId = 42, Status = NeedStatus.New, Matches = [] };
         var model = new NeedCreateViewModel { CategoryId = 1, Title = "T", Region = "R", ContactPoint = "C" };
         _needRepoMock.Setup(r => r.GetByIdForUpdateAsync(10, It.IsAny<CancellationToken>())).ReturnsAsync(need);
-        _uowMock.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>()))
+        _uowMock.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ThrowsAsync(new ConcurrencyConflictException(new Exception()));
 
         var (result, _) = await _sut.UpdateAsync(10, model, 42);
@@ -416,11 +414,11 @@ public class NeedServiceTests
     }
 
     [Fact]
-    public async Task DeleteAsync_Returns_Conflict_When_Commit_Has_Concurrency_Conflict()
+    public async Task DeleteAsync_Returns_Conflict_When_SaveChanges_Has_Concurrency_Conflict()
     {
         var need = new Need { Id = 10, UserId = 42, Matches = [] };
         _needRepoMock.Setup(r => r.GetByIdForUpdateAsync(10, It.IsAny<CancellationToken>())).ReturnsAsync(need);
-        _uowMock.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>()))
+        _uowMock.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ThrowsAsync(new ConcurrencyConflictException(new Exception()));
 
         var (result, _) = await _sut.DeleteAsync(10, 42);

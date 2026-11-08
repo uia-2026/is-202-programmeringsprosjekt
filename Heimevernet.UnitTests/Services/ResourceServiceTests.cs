@@ -43,7 +43,6 @@ public class ResourceServiceTests
             .Returns(async (Func<CancellationToken, Task> operation, CancellationToken ct) =>
             {
                 await operation(ct);
-                await _uowMock.Object.CommitAsync(ct);
             });
         _sut = new ResourceService(_repoMock.Object, _categoryRepoMock.Object, _attachmentServiceMock.Object, _mapperMock.Object, _mapMarkerMapperMock.Object, _mapNearbyResourceMapperMock.Object, _uowMock.Object, _auditLoggerMock.Object);
     }
@@ -52,7 +51,7 @@ public class ResourceServiceTests
     /// Ensures CreateAsync maps the create model, saves the entity and commits the unit of work.
     /// </summary>
     [Fact]
-    public async Task CreateAsync_Saves_Entity_And_Commits()
+    public async Task CreateAsync_Saves_Entity_And_Audit_Log()
     {
         var model = new ResourceCreateViewModel
         {
@@ -68,14 +67,14 @@ public class ResourceServiceTests
         await _sut.CreateAsync(model, 42, CancellationToken.None);
 
         _repoMock.Verify(r => r.AddAsync(mapped, It.IsAny<CancellationToken>()), Times.Once);
-        _uowMock.Verify(u => u.CommitAsync(), Times.Once);
+        _uowMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
     /// <summary>
     /// Verifies that when the repository throws, the unit of work is not committed.
     /// </summary>
     [Fact]
-    public async Task CreateAsync_Does_Not_Commit_When_Repository_Throws()
+    public async Task CreateAsync_Does_Not_Save_When_Repository_Throws()
     {
         var model = new ResourceCreateViewModel { CategoryId = 1, Title = "Title", Region = "R", ContactPoint = "C", AvailableFrom = DateTime.UtcNow };
         var mapped = new Resource { Id = 1, Title = "Title" };
@@ -84,7 +83,7 @@ public class ResourceServiceTests
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.CreateAsync(model, 1, CancellationToken.None));
 
-        _uowMock.Verify(u => u.CommitAsync(), Times.Never);
+        _uowMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     /// <summary>
@@ -239,7 +238,7 @@ public class ResourceServiceTests
 
         Assert.Equal(OwnedRecordMutationResult.Success, result);
         _mapperMock.Verify(m => m.ApplyEditableFields(resource, model), Times.Once);
-        _uowMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _uowMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -282,7 +281,7 @@ public class ResourceServiceTests
         var (result, _) = await _sut.UpdateAsync(7, model, 42);
 
         Assert.Equal(OwnedRecordMutationResult.Conflict, result);
-        _uowMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _uowMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -297,7 +296,7 @@ public class ResourceServiceTests
 
         Assert.Equal(OwnedRecordMutationResult.ValidationError, result);
         _mapperMock.Verify(m => m.ApplyEditableFields(It.IsAny<Resource>(), It.IsAny<ResourceCreateViewModel>()), Times.Never);
-        _uowMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _uowMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -311,15 +310,15 @@ public class ResourceServiceTests
             Attachments = [new Attachment { StorageKey = "resources/7/photo.jpg" }]
         };
         _repoMock.Setup(r => r.GetByIdForUpdateAsync(7, It.IsAny<CancellationToken>())).ReturnsAsync(resource);
-        var committed = false;
-        _uowMock.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>()))
-            .Callback(() => committed = true)
+        var saved = false;
+        _uowMock.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Callback(() => saved = true)
             .Returns(Task.CompletedTask);
         _attachmentServiceMock
             .Setup(s => s.DeleteStorageObjectsAsync(It.IsAny<IEnumerable<string>>()))
             .Callback<IEnumerable<string>>(keys =>
             {
-                Assert.True(committed);
+                Assert.True(saved);
                 Assert.Equal(["resources/7/photo.jpg"], keys);
             })
             .Returns(Task.CompletedTask);
@@ -328,7 +327,7 @@ public class ResourceServiceTests
 
         Assert.Equal(OwnedRecordMutationResult.Success, result);
         _repoMock.Verify(r => r.Remove(resource), Times.Once);
-        _uowMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _uowMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
         _attachmentServiceMock.Verify(s => s.DeleteStorageObjectsAsync(It.IsAny<IEnumerable<string>>()), Times.Once);
     }
 
@@ -350,12 +349,12 @@ public class ResourceServiceTests
     }
 
     [Fact]
-    public async Task UpdateAsync_Returns_Conflict_When_Commit_Has_Concurrency_Conflict()
+    public async Task UpdateAsync_Returns_Conflict_When_SaveChanges_Has_Concurrency_Conflict()
     {
         var resource = new Resource { Id = 7, UserId = 42, Matches = [] };
         var model = new ResourceCreateViewModel { CategoryId = 1, Title = "T", Region = "R", ContactPoint = "C", AvailableFrom = DateTime.UtcNow };
         _repoMock.Setup(r => r.GetByIdForUpdateAsync(7, It.IsAny<CancellationToken>())).ReturnsAsync(resource);
-        _uowMock.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>()))
+        _uowMock.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ThrowsAsync(new ConcurrencyConflictException(new Exception()));
 
         var (result, _) = await _sut.UpdateAsync(7, model, 42);
@@ -364,11 +363,11 @@ public class ResourceServiceTests
     }
 
     [Fact]
-    public async Task DeleteAsync_Returns_Conflict_When_Commit_Has_Concurrency_Conflict()
+    public async Task DeleteAsync_Returns_Conflict_When_SaveChanges_Has_Concurrency_Conflict()
     {
         var resource = new Resource { Id = 7, UserId = 42, Matches = [] };
         _repoMock.Setup(r => r.GetByIdForUpdateAsync(7, It.IsAny<CancellationToken>())).ReturnsAsync(resource);
-        _uowMock.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>()))
+        _uowMock.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ThrowsAsync(new ConcurrencyConflictException(new Exception()));
 
         var (result, _) = await _sut.DeleteAsync(7, 42);
