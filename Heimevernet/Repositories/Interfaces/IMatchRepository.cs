@@ -57,5 +57,10 @@ public interface IMatchRepository
     /// </summary>
     Task<IReadOnlyList<Match>> GetPendingMatchesByResourceIdAsync(int resourceId, int excludeMatchId, CancellationToken ct = default);
 
+    /// <summary>
+    /// Returns true if the user is part of any Assigned match: as need owner, resource owner, or the one who created it.
+    /// </summary>
+    Task<bool> HasAssignedMatchForUserAsync(int userId, CancellationToken cancellationToken = default);
+
     Task<int> CountPendingForNeedAsync(int needId, int excludedMatchId, CancellationToken ct = default);
 }

@@ -1,27 +1,53 @@
 @model Heimevernet.ViewModels.Account.VerifyTwoFactorViewModel
 @{
-    ViewData["Title"] = "Bekreft to-faktor-kode";
+    ViewData["Title"] = "Verify Two-Factor Code";
+    ViewData["TempDataAlertClasses"] = "small";
+    Layout = "_AuthLayout";
 }
 
-<h1>Bekreft to-faktor-kode</h1>
-<p>Åpne autentiseringsappen din og skriv inn den 6-sifrede koden.</p>
+<div class="auth-shell">
 
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="VerifyTwoFactor" method="post">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="UserId" />
+    <div class="auth-hero">
+        <div class="auth-hero-brand">
+            <i class="bi bi-shield-fill"></i> Heimevernet
+        </div>
 
-            <div class="mb-3">
-                <label asp-for="Code" class="form-label">Kode</label>
-                <input asp-for="Code" class="form-control" autocomplete="one-time-code" inputmode="numeric"
-                       maxlength="6" autofocus />
-                <span asp-validation-for="Code" class="text-danger"></span>
-            </div>
-
-            <button type="submit" class="btn btn-primary">Bekreft</button>
-        </form>
+        <div class="auth-hero-tagline">
+            <span>Together we strengthen preparedness</span>
+        </div>
     </div>
+
+    <div class="auth-panel">
+        <div class="auth-card">
+
+            <div class="auth-icon"><i class="bi bi-shield-lock" aria-hidden="true"></i></div>
+
+            <h1 class="auth-title">Verify it's you</h1>
+            <p class="auth-subtitle">Open your authenticator app and enter the 6-digit code.</p>
+
+            <form asp-action="VerifyTwoFactor" method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3 small"></div>
+                <input type="hidden" asp-for="UserId" />
+
+                <div class="mb-3">
+                    <label asp-for="Code" class="form-label">Verification code</label>
+                    <input asp-for="Code" class="form-control auth-code-input" placeholder="000000"
+                           autocomplete="one-time-code" inputmode="numeric" maxlength="6" autofocus />
+                    <span asp-validation-for="Code" class="text-danger small"></span>
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn auth-submit text-white">Verify</button>
+                </div>
+            </form>
+
+            <p class="auth-footer-link">
+                Wrong account? <a asp-action="Login">Back to log in</a>
+            </p>
+
+        </div>
+    </div>
+
 </div>
 
 @section Scripts {

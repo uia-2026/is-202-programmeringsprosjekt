@@ -158,10 +158,19 @@ html {
 }
 
 .app-sidebar-nav .nav-link {
-        display: block;
+        display: flex;
+        align-items: center;
+        gap: 10px;
         color: rgba(255, 255, 255, .75);
         padding: 10px 24px;
         font-size: 14px;
+}
+
+.app-sidebar-nav .nav-link .bi {
+        font-size: 16px;
+        width: 16px;
+        line-height: 1;
+        flex-shrink: 0;
 }
 
 .app-sidebar-nav .nav-link.active {
@@ -428,6 +437,30 @@ html {
         .auth-footer-link a:hover {
             text-decoration: underline;
         }
+
+/* ===== Two-factor verification (login flow) ===== */
+
+.auth-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #e9edf2;
+    color: #1d385a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    margin-bottom: 16px;
+}
+
+.auth-card .auth-code-input {
+    text-align: center;
+    font-family: var(--bs-font-monospace);
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: .4em;
+}
+
 /* ===== Need / Resource list pages (#63 Figma alignment) ===== */
 
 .page-header {

@@ -19,4 +19,14 @@ public sealed class AuditRepository(AppDbContext context) : IAuditRepository
             .OrderBy(a => a.OccurredAt)
             .ThenBy(a => a.Id)
             .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<AuditLog>> GetByActorAsync(
+        int actorUserId,
+        CancellationToken cancellationToken = default) =>
+        await context.AuditLogs
+            .AsNoTracking()
+            .Where(a => a.ActorUserId == actorUserId)
+            .OrderByDescending(a => a.OccurredAt)
+            .ThenByDescending(a => a.Id)
+            .ToListAsync(cancellationToken);
 }

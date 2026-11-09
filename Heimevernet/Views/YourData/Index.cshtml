@@ -1,0 +1,360 @@
+@model Heimevernet.ViewModels.YourData.YourDataViewModel
+@using Heimevernet.Models
+@using Heimevernet.ViewModels.YourData
+
+@{
+    ViewData["Title"] = "Your data";
+    var roleLabel = Model.Role == UserRole.PublicActor ? "Public actor" : "Resource provider";
+    var visibleActivity = Model.Activity.Take(YourDataViewModel.VisibleActivityCount).ToList();
+    var hiddenActivity = Model.Activity.Skip(YourDataViewModel.VisibleActivityCount).ToList();
+}
+
+@section Styles {
+    <style>
+        .app-main:has(.yd-page) {
+            background: #eef3fa;
+        }
+
+        .yd-page {
+            max-width: 820px;
+        }
+
+        .yd-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1d385a;
+            margin-bottom: 6px;
+        }
+
+        .yd-intro {
+            color: #6b7a90;
+            margin-bottom: 20px;
+        }
+
+        .yd-card {
+            background: #ffffff;
+            border: 1px solid #e3e6ea;
+            border-radius: 16px;
+            box-shadow: 0 4px 16px rgba(29, 56, 90, 0.06);
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .yd-card h2 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #1d385a;
+            margin-bottom: 4px;
+        }
+
+        .yd-subtitle {
+            color: #6b7a90;
+            font-size: 0.85rem;
+            margin-bottom: 18px;
+        }
+
+        .yd-fields {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px 20px;
+        }
+
+        .yd-label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #4c5a6e;
+            margin-bottom: 6px;
+        }
+
+        .yd-value {
+            font-size: 0.92rem;
+            color: #1a2430;
+            border: 1px solid #d7e0ec;
+            border-radius: 10px;
+            padding: 9px 12px;
+            overflow-wrap: anywhere;
+        }
+
+        .yd-badge {
+            display: inline-block;
+            font-weight: 600;
+            font-size: 0.8rem;
+            padding: 3px 10px;
+            border-radius: 999px;
+        }
+
+        .yd-badge-on {
+            background: #e3f4ea;
+            color: #1e6b3a;
+        }
+
+        .yd-badge-off {
+            background: #fdf1dc;
+            color: #8a5a00;
+        }
+
+        .yd-list {
+            color: #1a2430;
+            font-size: 0.92rem;
+            padding-left: 20px;
+            margin-bottom: 12px;
+        }
+
+        .yd-list li {
+            margin-bottom: 6px;
+        }
+
+        .yd-activity {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .yd-activity li {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 16px;
+            padding: 10px 0;
+            border-bottom: 1px solid #edf0f3;
+            font-size: 0.92rem;
+        }
+
+        .yd-activity li:last-child {
+            border-bottom: none;
+        }
+
+        .yd-activity time {
+            color: #6b7a90;
+            font-size: 0.82rem;
+            white-space: nowrap;
+        }
+
+        .yd-more summary {
+            color: #1d385a;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .yd-empty {
+            color: #6b7a90;
+            font-size: 0.9rem;
+            margin: 0;
+        }
+
+        .yd-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        .yd-row .yd-subtitle {
+            margin-bottom: 0;
+        }
+
+        .yd-btn {
+            display: inline-block;
+            border: 1px solid #1d385a;
+            color: #1d385a;
+            background: #fff;
+            border-radius: 10px;
+            font-weight: 600;
+            padding: 9px 18px;
+            font-size: 0.9rem;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .yd-btn:hover {
+            background: #1d385a;
+            color: #fff;
+        }
+
+        .yd-danger {
+            border-color: #f1c4c4;
+        }
+
+        .yd-danger h2 {
+            color: #a12626;
+        }
+
+        .yd-confirm {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .yd-confirm input {
+            flex: 1 1 220px;
+            border: 1px solid #d7e0ec;
+            border-radius: 10px;
+            padding: 9px 12px;
+            font-size: 0.92rem;
+        }
+
+        .yd-btn-danger {
+            border: 1px solid #a12626;
+            background: #a12626;
+            color: #fff;
+            border-radius: 10px;
+            font-weight: 600;
+            padding: 9px 18px;
+            font-size: 0.9rem;
+        }
+
+        .yd-btn-danger:disabled {
+            background: #e9c8c8;
+            border-color: #e9c8c8;
+            cursor: not-allowed;
+        }
+
+        @@media (max-width: 576px) {
+            .yd-fields {
+                grid-template-columns: 1fr;
+            }
+
+            .yd-activity li {
+                flex-direction: column;
+                gap: 2px;
+            }
+        }
+    </style>
+}
+
+<div class="yd-page">
+
+    <h1 class="yd-title">Your data</h1>
+    <p class="yd-intro">See what we store about you, download a copy, or delete your account.</p>
+
+    <section class="yd-card" aria-labelledby="yd-account">
+        <h2 id="yd-account">Account</h2>
+        <p class="yd-subtitle">The details registered on your account.</p>
+
+        <div class="yd-fields">
+            <div>
+                <span class="yd-label">Username</span>
+                <div class="yd-value">@Model.Username</div>
+            </div>
+            <div>
+                <span class="yd-label">Email</span>
+                <div class="yd-value">@Model.Email</div>
+            </div>
+            <div>
+                <span class="yd-label">Role</span>
+                <div class="yd-value">@roleLabel</div>
+            </div>
+            <div>
+                <span class="yd-label">Two-factor authentication</span>
+                <div class="yd-value">
+                    @if (Model.TwoFactorEnabled)
+                    {
+                        <span class="yd-badge yd-badge-on">Enabled</span>
+                    }
+                    else
+                    {
+                        <span class="yd-badge yd-badge-off">Not enabled</span>
+                        <a asp-controller="Account" asp-action="SetupTwoFactor" class="ms-2 small">Enable</a>
+                    }
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="yd-card" aria-labelledby="yd-stored">
+        <h2 id="yd-stored">What we store about you</h2>
+        <p class="yd-subtitle">A short summary. The privacy page has the full details.</p>
+
+        <ul class="yd-list">
+            <li>Your account details: username, email, role and whether two-factor authentication is on.</li>
+            <li>The needs and resources you register, including location, region and contact point.</li>
+            <li>A log of actions you take, such as sign-ins and changes to your listings, kept for security and accountability.</li>
+        </ul>
+
+        <a asp-controller="Home" asp-action="Privacy">Read the privacy page</a>
+    </section>
+
+    <section class="yd-card" aria-labelledby="yd-activity">
+        <h2 id="yd-activity">Your activity</h2>
+        <p class="yd-subtitle">Actions recorded on your account, newest first.</p>
+
+        @if (Model.Activity.Count == 0)
+        {
+            <p class="yd-empty">No activity recorded yet.</p>
+        }
+        else
+        {
+            <ul class="yd-activity">
+                @foreach (var item in visibleActivity)
+                {
+                    <li>
+                        <span>@item.Label</span>
+                        <time datetime="@item.OccurredAt.ToString("o")">@item.OccurredAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</time>
+                    </li>
+                }
+            </ul>
+
+            @if (hiddenActivity.Count > 0)
+            {
+                <details class="yd-more">
+                    <summary>View full activity (@hiddenActivity.Count more)</summary>
+                    <ul class="yd-activity">
+                        @foreach (var item in hiddenActivity)
+                        {
+                            <li>
+                                <span>@item.Label</span>
+                                <time datetime="@item.OccurredAt.ToString("o")">@item.OccurredAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</time>
+                            </li>
+                        }
+                    </ul>
+                </details>
+            }
+        }
+    </section>
+
+    <section class="yd-card" aria-labelledby="yd-download">
+        <div class="yd-row">
+            <div>
+                <h2 id="yd-download">Download your data</h2>
+                <p class="yd-subtitle">A JSON file with your account, needs, resources and activity.</p>
+            </div>
+            <a asp-action="Export" class="yd-btn">Download JSON</a>
+        </div>
+    </section>
+
+    <section class="yd-card yd-danger" aria-labelledby="yd-delete">
+        <h2 id="yd-delete">Delete your account</h2>
+        <p class="yd-subtitle">
+            This permanently deletes your account and all needs and resources you have registered.
+            Your activity history is kept without a link to your account. This cannot be undone.
+            If you have an active (assigned) match, resolve or cancel it first.
+        </p>
+
+        <form asp-action="DeleteAccount" method="post" class="yd-confirm" id="deleteAccountForm">
+            <div style="flex: 1 1 220px;">
+                <label for="confirmUsername" class="yd-label">Type <strong>@Model.Username</strong> to confirm</label>
+                <input type="text" id="confirmUsername" name="confirmUsername" autocomplete="off" class="w-100"
+                       data-expected="@Model.Username" />
+            </div>
+            <button type="submit" class="yd-btn-danger" id="deleteAccountButton" disabled>Delete my account</button>
+        </form>
+    </section>
+
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const input = document.getElementById('confirmUsername');
+            const button = document.getElementById('deleteAccountButton');
+            input.addEventListener('input', function () {
+                button.disabled = input.value.trim() !== input.dataset.expected;
+            });
+        })();
+    </script>
+}
