@@ -459,7 +459,7 @@ public class NeedServiceTests
     }
 
     [Fact]
-    public async Task ResolveAsync_Cancels_Pending_Matches_And_Resolves_Assigned_Matches()
+    public async Task ResolveAsync_Resolves_Assigned_Matches_And_Leaves_Others_Unchanged()
     {
         var assignedMatch = new Heimevernet.Models.Match { Id = 1, Status = MatchStatus.Assigned };
         var pendingMatch = new Heimevernet.Models.Match { Id = 2, Status = MatchStatus.UnderReview };
@@ -480,7 +480,7 @@ public class NeedServiceTests
         Assert.Equal(OwnedRecordMutationResult.Success, result);
         Assert.Equal(NeedStatus.Resolved, need.Status);
         Assert.Equal(MatchStatus.Resolved, assignedMatch.Status);
-        Assert.Equal(MatchStatus.Cancelled, pendingMatch.Status);
+        Assert.Equal(MatchStatus.UnderReview, pendingMatch.Status);
         Assert.Equal(MatchStatus.Rejected, rejectedMatch.Status);
         _auditLoggerMock.Verify(
             l => l.Record(AuditAction.MatchResolved, "Match", assignedMatch.Id, It.IsAny<string?>()),

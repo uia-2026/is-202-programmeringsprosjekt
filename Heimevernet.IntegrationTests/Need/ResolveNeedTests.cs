@@ -26,7 +26,7 @@ public sealed class ResolveNeedTests
 
     /// <summary>
     /// Verifies that the owner can resolve an Assigned Need: the Need becomes Resolved,
-    /// assigned matches become Resolved, pending matches are Cancelled, rejected matches
+    /// assigned matches become Resolved, pending and rejected matches
     /// are left untouched, and the resolution is written to the audit log.
     /// </summary>
     [Fact]
@@ -59,7 +59,7 @@ public sealed class ResolveNeedTests
 
         Assert.Equal(NeedStatus.Resolved, need!.Status);
         Assert.Equal(MatchStatus.Resolved, assignedMatch!.Status);
-        Assert.Equal(MatchStatus.Cancelled, pendingMatch!.Status);
+        Assert.Equal(MatchStatus.UnderReview, pendingMatch!.Status);
         Assert.Equal(MatchStatus.Rejected, rejectedMatch!.Status);
 
         // Verify the resolution is audited for both the Need and the assigned Match.
