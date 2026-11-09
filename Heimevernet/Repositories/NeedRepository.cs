@@ -64,10 +64,12 @@ public class NeedRepository : INeedRepository
     {
         return await _context.Needs
             .AsNoTracking()
-            .Where(n => n.Status != NeedStatus.Resolved
+            .Where(n => (n.Status == NeedStatus.New
+                      || n.Status == NeedStatus.UnderReview
+                      || n.Status == NeedStatus.Assigned)
                      && n.Latitude >= box.MinLat && n.Latitude <= box.MaxLat
                      && n.Longitude >= box.MinLng && n.Longitude <= box.MaxLng)
-            .OrderByDescending(n => n.Priority == NeedPriority.Critical)   // if the cap cuts anything, it never cuts acute needs
+            .OrderByDescending(n => n.Priority == NeedPriority.Critical)
             .ThenByDescending(n => n.CreatedAt)
             .Take(limit)
             .Select(n => new MapMarkerDto(
@@ -135,7 +137,7 @@ public class NeedRepository : INeedRepository
 
         return await query.ToListAsync(cancellationToken);
 
-        
+
     }
 
     public async Task<IReadOnlyList<string>> GetDistinctRegionsAsync(CancellationToken cancellationToken = default) =>
@@ -147,4 +149,4 @@ public class NeedRepository : INeedRepository
         .ToListAsync(cancellationToken);
 
 }
- 
+
