@@ -40,9 +40,6 @@ public class UnitOfWork : IUnitOfWork
         }
     }
 
-    public Task SaveChangesAsync(CancellationToken cancellationToken = default) =>
-        SaveChangesWithExceptionTranslationAsync(cancellationToken);
-
     public async Task ExecuteInTransactionAsync(
         Func<CancellationToken, Task> operation,
         CancellationToken cancellationToken = default)
@@ -58,23 +55,6 @@ public class UnitOfWork : IUnitOfWork
         {
             await transaction.RollbackAsync(CancellationToken.None);
             throw;
-        }
-    }
-
-    private async Task SaveChangesWithExceptionTranslationAsync(CancellationToken cancellationToken)
-    {
-        try
-        {
-            await _context.SaveChangesAsync(cancellationToken);
-        }
-        catch (DbUpdateConcurrencyException ex)
-        {
-            throw new ConcurrencyConflictException(ex);
-        }
-        catch (DbUpdateException ex)
-            when (ex.InnerException is MySqlException { Number: 1062 })
-        {
-            throw new DuplicateRecordException(ex);
         }
     }
 }

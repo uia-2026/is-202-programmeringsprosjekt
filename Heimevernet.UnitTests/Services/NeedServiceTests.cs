@@ -63,7 +63,7 @@ public class NeedServiceTests
         await _sut.CreateAsync(model, 42);
 
         _needRepoMock.Verify(r => r.AddAsync(mappedNeed, It.IsAny<CancellationToken>()), Times.Once);
-        _uowMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
+        _uowMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
     /// <summary>
@@ -86,7 +86,7 @@ public class NeedServiceTests
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.CreateAsync(model, 1));
 
-        _uowMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _uowMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -104,14 +104,14 @@ public class NeedServiceTests
         _mapperMock.Setup(m => m.ToEntity(model, 42)).Returns(mappedNeed);
 
         _uowMock
-            .SetupSequence(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .SetupSequence(u => u.CommitAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask)
             .ThrowsAsync(new InvalidOperationException("audit persistence failed"));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.CreateAsync(model, 42));
 
         _uowMock.Verify(
-            u => u.SaveChangesAsync(It.IsAny<CancellationToken>()),
+            u => u.CommitAsync(It.IsAny<CancellationToken>()),
             Times.Exactly(2));
     }
 
@@ -294,7 +294,7 @@ public class NeedServiceTests
         await _sut.UpdateAsync(10, model, 42);
 
         _mapperMock.Verify(m => m.ApplyEditableFields(need, model), Times.Once);
-        _uowMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _uowMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -308,7 +308,7 @@ public class NeedServiceTests
 
         Assert.Equal(OwnedRecordMutationResult.Forbidden, result);
         _mapperMock.Verify(m => m.ApplyEditableFields(It.IsAny<Need>(), It.IsAny<NeedCreateViewModel>()), Times.Never);
-        _uowMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _uowMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -321,7 +321,7 @@ public class NeedServiceTests
         var (result, _) = await _sut.UpdateAsync(10, model, 42);
 
         Assert.Equal(OwnedRecordMutationResult.Conflict, result);
-        _uowMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _uowMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -350,7 +350,7 @@ public class NeedServiceTests
         var (result, _) = await _sut.UpdateAsync(10, model, 42);
 
         Assert.Equal(OwnedRecordMutationResult.Conflict, result);
-        _uowMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _uowMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -365,7 +365,7 @@ public class NeedServiceTests
 
         Assert.Equal(OwnedRecordMutationResult.ValidationError, result);
         _mapperMock.Verify(m => m.ApplyEditableFields(It.IsAny<Need>(), It.IsAny<NeedCreateViewModel>()), Times.Never);
-        _uowMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _uowMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -378,7 +378,7 @@ public class NeedServiceTests
 
         Assert.Equal(OwnedRecordMutationResult.Success, result);
         _needRepoMock.Verify(r => r.Remove(need), Times.Once);
-        _uowMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _uowMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -405,7 +405,7 @@ public class NeedServiceTests
         var need = new Need { Id = 10, UserId = 42, Status = NeedStatus.New, Matches = [] };
         var model = new NeedCreateViewModel { CategoryId = 1, Title = "T", Region = "R", ContactPoint = "C" };
         _needRepoMock.Setup(r => r.GetByIdForUpdateAsync(10, It.IsAny<CancellationToken>())).ReturnsAsync(need);
-        _uowMock.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
+        _uowMock.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>()))
             .ThrowsAsync(new ConcurrencyConflictException(new Exception()));
 
         var (result, _) = await _sut.UpdateAsync(10, model, 42);
@@ -418,7 +418,7 @@ public class NeedServiceTests
     {
         var need = new Need { Id = 10, UserId = 42, Matches = [] };
         _needRepoMock.Setup(r => r.GetByIdForUpdateAsync(10, It.IsAny<CancellationToken>())).ReturnsAsync(need);
-        _uowMock.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
+        _uowMock.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>()))
             .ThrowsAsync(new ConcurrencyConflictException(new Exception()));
 
         var (result, _) = await _sut.DeleteAsync(10, 42);
@@ -468,7 +468,7 @@ public class NeedServiceTests
         {
             Id = 10,
             UserId = 42,
-            Status = NeedStatus.UnderReview,
+            Status = NeedStatus.Assigned,
             Matches = [assignedMatch, pendingMatch, rejectedMatch]
         };
 
@@ -488,5 +488,32 @@ public class NeedServiceTests
         _auditLoggerMock.Verify(
             l => l.Record(AuditAction.NeedResolved, "Need", need.Id, It.IsAny<string?>()),
             Times.Once);
+    }
+
+    [Theory]
+    [InlineData(NeedStatus.New)]
+    [InlineData(NeedStatus.UnderReview)]
+    public async Task ResolveAsync_Returns_Conflict_When_Need_Is_Not_Assigned(NeedStatus status)
+    {
+        var pendingMatch = new Heimevernet.Models.Match { Id = 1, Status = MatchStatus.UnderReview };
+        var need = new Need
+        {
+            Id = 10,
+            UserId = 42,
+            Status = status,
+            Matches = [pendingMatch]
+        };
+
+        _needRepoMock.Setup(r => r.GetByIdForUpdateAsync(10, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(need);
+
+        var (result, _) = await _sut.ResolveAsync(10, 42);
+
+        Assert.Equal(OwnedRecordMutationResult.Conflict, result);
+        Assert.Equal(status, need.Status);
+        Assert.Equal(MatchStatus.UnderReview, pendingMatch.Status);
+        _auditLoggerMock.Verify(
+            l => l.Record(It.IsAny<AuditAction>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string?>()),
+            Times.Never);
     }
 }

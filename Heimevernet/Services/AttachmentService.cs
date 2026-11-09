@@ -83,9 +83,9 @@ public sealed class AttachmentService : IAttachmentService
                 };
 
                 await _attachments.AddAsync(attachment, transactionCt);
-                await _uow.SaveChangesAsync(transactionCt);
+                await _uow.CommitAsync(transactionCt);
                 _auditLogger.Record(AuditAction.AttachmentUploaded, "Attachment", attachment.Id);
-                await _uow.SaveChangesAsync(transactionCt);
+                await _uow.CommitAsync(transactionCt);
             }, ct);
         }
         catch
@@ -107,7 +107,7 @@ public sealed class AttachmentService : IAttachmentService
         await _uow.ExecuteInTransactionAsync(async transactionCt =>
         {
             _auditLogger.Record(AuditAction.AttachmentDeleted, "Attachment", attachment.Id);
-            await _uow.SaveChangesAsync(transactionCt);
+            await _uow.CommitAsync(transactionCt);
         }, ct);
         await TryDeleteFileAsync(attachment.StorageKey);
 

@@ -119,7 +119,7 @@ public sealed class AuditLoggingTests : IClassFixture<HeimevernetWebApplicationF
         await Assert.ThrowsAsync<InvalidOperationException>(() => unitOfWork.ExecuteInTransactionAsync(async ct =>
         {
             auditLogger.Record(AuditAction.NeedCreated, "Need", 999999, detailsMarker);
-            await unitOfWork.SaveChangesAsync(ct);
+            await unitOfWork.CommitAsync(ct);
             throw new InvalidOperationException("rollback test");
         }));
 
@@ -154,7 +154,7 @@ public sealed class AuditLoggingTests : IClassFixture<HeimevernetWebApplicationF
         await Assert.ThrowsAsync<DbUpdateException>(() => unitOfWork.ExecuteInTransactionAsync(async ct =>
         {
             db.Needs.Add(need);
-            await unitOfWork.SaveChangesAsync(ct);
+            await unitOfWork.CommitAsync(ct);
 
             auditLogger.Record(
                 AuditAction.NeedCreated,
@@ -162,7 +162,7 @@ public sealed class AuditLoggingTests : IClassFixture<HeimevernetWebApplicationF
                 need.Id,
                 actorUserId: int.MaxValue,
                 actorName: "Invalid actor");
-            await unitOfWork.SaveChangesAsync(ct);
+            await unitOfWork.CommitAsync(ct);
         }));
 
         using var verificationScope = _factory.Services.CreateScope();

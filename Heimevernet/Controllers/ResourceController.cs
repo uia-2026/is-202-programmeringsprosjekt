@@ -430,11 +430,6 @@ public class ResourceController(
             return;
         }
 
-        // Preserve a provided region instead of failing the form when reverse geocoding is unavailable.
-        if (res.Status == RegionResolutionStatus.NoAddress
-            || string.IsNullOrWhiteSpace(model.Region))
-        {
-            ModelState.AddModelError(nameof(model.Region), "Please select a location on land (not in the ocean).");
-        }
+        ModelState.AddModelError(nameof(model.Region), "Please select a location on land (not in the ocean).");
     }
 }

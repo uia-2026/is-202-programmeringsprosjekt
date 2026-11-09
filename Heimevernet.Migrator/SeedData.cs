@@ -235,7 +235,7 @@ public static class SeedData
                         UploadedByUserId = resource.UserId,
                         UploadedAt = DateTime.UtcNow
                     }, transactionCt);
-                    await unitOfWork.SaveChangesAsync(transactionCt);
+                    await unitOfWork.CommitAsync(transactionCt);
                 }, ct);
             }
             catch

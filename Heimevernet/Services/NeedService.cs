@@ -47,9 +47,9 @@ public class NeedService(
         await _unitOfWork.ExecuteInTransactionAsync(async ct =>
         {
             await _needRepository.AddAsync(need, ct);
-            await _unitOfWork.SaveChangesAsync(ct);
+            await _unitOfWork.CommitAsync(ct);
             _auditLogger.Record(AuditAction.NeedCreated, "Need", need.Id);
-            await _unitOfWork.SaveChangesAsync(ct);
+            await _unitOfWork.CommitAsync(ct);
         }, cancellationToken);
 
         return need.Id;
@@ -158,7 +158,7 @@ public class NeedService(
                     "Need",
                     need.Id,
                     $"Changed fields: {string.Join(", ", changedFields)}");
-                await _unitOfWork.SaveChangesAsync(ct);
+                await _unitOfWork.CommitAsync(ct);
             }, cancellationToken);
         }
         catch (ConcurrencyConflictException)
@@ -198,7 +198,7 @@ public class NeedService(
             await _unitOfWork.ExecuteInTransactionAsync(async ct =>
             {
                 _auditLogger.Record(AuditAction.NeedDeleted, "Need", need.Id);
-                await _unitOfWork.SaveChangesAsync(ct);
+                await _unitOfWork.CommitAsync(ct);
             }, cancellationToken);
         }
         catch (ConcurrencyConflictException)
@@ -231,6 +231,12 @@ public class NeedService(
             return (OwnedRecordMutationResult.Conflict, "Need is already resolved.");
         }
 
+        // Only a need that has been assigned help can be marked as resolved.
+        if (need.Status != NeedStatus.Assigned)
+        {
+            return (OwnedRecordMutationResult.Conflict, "Only assigned needs can be resolved.");
+        }
+
         var assignedMatches = need.Matches
             .Where(m => m.Status == MatchStatus.Assigned)
             .ToList();
@@ -256,7 +262,7 @@ public class NeedService(
                 }
 
                 _auditLogger.Record(AuditAction.NeedResolved, "Need", need.Id);
-                await _unitOfWork.SaveChangesAsync(ct);
+                await _unitOfWork.CommitAsync(ct);
             }, cancellationToken);
         }
         catch (ConcurrencyConflictException)

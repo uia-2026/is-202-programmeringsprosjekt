@@ -110,9 +110,9 @@ public class ResourceService : IResourceService
         await _unitOfWork.ExecuteInTransactionAsync(async ct =>
         {
             await _resourceRepository.AddAsync(resource, ct);
-            await _unitOfWork.SaveChangesAsync(ct);
+            await _unitOfWork.CommitAsync(ct);
             _auditLogger.Record(AuditAction.ResourceCreated, "Resource", resource.Id);
-            await _unitOfWork.SaveChangesAsync(ct);
+            await _unitOfWork.CommitAsync(ct);
         }, cancellationToken);
 
         return resource.Id;
@@ -210,7 +210,7 @@ public class ResourceService : IResourceService
                     "Resource",
                     resource.Id,
                     $"Changed fields: {string.Join(", ", changedFields)}");
-                await _unitOfWork.SaveChangesAsync(ct);
+                await _unitOfWork.CommitAsync(ct);
             }, cancellationToken);
         }
         catch (ConcurrencyConflictException)
@@ -251,7 +251,7 @@ public class ResourceService : IResourceService
             await _unitOfWork.ExecuteInTransactionAsync(async ct =>
             {
                 _auditLogger.Record(AuditAction.ResourceDeleted, "Resource", resource.Id);
-                await _unitOfWork.SaveChangesAsync(ct);
+                await _unitOfWork.CommitAsync(ct);
             }, cancellationToken);
         }
         catch (ConcurrencyConflictException)

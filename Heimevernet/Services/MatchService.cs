@@ -159,9 +159,9 @@ public class MatchService : IMatchService
             await _unitOfWork.ExecuteInTransactionAsync(async ct =>
             {
                 await _matchRepository.AddAsync(match, ct);
-                await _unitOfWork.SaveChangesAsync(ct);
+                await _unitOfWork.CommitAsync(ct);
                 _auditLogger.Record(AuditAction.MatchProposed, "Match", match.Id);
-                await _unitOfWork.SaveChangesAsync(ct);
+                await _unitOfWork.CommitAsync(ct);
             }, cancellationToken);
         }
         catch (DuplicateRecordException)
@@ -315,7 +315,7 @@ public class MatchService : IMatchService
             await _unitOfWork.ExecuteInTransactionAsync(async ct =>
             {
                 _auditLogger.Record(AuditAction.MatchAccepted, "Match", match.Id);
-                await _unitOfWork.SaveChangesAsync(ct);
+                await _unitOfWork.CommitAsync(ct);
             }, cancellationToken);
         }
         catch (ConcurrencyConflictException)
@@ -370,7 +370,7 @@ public class MatchService : IMatchService
             await _unitOfWork.ExecuteInTransactionAsync(async ct =>
             {
                 _auditLogger.Record(AuditAction.MatchRejected, "Match", match.Id);
-                await _unitOfWork.SaveChangesAsync(ct);
+                await _unitOfWork.CommitAsync(ct);
             }, cancellationToken);
         }
         catch (ConcurrencyConflictException)
