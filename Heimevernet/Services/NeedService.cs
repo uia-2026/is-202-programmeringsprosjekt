@@ -237,11 +237,9 @@ public class NeedService(
             return (OwnedRecordMutationResult.Conflict, "Only assigned needs can be resolved.");
         }
 
+        // Other proposals were already cancelled when the Need became Assigned, so only Assigned matches need resolving.
         var assignedMatches = need.Matches
             .Where(m => m.Status == MatchStatus.Assigned)
-            .ToList();
-        var pendingMatches = need.Matches
-            .Where(m => m.Status == MatchStatus.UnderReview)
             .ToList();
 
         need.Status = NeedStatus.Resolved;
@@ -254,11 +252,6 @@ public class NeedService(
                 {
                     match.Status = MatchStatus.Resolved;
                     _auditLogger.Record(AuditAction.MatchResolved, "Match", match.Id);
-                }
-
-                foreach (var match in pendingMatches)
-                {
-                    match.Status = MatchStatus.Cancelled;
                 }
 
                 _auditLogger.Record(AuditAction.NeedResolved, "Need", need.Id);

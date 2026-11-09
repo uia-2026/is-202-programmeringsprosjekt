@@ -158,13 +158,23 @@
                 </a>
             }
 
-            <a href="#nearby-resources"
-               class="btn btn-brand w-100 mb-2">
-                Find Resources
-            </a>
-
             @if (need.IsOwner)
             {
+                @if (need.Status == Heimevernet.Models.NeedStatus.Assigned)
+                {
+                    <form asp-action="Resolve"
+                          asp-route-id="@need.Id"
+                          method="post"
+                          class="mb-2"
+                          onsubmit="return confirm('Mark this need as resolved? All assigned matches will also be resolved.');">
+                        @Html.AntiForgeryToken()
+
+                        <button type="submit" class="btn btn-brand w-100">
+                            Mark as Resolved
+                        </button>
+                    </form>
+                }
+
                 @if (need.Status != Heimevernet.Models.NeedStatus.Resolved)
                 {
                     <a asp-action="Edit"
@@ -186,10 +196,6 @@
                     </button>
                 </form>
             }
-
-            <button class="btn btn-outline-brand w-100" type="button">
-                Mark as Resolved
-            </button>
         </div>
     </div>
 
