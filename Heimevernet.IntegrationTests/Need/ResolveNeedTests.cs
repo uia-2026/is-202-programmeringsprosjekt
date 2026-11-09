@@ -26,19 +26,20 @@ public sealed class ResolveNeedTests
 
     /// <summary>
     /// Verifies that the owner can resolve an Assigned Need: the Need becomes Resolved,
-    /// assigned matches become Resolved, pending and rejected matches
-    /// are left untouched, and the resolution is written to the audit log.
+    /// assigned matches become Resolved, rejected and cancelled matches are left untouched,
+    /// and the resolution is written to the audit log.
     /// </summary>
     [Fact]
     public async Task Resolve_OwnerWithAssignedNeed_ResolvesNeedAndUpdatesMatches()
     {
-        // Arrange: Assigned Need with one assigned, one pending and one rejected match.
+        // Arrange: Assigned Need with one assigned, one rejected and one cancelled match.
+        // An Assigned Need has no pending matches, since they are cancelled when the Need becomes Assigned.
         var graph = await _data.CreateMatchGraphAsync(
             matchStatus: MatchStatus.Assigned,
             needStatus: NeedStatus.Assigned);
 
         var anotherProvider = await _data.CreateUserAsync(role: UserRole.ResourceProvider);
-        var pendingMatchId = await _data.AddPendingMatchForNeedAsync(graph, anotherProvider.Id);
+        var cancelledMatchId = await AddMatchForNeedAsync(graph, anotherProvider.Id, MatchStatus.Cancelled);
         var rejectedMatchId = await AddMatchForNeedAsync(graph, anotherProvider.Id, MatchStatus.Rejected);
 
         using var client = await AuthenticatedClientHelper.CreateAsync(_factory, graph.Owner.Email);
@@ -54,12 +55,12 @@ public sealed class ResolveNeedTests
 
         var need = await db.Needs.FindAsync(graph.NeedId);
         var assignedMatch = await db.Matches.FindAsync(graph.MatchId);
-        var pendingMatch = await db.Matches.FindAsync(pendingMatchId);
+        var cancelledMatch = await db.Matches.FindAsync(cancelledMatchId);
         var rejectedMatch = await db.Matches.FindAsync(rejectedMatchId);
 
         Assert.Equal(NeedStatus.Resolved, need!.Status);
         Assert.Equal(MatchStatus.Resolved, assignedMatch!.Status);
-        Assert.Equal(MatchStatus.UnderReview, pendingMatch!.Status);
+        Assert.Equal(MatchStatus.Cancelled, cancelledMatch!.Status);
         Assert.Equal(MatchStatus.Rejected, rejectedMatch!.Status);
 
         // Verify the resolution is audited for both the Need and the assigned Match.

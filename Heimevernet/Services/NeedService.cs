@@ -237,7 +237,7 @@ public class NeedService(
             return (OwnedRecordMutationResult.Conflict, "Only assigned needs can be resolved.");
         }
 
-        // Only Assigned matches are resolved. UnderReview, Rejected and Cancelled matches are left unchanged.
+        // Other proposals were already cancelled when the Need became Assigned, so only Assigned matches need resolving.
         var assignedMatches = need.Matches
             .Where(m => m.Status == MatchStatus.Assigned)
             .ToList();
