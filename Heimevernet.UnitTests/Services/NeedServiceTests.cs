@@ -21,6 +21,7 @@ public class NeedServiceTests
     private readonly Mock<INeedMapper> _mapperMock;
     private readonly Mock<IMapMarkerMapper> _mapMarkerMapperMock;
     private readonly Mock<IUnitOfWork> _uowMock;
+    private readonly Mock<IAuditLogger> _auditLoggerMock;
     private readonly NeedService _sut;
 
     public NeedServiceTests()
@@ -32,14 +33,21 @@ public class NeedServiceTests
         _mapperMock = new Mock<INeedMapper>();
         _mapMarkerMapperMock = new Mock<IMapMarkerMapper>();
         _uowMock = new Mock<IUnitOfWork>();
-        _sut = new NeedService(_needRepoMock.Object, _categoryRepoMock.Object, _mapperMock.Object, _mapMarkerMapperMock.Object, _uowMock.Object);
+        _auditLoggerMock = new Mock<IAuditLogger>();
+        _uowMock
+            .Setup(u => u.ExecuteInTransactionAsync(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()))
+            .Returns(async (Func<CancellationToken, Task> operation, CancellationToken ct) =>
+            {
+                await operation(ct);
+            });
+        _sut = new NeedService(_needRepoMock.Object, _categoryRepoMock.Object, _mapperMock.Object, _mapMarkerMapperMock.Object, _uowMock.Object, _auditLoggerMock.Object);
     }
 
     /// <summary>
     /// Ensures CreateAsync maps the create model, saves the entity and commits the unit of work.
     /// </summary>
     [Fact]
-    public async Task CreateAsync_Saves_Entity_And_Commits()
+    public async Task CreateAsync_Saves_Entity_And_Audit_Log()
     {
         var model = new NeedCreateViewModel
         {
@@ -55,14 +63,14 @@ public class NeedServiceTests
         await _sut.CreateAsync(model, 42);
 
         _needRepoMock.Verify(r => r.AddAsync(mappedNeed, It.IsAny<CancellationToken>()), Times.Once);
-        _uowMock.Verify(u => u.CommitAsync(), Times.Once);
+        _uowMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
     /// <summary>
     /// Verifies that when the repository throws, the unit of work is not committed.
     /// </summary>
     [Fact]
-    public async Task CreateAsync_Does_Not_Commit_When_Repository_Throws()
+    public async Task CreateAsync_Does_Not_Save_When_Repository_Throws()
     {
         var model = new NeedCreateViewModel
         {
@@ -78,7 +86,33 @@ public class NeedServiceTests
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.CreateAsync(model, 1));
 
-        _uowMock.Verify(u => u.CommitAsync(), Times.Never);
+        _uowMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsync_SavesEntityBeforeAuditFailure_AndDoesNotCommit()
+    {
+        var model = new NeedCreateViewModel
+        {
+            CategoryId = 1,
+            Title = "Audit failure",
+            Region = "Agder",
+            ContactPoint = "contact",
+            Priority = NeedPriority.Medium
+        };
+        var mappedNeed = new Need { Id = 1, Title = model.Title };
+        _mapperMock.Setup(m => m.ToEntity(model, 42)).Returns(mappedNeed);
+
+        _uowMock
+            .SetupSequence(u => u.CommitAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask)
+            .ThrowsAsync(new InvalidOperationException("audit persistence failed"));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.CreateAsync(model, 42));
+
+        _uowMock.Verify(
+            u => u.CommitAsync(It.IsAny<CancellationToken>()),
+            Times.Exactly(2));
     }
 
     /// <summary>
@@ -366,7 +400,7 @@ public class NeedServiceTests
     }
 
     [Fact]
-    public async Task UpdateAsync_Returns_Conflict_When_Commit_Has_Concurrency_Conflict()
+    public async Task UpdateAsync_Returns_Conflict_When_SaveChanges_Has_Concurrency_Conflict()
     {
         var need = new Need { Id = 10, UserId = 42, Status = NeedStatus.New, Matches = [] };
         var model = new NeedCreateViewModel { CategoryId = 1, Title = "T", Region = "R", ContactPoint = "C" };
@@ -380,7 +414,7 @@ public class NeedServiceTests
     }
 
     [Fact]
-    public async Task DeleteAsync_Returns_Conflict_When_Commit_Has_Concurrency_Conflict()
+    public async Task DeleteAsync_Returns_Conflict_When_SaveChanges_Has_Concurrency_Conflict()
     {
         var need = new Need { Id = 10, UserId = 42, Matches = [] };
         _needRepoMock.Setup(r => r.GetByIdForUpdateAsync(10, It.IsAny<CancellationToken>())).ReturnsAsync(need);
@@ -422,5 +456,64 @@ public class NeedServiceTests
         Assert.Equal(42, need.UserId);
         Assert.Equal(NeedStatus.UnderReview, need.Status);
         Assert.Equal(createdAt, need.CreatedAt);
+    }
+
+    [Fact]
+    public async Task ResolveAsync_Cancels_Pending_Matches_And_Resolves_Assigned_Matches()
+    {
+        var assignedMatch = new Heimevernet.Models.Match { Id = 1, Status = MatchStatus.Assigned };
+        var pendingMatch = new Heimevernet.Models.Match { Id = 2, Status = MatchStatus.UnderReview };
+        var rejectedMatch = new Heimevernet.Models.Match { Id = 3, Status = MatchStatus.Rejected };
+        var need = new Need
+        {
+            Id = 10,
+            UserId = 42,
+            Status = NeedStatus.Assigned,
+            Matches = [assignedMatch, pendingMatch, rejectedMatch]
+        };
+
+        _needRepoMock.Setup(r => r.GetByIdForUpdateAsync(10, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(need);
+
+        var (result, _) = await _sut.ResolveAsync(10, 42);
+
+        Assert.Equal(OwnedRecordMutationResult.Success, result);
+        Assert.Equal(NeedStatus.Resolved, need.Status);
+        Assert.Equal(MatchStatus.Resolved, assignedMatch.Status);
+        Assert.Equal(MatchStatus.Cancelled, pendingMatch.Status);
+        Assert.Equal(MatchStatus.Rejected, rejectedMatch.Status);
+        _auditLoggerMock.Verify(
+            l => l.Record(AuditAction.MatchResolved, "Match", assignedMatch.Id, It.IsAny<string?>()),
+            Times.Once);
+        _auditLoggerMock.Verify(
+            l => l.Record(AuditAction.NeedResolved, "Need", need.Id, It.IsAny<string?>()),
+            Times.Once);
+    }
+
+    [Theory]
+    [InlineData(NeedStatus.New)]
+    [InlineData(NeedStatus.UnderReview)]
+    public async Task ResolveAsync_Returns_Conflict_When_Need_Is_Not_Assigned(NeedStatus status)
+    {
+        var pendingMatch = new Heimevernet.Models.Match { Id = 1, Status = MatchStatus.UnderReview };
+        var need = new Need
+        {
+            Id = 10,
+            UserId = 42,
+            Status = status,
+            Matches = [pendingMatch]
+        };
+
+        _needRepoMock.Setup(r => r.GetByIdForUpdateAsync(10, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(need);
+
+        var (result, _) = await _sut.ResolveAsync(10, 42);
+
+        Assert.Equal(OwnedRecordMutationResult.Conflict, result);
+        Assert.Equal(status, need.Status);
+        Assert.Equal(MatchStatus.UnderReview, pendingMatch.Status);
+        _auditLoggerMock.Verify(
+            l => l.Record(It.IsAny<AuditAction>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string?>()),
+            Times.Never);
     }
 }

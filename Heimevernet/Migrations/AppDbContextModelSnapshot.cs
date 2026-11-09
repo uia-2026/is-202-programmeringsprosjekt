@@ -53,6 +53,57 @@ namespace Heimevernet.Migrations
                     b.ToTable("Attachments");
                 });
 
+            modelBuilder.Entity("Heimevernet.Models.AuditLog", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<string>("ActorName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int?>("ActorUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Details")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<int?>("EntityId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("TraceId")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("OccurredAt");
+
+                    b.HasIndex("EntityType", "EntityId");
+
+                    b.ToTable("AuditLogs");
+                });
+
             modelBuilder.Entity("Heimevernet.Models.Category", b =>
                 {
                     b.Property<int>("Id")
@@ -351,6 +402,16 @@ namespace Heimevernet.Migrations
                     b.Navigation("UploadedByUser");
                 });
 
+            modelBuilder.Entity("Heimevernet.Models.AuditLog", b =>
+                {
+                    b.HasOne("Heimevernet.Models.User", "ActorUser")
+                        .WithMany("AuditLogs")
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("ActorUser");
+                });
+
             modelBuilder.Entity("Heimevernet.Models.Match", b =>
                 {
                     b.HasOne("Heimevernet.Models.User", "MatchedByUser")
@@ -437,6 +498,8 @@ namespace Heimevernet.Migrations
 
             modelBuilder.Entity("Heimevernet.Models.User", b =>
                 {
+                    b.Navigation("AuditLogs");
+
                     b.Navigation("MatchesCreated");
 
                     b.Navigation("Needs");

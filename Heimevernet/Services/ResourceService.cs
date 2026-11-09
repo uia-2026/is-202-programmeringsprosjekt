@@ -1,5 +1,6 @@
 using Heimevernet.Infrastructure.Geo;
 using Heimevernet.Exceptions;
+using Heimevernet.Models;
 using Heimevernet.Mappers;
 using Heimevernet.Mappers.Interfaces;
 using Heimevernet.Repositories.Interfaces;
@@ -25,6 +26,7 @@ public class ResourceService : IResourceService
     private readonly IMapMarkerMapper _mapMarkerMapper;
     private readonly IUnitOfWork _unitOfWork;
     private readonly INearbyResourceMapper _nearbyResourceMapper;
+    private readonly IAuditLogger _auditLogger;
 
     public ResourceService(
         IResourceRepository resourceRepository,
@@ -33,7 +35,8 @@ public class ResourceService : IResourceService
         IResourceMapper resourceMapper,
         IMapMarkerMapper mapMarkerMapper,
         INearbyResourceMapper nearbyResourceMapper,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IAuditLogger auditLogger)
     {
         _resourceRepository = resourceRepository;
         _categoryRepository = categoryRepository;
@@ -42,6 +45,7 @@ public class ResourceService : IResourceService
         _mapMarkerMapper = mapMarkerMapper;
         _nearbyResourceMapper = nearbyResourceMapper;
         _unitOfWork = unitOfWork;
+        _auditLogger = auditLogger;
     }
 
     public async Task<IReadOnlyList<ResourceViewModel>> GetAllAsync(
@@ -103,10 +107,13 @@ public class ResourceService : IResourceService
         var resource =
             _resourceMapper.ToEntity(model, userId);
 
-        await _resourceRepository.AddAsync(
-            resource,
-            cancellationToken);
-        await _unitOfWork.CommitAsync(cancellationToken);
+        await _unitOfWork.ExecuteInTransactionAsync(async ct =>
+        {
+            await _resourceRepository.AddAsync(resource, ct);
+            await _unitOfWork.CommitAsync(ct);
+            _auditLogger.Record(AuditAction.ResourceCreated, "Resource", resource.Id);
+            await _unitOfWork.CommitAsync(ct);
+        }, cancellationToken);
 
         return resource.Id;
     }
@@ -192,10 +199,19 @@ public class ResourceService : IResourceService
             return (OwnedRecordMutationResult.ValidationError, "Please select a valid category.");
         }
 
+        var changedFields = GetChangedFields(resource, model);
         _resourceMapper.ApplyEditableFields(resource, model);
         try
         {
-            await _unitOfWork.CommitAsync(cancellationToken);
+            await _unitOfWork.ExecuteInTransactionAsync(async ct =>
+            {
+                _auditLogger.Record(
+                    AuditAction.ResourceEdited,
+                    "Resource",
+                    resource.Id,
+                    $"Changed fields: {string.Join(", ", changedFields)}");
+                await _unitOfWork.CommitAsync(ct);
+            }, cancellationToken);
         }
         catch (ConcurrencyConflictException)
         {
@@ -232,7 +248,11 @@ public class ResourceService : IResourceService
         _resourceRepository.Remove(resource);
         try
         {
-            await _unitOfWork.CommitAsync(cancellationToken);
+            await _unitOfWork.ExecuteInTransactionAsync(async ct =>
+            {
+                _auditLogger.Record(AuditAction.ResourceDeleted, "Resource", resource.Id);
+                await _unitOfWork.CommitAsync(ct);
+            }, cancellationToken);
         }
         catch (ConcurrencyConflictException)
         {
@@ -242,5 +262,21 @@ public class ResourceService : IResourceService
         await _attachmentService.DeleteStorageObjectsAsync(storageKeys);
 
         return (OwnedRecordMutationResult.Success, "Resource deleted.");
+    }
+
+    private static IReadOnlyList<string> GetChangedFields(Resource resource, ResourceCreateViewModel model)
+    {
+        var fields = new List<string>();
+        if (resource.Title != model.Title.Trim()) fields.Add(nameof(Resource.Title));
+        if (resource.Description != model.Description?.Trim()) fields.Add(nameof(Resource.Description));
+        if (resource.CategoryId != model.CategoryId) fields.Add(nameof(Resource.CategoryId));
+        if (resource.Region != model.Region.Trim()) fields.Add(nameof(Resource.Region));
+        if (resource.AvailableFrom != model.AvailableFrom) fields.Add(nameof(Resource.AvailableFrom));
+        if (resource.AvailableTo != model.AvailableTo) fields.Add(nameof(Resource.AvailableTo));
+        if (resource.ContactPoint != model.ContactPoint.Trim()) fields.Add(nameof(Resource.ContactPoint));
+        if (resource.Latitude != model.Latitude) fields.Add(nameof(Resource.Latitude));
+        if (resource.Longitude != model.Longitude) fields.Add(nameof(Resource.Longitude));
+        if (resource.QuantityOffered != model.QuantityOffered) fields.Add(nameof(Resource.QuantityOffered));
+        return fields;
     }
 }
