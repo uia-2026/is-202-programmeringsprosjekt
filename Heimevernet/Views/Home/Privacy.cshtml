@@ -1,42 +1,103 @@
 ﻿@{
-    ViewData["Title"] = "Personvern";
+    ViewData["Title"] = "Privacy & data";
+    Layout = "_AuthLayout";
 }
 
-<h1>@ViewData["Title"]</h1>
+<div class="privacy-page">
 
-<h2>Hvilke opplysninger samler vi inn?</h2>
-<p>
-    Kriseportalen samler inn kontaktinformasjon (navn, telefon, e-post),
-    geografisk område og type behov eller ressurs fra registrerte brukere.
-    Offentlige aktører registrerer behov for bistand, mens ressursleverandører
-    (privatpersoner, bedrifter, frivillige organisasjoner) registrerer
-    tilgjengelige ressurser.
-</p>
+    <header class="privacy-topbar">
+        <a class="app-topbar-brand privacy-brand" asp-controller="Home" asp-action="Index">
+            <i class="bi bi-shield-fill"></i> Heimevernet
+        </a>
+        <a class="privacy-back" asp-controller="Home" asp-action="Index">
+            <i class="bi bi-arrow-left"></i> Back to app
+        </a>
+    </header>
 
-<h2>Hvorfor samler vi inn disse opplysningene?</h2>
-<p>
-    Opplysningene brukes utelukkende til å koble registrerte behov med
-    tilgjengelige ressurser under kriser og øvelser, og for å gi kriseledelsen
-    rask oversikt over relevante ressurser i et gitt område.
-</p>
+    <div class="privacy-layout">
 
-<h2>Hvem kan se opplysningene mine?</h2>
-<p>
-    Ressursleverandører ser kun sine egne registrerte ressurser. Offentlige
-    aktører kan se behov og tilgjengelige ressurser i sitt geografiske område.
-    Kontaktinformasjon deles først når en match er foreslått og akseptert av
-    begge parter.
-</p>
+        <nav class="privacy-toc" aria-label="On this page">
+            <div class="privacy-toc-title">On this page</div>
+            <ul>
+                <li><a href="#what-we-collect">What we collect</a></li>
+                <li><a href="#why-we-collect-it">Why we collect it</a></li>
+                <li><a href="#who-can-see-it">Who can see it</a></li>
+                <li><a href="#how-long-we-keep-it">How long we keep it</a></li>
+                <li><a href="#your-rights">Your rights</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+        </nav>
 
-<h2>Hvor lenge lagres opplysningene?</h2>
-<p>
-    Data knyttet til en registrert hendelse lagres så lenge behovet eller
-    ressursen har status «aktiv». Løste eller kansellerte oppføringer kan
-    slettes eller arkiveres i tråd med teamets datahåndteringsrutiner.
-</p>
+        <article class="privacy-content">
+            <h1 class="privacy-title">Privacy &amp; data</h1>
+            <p class="privacy-lead">
+                Heimevernet is a student prototype built for IS-202 at the University of Agder,
+                in collaboration with Kartverket and Heimevernet. It is not an operational
+                government system. This page explains, in plain terms, what the app stores
+                about you and why.
+            </p>
 
-<h2>Sikkerhet</h2>
-<p>
-    All innlogging krever tofaktorautentisering. Kun autentiserte brukere kan
-    registrere eller booke behov og ressurser.
-</p>
+            <section id="what-we-collect">
+                <h2>What we collect</h2>
+                <p>
+                    Your account: username, email and role (public actor or resource provider).
+                    Your login: a password, stored as a hash we cannot read back, and a two-factor
+                    authenticator secret used to verify your codes &mdash; we never store the codes
+                    themselves. Anything you add to a need or resource you register: a contact point,
+                    a location, and a description. A log of actions tied to your account, such as
+                    logins and changes to needs or resources &mdash; this is the audit log.
+                </p>
+            </section>
+
+            <section id="why-we-collect-it">
+                <h2>Why we collect it</h2>
+                <p>
+                    To run the matching system: showing your contact details to the other side of a
+                    match, so a need and a resource can actually reach each other. To secure your
+                    login with two-factor authentication. To keep an audit trail, so actions taken
+                    during a crisis response can be reviewed afterward.
+                </p>
+            </section>
+
+            <section id="who-can-see-it">
+                <h2>Who can see it</h2>
+                <p>
+                    Your contact details on a need or resource are visible to other logged-in users
+                    who can act on it &mdash; not to the public internet. Your audit log is visible
+                    only to you. Your password is never visible to anyone, including the Heimevernet
+                    team; it is stored as a one-way hash.
+                </p>
+            </section>
+
+            <section id="how-long-we-keep-it">
+                <h2>How long we keep it</h2>
+                <p>
+                    Account and listing data stays until you delete it or your account. Audit log
+                    entries are kept even after the need or resource they describe is edited or
+                    removed, so the history stays accurate &mdash; they are not deleted along with it.
+                </p>
+            </section>
+
+            <section id="your-rights">
+                <h2>Your rights</h2>
+                <p>
+                    From the <strong>Your data</strong> page in your account, you can see everything
+                    stored about you, download a copy, and request deletion of your account. One
+                    honest limit: your audit log entries stay on record for accountability even after
+                    deletion, with your account reference removed.
+                </p>
+            </section>
+
+            <section id="contact" class="privacy-contact">
+                <h2>Contact</h2>
+                <p>
+                    Questions about this page or your data: reach Group 10 at
+                    <a href="mailto:group10@uia.no">group10@uia.no</a>. Since this is a student
+                    project, not a live service, treat this as a demonstration of how such a page
+                    would work, not a binding policy.
+                </p>
+            </section>
+        </article>
+
+    </div>
+</div>
