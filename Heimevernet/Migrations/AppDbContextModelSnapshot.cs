@@ -247,7 +247,11 @@ namespace Heimevernet.Migrations
 
                     b.HasIndex("CategoryId");
 
+                    b.HasIndex("Region");
+
                     b.HasIndex("UserId");
+
+                    b.HasIndex("Status", "Latitude", "Longitude");
 
                     b.ToTable("Needs", t =>
                         {
@@ -319,9 +323,13 @@ namespace Heimevernet.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CategoryId");
+                    b.HasIndex("Region");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("Status", "Latitude", "Longitude");
+
+                    b.HasIndex("CategoryId", "Status", "Latitude", "Longitude");
 
                     b.ToTable("Resources", t =>
                         {
@@ -423,13 +431,13 @@ namespace Heimevernet.Migrations
                     b.HasOne("Heimevernet.Models.Need", "Need")
                         .WithMany("Matches")
                         .HasForeignKey("NeedId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Heimevernet.Models.Resource", "Resource")
                         .WithMany("Matches")
                         .HasForeignKey("ResourceId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("MatchedByUser");
@@ -444,13 +452,13 @@ namespace Heimevernet.Migrations
                     b.HasOne("Heimevernet.Models.Category", "Category")
                         .WithMany("Needs")
                         .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Heimevernet.Models.User", "User")
                         .WithMany("Needs")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Category");
@@ -463,13 +471,13 @@ namespace Heimevernet.Migrations
                     b.HasOne("Heimevernet.Models.Category", "Category")
                         .WithMany("Resources")
                         .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Heimevernet.Models.User", "User")
                         .WithMany("Resources")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Category");
