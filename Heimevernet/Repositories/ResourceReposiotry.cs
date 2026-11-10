@@ -1,5 +1,6 @@
 using Heimevernet.Data;
 using Heimevernet.DTOs.Map;
+using Heimevernet.DTOs.Notifications;
 using Heimevernet.DTOs.Resources;
 using Heimevernet.Infrastructure.Geo;
 using Heimevernet.Models;
@@ -304,4 +305,54 @@ public class ResourceRepository : IResourceRepository
         .Distinct()
         .OrderBy(r => r)
         .ToListAsync(cancellationToken);
+
+
+    public async Task<IReadOnlyList<NotificationRecipientDto>> GetNotificationRecipientsAsync(
+    int categoryId,
+    double latitude,
+    double longitude,
+    DateTime? deadline,
+    DateTime now,
+    int excludeUserId,
+    double radiusKm,
+    int maxRecipients,
+    CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(radiusKm);
+
+        if (maxRecipients <= 0)
+            return [];
+
+        var box = GeoMath.BoundingBox(latitude, longitude, radiusKm);
+
+        var rows = await _context.Resources
+            .AsNoTracking()
+            .Where(r =>
+                r.CategoryId == categoryId &&
+                r.Status == ResourceStatus.Available &&
+                r.UserId != excludeUserId &&
+                r.User.EmailNotifications &&
+                (r.AvailableTo == null || r.AvailableTo >= now) &&
+                (deadline == null || r.AvailableFrom <= deadline) &&
+                r.Latitude >= box.MinLat && r.Latitude <= box.MaxLat &&
+                r.Longitude >= box.MinLng && r.Longitude <= box.MaxLng)
+            .Select(r => new { r.UserId, r.Title, r.Latitude, r.Longitude })
+            .ToListAsync(cancellationToken);
+
+        return rows
+            .Select(r => new
+            {
+                r.UserId,
+                r.Title,
+                Km = GeoMath.DistanceKm(latitude, longitude, r.Latitude, r.Longitude)
+            })
+            .Where(x => x.Km <= radiusKm)                      // the box is square, so measure exactly
+            .GroupBy(x => x.UserId)
+            .Select(g => g.OrderBy(x => x.Km).First())         // one email per provider: their nearest fitting resource
+            .OrderBy(x => x.Km)
+            .ThenBy(x => x.UserId)                             // a stable order when two distances are equal
+            .Take(maxRecipients)
+            .Select(x => new NotificationRecipientDto(x.UserId, x.Title, Math.Round(x.Km, 1)))
+            .ToList();
+    }
 }

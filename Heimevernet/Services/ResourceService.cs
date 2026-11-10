@@ -10,6 +10,8 @@ using Heimevernet.ViewModels.Map;
 using Heimevernet.ViewModels.Need;
 using Heimevernet.ViewModels.Resource;
 using Heimevernet.DTOs.Resources;
+using Heimevernet.Infrastructure.Outbox;
+using Heimevernet.Infrastructure.Notifications;
 
 namespace Heimevernet.Services;
 
@@ -26,6 +28,7 @@ public class ResourceService : IResourceService
     private readonly IMapMarkerMapper _mapMarkerMapper;
     private readonly IUnitOfWork _unitOfWork;
     private readonly INearbyResourceMapper _nearbyResourceMapper;
+    private readonly IOutbox _outbox;
     private readonly IAuditLogger _auditLogger;
 
     public ResourceService(
@@ -35,6 +38,7 @@ public class ResourceService : IResourceService
         IResourceMapper resourceMapper,
         IMapMarkerMapper mapMarkerMapper,
         INearbyResourceMapper nearbyResourceMapper,
+        IOutbox outbox,
         IUnitOfWork unitOfWork,
         IAuditLogger auditLogger)
     {
@@ -44,6 +48,7 @@ public class ResourceService : IResourceService
         _resourceMapper = resourceMapper;
         _mapMarkerMapper = mapMarkerMapper;
         _nearbyResourceMapper = nearbyResourceMapper;
+        _outbox = outbox;
         _unitOfWork = unitOfWork;
         _auditLogger = auditLogger;
     }
@@ -111,6 +116,12 @@ public class ResourceService : IResourceService
         {
             await _resourceRepository.AddAsync(resource, ct);
             await _unitOfWork.CommitAsync(ct);
+
+            _outbox.Enqueue(
+            OutboxTypes.ResourceRegistered,
+            new ResourceRegisteredPayload(resource.Id),
+            dedupKey: $"resource-registered:{resource.Id}");
+
             _auditLogger.Record(AuditAction.ResourceCreated, "Resource", resource.Id);
             await _unitOfWork.CommitAsync(ct);
         }, cancellationToken);

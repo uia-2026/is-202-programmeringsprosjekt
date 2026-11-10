@@ -180,6 +180,21 @@
         .acct-row-card .acct-row-text .acct-card-subtitle {
             margin-bottom: 0;
         }
+
+        .acct-check {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.92rem;
+            color: #1a2430;
+            cursor: pointer;
+        }
+
+        .acct-check input {
+            width: 18px;
+            height: 18px;
+            accent-color: #1d385a;
+        }
     </style>
 }
 
@@ -242,21 +257,49 @@
                         }
                         else
                         {
-                            <p class="acct-card-subtitle">Add an extra layer of security by enabling two-factor authentication.</p>
+                            <p class="acct-card-subtitle">Add an extra layer of security by enabling two-factor
+                                authentication.</p>
+                            }
+                        </div>
+
+                        @if (!Model.TwoFactorEnabled)
+                        {
+                            <a asp-controller="Account" asp-action="SetupTwoFactor" class="acct-btn-outline"
+                               style="width:auto; margin-bottom:0; padding:10px 20px; white-space:nowrap;">
+                                Enable two-factor authentication
+                            </a>
                         }
                     </div>
-
-                    @if (!Model.TwoFactorEnabled)
-                    {
-                        <a asp-controller="Account" asp-action="SetupTwoFactor" class="acct-btn-outline" style="width:auto; margin-bottom:0; padding:10px 20px; white-space:nowrap;">
-                            Enable two-factor authentication
-                        </a>
-                    }
                 </div>
+
+                <div class="acct-card">
+                    <form asp-controller="Account" asp-action="UpdateNotifications" method="post">
+                        <div class="acct-row-card">
+                            <div class="acct-row-text">
+                                <h2>Email notifications</h2>
+                                <p class="acct-card-subtitle">
+                                    Get an email when a critical need is registered near one of your resources,
+                                    or when a resource that may fit one of your open needs is registered.
+                                </p>
+
+                                <label class="acct-check" style="margin-top: 14px;">
+                                    <input type="checkbox" name="emailNotifications" value="true" @(Model.EmailNotifications
+                                           ? "checked" : "") />
+                                    <input type="hidden" name="emailNotifications" value="false" />
+                                    Send me notification emails
+                                </label>
+                            </div>
+
+                            <button type="submit" class="acct-btn-outline"
+                                    style="width:auto; margin-bottom:0; padding:10px 20px; white-space:nowrap;">
+                                Save
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
             </div>
 
         </div>
 
     </div>
-
-</div>

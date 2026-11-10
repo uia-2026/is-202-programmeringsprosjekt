@@ -26,6 +26,7 @@ public class AppDbContext : DbContext
     public DbSet<Attachment> Attachments => Set<Attachment>();
     public DbSet<Match> Matches => Set<Match>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -38,6 +39,7 @@ public class AppDbContext : DbContext
         ConfigureAttachment(modelBuilder);
         ConfigureMatch(modelBuilder);
         ConfigureAuditLog(modelBuilder);
+        ConfigureOutboxMessage(modelBuilder);
     }
 
     private static void ConfigureUser(ModelBuilder modelBuilder)
@@ -224,6 +226,24 @@ public class AppDbContext : DbContext
                 .WithMany(u => u.AuditLogs)
                 .HasForeignKey(a => a.ActorUserId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+    }
+
+    private static void ConfigureOutboxMessage(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<OutboxMessage>(b =>
+        {
+            b.Property(m => m.Type).HasMaxLength(FieldLimits.EnumText);
+            b.Property(m => m.DedupKey).HasMaxLength(FieldLimits.DedupKey);
+            b.Property(m => m.Payload).HasMaxLength(FieldLimits.OutboxPayload);
+            b.Property(m => m.Status).HasConversion<string>().HasMaxLength(FieldLimits.EnumText);
+            b.Property(m => m.LastError).HasMaxLength(FieldLimits.OutboxError);
+
+            b.HasIndex(m => m.DedupKey).IsUnique();                       // the same event is never queued twice
+            b.HasIndex(m => new { m.Status, m.NextAttemptAt });           // the worker's "what is due?" query
+
+            // Removing a user must not delete or block their queued messages
+            b.HasOne<User>().WithMany().HasForeignKey(m => m.RecipientUserId).OnDelete(DeleteBehavior.SetNull);
         });
     }
 

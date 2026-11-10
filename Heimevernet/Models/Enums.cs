@@ -87,3 +87,17 @@ public enum AuditAction
     MatchRejected,
     MatchResolved
 }
+
+
+/// <summary>
+/// Lifecycle of an outbox message.
+/// Pending is waiting to be sent, Processing is claimed by a worker (see LockedUntil),
+/// Done is finished or skipped, and Failed has used up all attempts.
+/// </summary>
+public enum OutboxStatus
+{
+    Pending,
+    Processing,
+    Done,
+    Failed
+}

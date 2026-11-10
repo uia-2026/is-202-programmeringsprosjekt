@@ -1,4 +1,5 @@
 using Heimevernet.DTOs.Map;
+using Heimevernet.DTOs.Notifications;
 using Heimevernet.DTOs.Resources;
 using Heimevernet.Infrastructure.Geo;
 using Heimevernet.Models;
@@ -84,4 +85,20 @@ public interface IResourceRepository
 
     Task<IReadOnlyList<Resource>> GetFilteredAsync(ResourceFilterDto filter, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<string>> GetDistinctRegionsAsync(CancellationToken cancellationToken = default);
+
+
+    /// <summary>
+    /// Providers who have an available, unexpired resource of the given category within radiusKm of the point,
+    /// and who have email notifications on. One entry per provider, with their nearest resource, nearest first.
+    /// </summary>
+    Task<IReadOnlyList<NotificationRecipientDto>> GetNotificationRecipientsAsync(
+        int categoryId,
+        double latitude,
+        double longitude,
+        DateTime? deadline,
+        DateTime now,
+        int excludeUserId,
+        double radiusKm,
+        int maxRecipients,
+        CancellationToken cancellationToken = default);
 }

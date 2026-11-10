@@ -24,4 +24,8 @@ public static class FieldLimits
     public const int AuditEntityType = 100;
     public const int AuditDetails = 500;
     public const int AuditTraceId = 200;
+
+    public const int DedupKey = 128;
+    public const int OutboxPayload = 2000;
+    public const int OutboxError = 1000;
 }

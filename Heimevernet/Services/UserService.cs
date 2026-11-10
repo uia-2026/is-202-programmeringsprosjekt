@@ -24,7 +24,13 @@ public class UserService(IUserRepository userRepository) : IUserService
             Username = user.Username,
             Email = user.Email,
             Role = user.Role,
-            TwoFactorEnabled = user.TwoFactorEnabled
+            TwoFactorEnabled = user.TwoFactorEnabled,
+            EmailNotifications = user.EmailNotifications
         };
     }
+
+    public Task<bool> SetEmailNotificationsAsync(
+           int userId,
+           bool enabled,
+           CancellationToken cancellationToken = default) => _userRepository.SetEmailNotificationsAsync(userId, enabled, cancellationToken);
 }
