@@ -100,7 +100,8 @@
                         {
                             <li class="nav-item">
                                 <a class="nav-link @ActiveClass("Map")" asp-controller="Map" asp-action="Index">
-                                    Map
+                                    <i class="bi bi-map" aria-hidden="true"></i>
+                                    <span>Map</span>
                                 </a>
                             </li>
                         }
@@ -109,19 +110,22 @@
                         {
                             <li class="nav-item">
                                 <a class="nav-link @ActiveClass("Need", "Index")" asp-controller="Need" asp-action="Index">
-                                    Needs
+                                    <i class="bi bi-clipboard-check" aria-hidden="true"></i>
+                                    <span>Needs</span>
                                 </a>
                             </li>
 
                             <li class="nav-item">
                                 <a class="nav-link @ActiveClass("Resource", "Index")" asp-controller="Resource" asp-action="Index">
-                                    Resources
+                                    <i class="bi bi-box-seam" aria-hidden="true"></i>
+                                    <span>Resources</span>
                                 </a>
                             </li>
 
                             <li class="nav-item">
                                 <a class="nav-link @ActiveClass("Match")" asp-controller="Match" asp-action="Index">
-                                    My Matches
+                                    <i class="bi bi-people" aria-hidden="true"></i>
+                                    <span>My Matches</span>
                                 </a>
                             </li>
                         }
@@ -130,13 +134,15 @@
                         {
                             <li class="nav-item">
                                 <a class="nav-link @ActiveClass("Need", "Create")" asp-controller="Need" asp-action="Create">
-                                    Register Need
+                                    <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                                    <span>Register Need</span>
                                 </a>
                             </li>
 
                             <li class="nav-item">
                                 <a class="nav-link @ActiveClass("Resource", "PrintByRegion")" asp-controller="Resource" asp-action="PrintByRegion">
-                                    Print List
+                                    <i class="bi bi-printer" aria-hidden="true"></i>
+                                    <span>Print List</span>
                                 </a>
                             </li>
                         }
@@ -145,7 +151,8 @@
                         {
                             <li class="nav-item">
                                 <a class="nav-link @ActiveClass("Resource", "Create")" asp-controller="Resource" asp-action="Create">
-                                    Register Resource
+                                    <i class="bi bi-plus-square" aria-hidden="true"></i>
+                                    <span>Register Resource</span>
                                 </a>
                             </li>                        }
                     </ul>

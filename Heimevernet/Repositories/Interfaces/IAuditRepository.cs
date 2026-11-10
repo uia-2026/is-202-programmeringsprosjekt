@@ -10,4 +10,11 @@ public interface IAuditRepository
         string entityType,
         int entityId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns every audit entry performed by the given user, newest first.
+    /// </summary>
+    Task<IReadOnlyList<AuditLog>> GetByActorAsync(
+        int actorUserId,
+        CancellationToken cancellationToken = default);
 }

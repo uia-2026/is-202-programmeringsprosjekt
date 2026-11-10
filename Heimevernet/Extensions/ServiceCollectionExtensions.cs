@@ -66,6 +66,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IResourceService, ResourceService>();
         services.AddScoped<INeedService, NeedService>();
         services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IYourDataService, YourDataService>();
         services.AddScoped<IAttachmentService, AttachmentService>();
         services.AddScoped<IMatchService, MatchService>();
         services.AddScoped<IMapService, MapService>();
