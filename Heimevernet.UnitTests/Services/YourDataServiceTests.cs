@@ -7,7 +7,7 @@ using Moq;
 namespace Heimevernet.UnitTests.Services;
 
 /// <summary>
-/// Unit tests for <see cref="YourDataService"/> covering the overview, export and account deletion.
+/// Unit tests for <see cref="YourDataService"/> covering the overview and export.
 /// </summary>
 public sealed class YourDataServiceTests
 {
@@ -15,30 +15,17 @@ public sealed class YourDataServiceTests
 
     private readonly Mock<IUserRepository> _userRepositoryMock = new();
     private readonly Mock<IAuditRepository> _auditRepositoryMock = new();
-    private readonly Mock<IMatchRepository> _matchRepositoryMock = new();
-    private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
-    private readonly Mock<IAttachmentService> _attachmentServiceMock = new();
     private readonly YourDataService _sut;
 
     public YourDataServiceTests()
     {
-        _unitOfWorkMock
-            .Setup(u => u.ExecuteInTransactionAsync(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()))
-            .Returns(async (Func<CancellationToken, Task> operation, CancellationToken ct) =>
-            {
-                await operation(ct);
-            });
-
         _auditRepositoryMock
             .Setup(r => r.GetByActorAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
         _sut = new YourDataService(
             _userRepositoryMock.Object,
-            _auditRepositoryMock.Object,
-            _matchRepositoryMock.Object,
-            _unitOfWorkMock.Object,
-            _attachmentServiceMock.Object);
+            _auditRepositoryMock.Object);
     }
 
     [Fact]
@@ -144,85 +131,6 @@ public sealed class YourDataServiceTests
     public async Task ExportAsync_UnknownUser_ReturnsNull()
     {
         Assert.Null(await _sut.ExportAsync(UserId));
-    }
-
-    [Fact]
-    public async Task DeleteAccountAsync_UnknownUser_ReturnsNotFoundWithoutCommitting()
-    {
-        var result = await _sut.DeleteAccountAsync(UserId);
-
-        Assert.Equal(DeleteAccountResult.NotFound, result);
-        _userRepositoryMock.Verify(r => r.RemoveAccount(It.IsAny<User>()), Times.Never);
-        _unitOfWorkMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task DeleteAccountAsync_RemovesAccountCommitsAndCleansUpStoredFiles()
-    {
-        var user = CreateUser();
-        var resource = new Resource { Id = 3 };
-        var shared = new Attachment { Id = 1, StorageKey = "a.png" };
-        resource.Attachments.Add(shared);
-        resource.Attachments.Add(new Attachment { Id = 2, StorageKey = "b.png" });
-        user.Resources.Add(resource);
-        user.UploadedAttachments.Add(shared);
-        SetupUser(user);
-
-        var result = await _sut.DeleteAccountAsync(UserId);
-
-        Assert.Equal(DeleteAccountResult.Deleted, result);
-        _userRepositoryMock.Verify(r => r.RemoveAccount(user), Times.Once);
-        _unitOfWorkMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
-        _attachmentServiceMock.Verify(a => a.DeleteStorageObjectsAsync(
-            It.Is<IEnumerable<string>>(keys => keys.OrderBy(k => k).SequenceEqual(new[] { "a.png", "b.png" }))),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task DeleteAccountAsync_UserHasAssignedMatch_IsBlockedAndDeletesNothing()
-    {
-        var user = CreateUser();
-        var resource = new Resource { Id = 3 };
-        resource.Attachments.Add(new Attachment { Id = 1, StorageKey = "a.png" });
-        user.Resources.Add(resource);
-        SetupUser(user);
-        _matchRepositoryMock
-            .Setup(r => r.HasAssignedMatchForUserAsync(UserId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
-
-        var result = await _sut.DeleteAccountAsync(UserId);
-
-        Assert.Equal(DeleteAccountResult.BlockedByActiveMatch, result);
-        _userRepositoryMock.Verify(r => r.RemoveAccount(It.IsAny<User>()), Times.Never);
-        _unitOfWorkMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
-        _attachmentServiceMock.Verify(a => a.DeleteStorageObjectsAsync(It.IsAny<IEnumerable<string>>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task DeleteAccountAsync_ChecksAssignedMatchesForTheUser()
-    {
-        SetupUser(CreateUser());
-
-        await _sut.DeleteAccountAsync(UserId);
-
-        _matchRepositoryMock.Verify(r => r.HasAssignedMatchForUserAsync(UserId, It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task DeleteAccountAsync_CommitFails_DoesNotDeleteStoredFiles()
-    {
-        var user = CreateUser();
-        var resource = new Resource { Id = 3 };
-        resource.Attachments.Add(new Attachment { Id = 1, StorageKey = "a.png" });
-        user.Resources.Add(resource);
-        SetupUser(user);
-        _unitOfWorkMock
-            .Setup(u => u.CommitAsync(It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("db down"));
-
-        await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.DeleteAccountAsync(UserId));
-
-        _attachmentServiceMock.Verify(a => a.DeleteStorageObjectsAsync(It.IsAny<IEnumerable<string>>()), Times.Never);
     }
 
     private void SetupUser(User user) =>

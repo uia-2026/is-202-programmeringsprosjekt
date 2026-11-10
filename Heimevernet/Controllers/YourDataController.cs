@@ -12,7 +12,7 @@ namespace Heimevernet.Controllers;
 /// and always scoped to the current user's own data.
 /// </summary>
 [Authorize]
-public class YourDataController(IYourDataService yourDataService, IAuthService authService) : Controller
+public class YourDataController(IYourDataService yourDataService) : Controller
 {
     private static readonly JsonSerializerOptions ExportJsonOptions = new(JsonSerializerDefaults.Web)
     {
@@ -21,7 +21,6 @@ public class YourDataController(IYourDataService yourDataService, IAuthService a
     };
 
     private readonly IYourDataService _yourDataService = yourDataService;
-    private readonly IAuthService _authService = authService;
 
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken ct)
@@ -46,33 +45,4 @@ public class YourDataController(IYourDataService yourDataService, IAuthService a
         return File(json, "application/json", $"heimevernet-your-data-{DateTime.UtcNow:yyyy-MM-dd}.json");
     }
 
-    /// <summary>
-    /// Deletes the logged-in user's account. The user must type their username to confirm.
-    /// </summary>
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteAccount(string? confirmUsername, CancellationToken ct)
-    {
-        if (!string.Equals(confirmUsername?.Trim(), User.Identity?.Name, StringComparison.Ordinal))
-        {
-            TempData["Error"] = "The username you typed did not match. Your account was not deleted.";
-            return RedirectToAction(nameof(Index));
-        }
-
-        var result = await _yourDataService.DeleteAccountAsync(User.GetUserId(), ct);
-
-        if (result == DeleteAccountResult.NotFound)
-            return NotFound();
-
-        if (result == DeleteAccountResult.BlockedByActiveMatch)
-        {
-            TempData["Error"] = "You have an active match in progress. Resolve or cancel it before deleting your account.";
-            return RedirectToAction(nameof(Index));
-        }
-
-        await _authService.SignOutAsync(HttpContext);
-
-        TempData["Success"] = "Your account and listings have been deleted.";
-        return RedirectToAction("Login", "Account");
-    }
 }

@@ -175,45 +175,6 @@
             color: #fff;
         }
 
-        .yd-danger {
-            border-color: #f1c4c4;
-        }
-
-        .yd-danger h2 {
-            color: #a12626;
-        }
-
-        .yd-confirm {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            align-items: flex-end;
-        }
-
-        .yd-confirm input {
-            flex: 1 1 220px;
-            border: 1px solid #d7e0ec;
-            border-radius: 10px;
-            padding: 9px 12px;
-            font-size: 0.92rem;
-        }
-
-        .yd-btn-danger {
-            border: 1px solid #a12626;
-            background: #a12626;
-            color: #fff;
-            border-radius: 10px;
-            font-weight: 600;
-            padding: 9px 18px;
-            font-size: 0.9rem;
-        }
-
-        .yd-btn-danger:disabled {
-            background: #e9c8c8;
-            border-color: #e9c8c8;
-            cursor: not-allowed;
-        }
-
         @@media (max-width: 576px) {
             .yd-fields {
                 grid-template-columns: 1fr;
@@ -230,7 +191,7 @@
 <div class="yd-page">
 
     <h1 class="yd-title">Your data</h1>
-    <p class="yd-intro">See what we store about you, download a copy, or delete your account.</p>
+    <p class="yd-intro">See what we store about you and download a copy.</p>
 
     <section class="yd-card" aria-labelledby="yd-account">
         <h2 id="yd-account">Account</h2>
@@ -327,34 +288,4 @@
         </div>
     </section>
 
-    <section class="yd-card yd-danger" aria-labelledby="yd-delete">
-        <h2 id="yd-delete">Delete your account</h2>
-        <p class="yd-subtitle">
-            This permanently deletes your account and all needs and resources you have registered.
-            Your activity history is kept without a link to your account. This cannot be undone.
-            If you have an active (assigned) match, resolve or cancel it first.
-        </p>
-
-        <form asp-action="DeleteAccount" method="post" class="yd-confirm" id="deleteAccountForm">
-            <div style="flex: 1 1 220px;">
-                <label for="confirmUsername" class="yd-label">Type <strong>@Model.Username</strong> to confirm</label>
-                <input type="text" id="confirmUsername" name="confirmUsername" autocomplete="off" class="w-100"
-                       data-expected="@Model.Username" />
-            </div>
-            <button type="submit" class="yd-btn-danger" id="deleteAccountButton" disabled>Delete my account</button>
-        </form>
-    </section>
-
 </div>
-
-@section Scripts {
-    <script>
-        (function () {
-            const input = document.getElementById('confirmUsername');
-            const button = document.getElementById('deleteAccountButton');
-            input.addEventListener('input', function () {
-                button.disabled = input.value.trim() !== input.dataset.expected;
-            });
-        })();
-    </script>
-}

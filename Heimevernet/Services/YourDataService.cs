@@ -7,20 +7,14 @@ using Heimevernet.ViewModels.YourData;
 namespace Heimevernet.Services;
 
 /// <summary>
-/// Builds the "Your data" overview and export, and handles self-service account deletion.
+/// Builds the "Your data" overview and the JSON export of the user's own data.
 /// </summary>
 public class YourDataService(
     IUserRepository userRepository,
-    IAuditRepository auditRepository,
-    IMatchRepository matchRepository,
-    IUnitOfWork unitOfWork,
-    IAttachmentService attachmentService) : IYourDataService
+    IAuditRepository auditRepository) : IYourDataService
 {
     private readonly IUserRepository _userRepository = userRepository;
     private readonly IAuditRepository _auditRepository = auditRepository;
-    private readonly IMatchRepository _matchRepository = matchRepository;
-    private readonly IUnitOfWork _unitOfWork = unitOfWork;
-    private readonly IAttachmentService _attachmentService = attachmentService;
 
     public async Task<YourDataViewModel?> GetOverviewAsync(
         int userId,
@@ -90,39 +84,6 @@ public class YourDataService(
             entries
                 .Select(e => new ActivityExportDto(e.OccurredAt, e.Action, e.EntityType, e.EntityId, e.Details))
                 .ToList());
-    }
-
-    public async Task<DeleteAccountResult> DeleteAccountAsync(
-        int userId,
-        CancellationToken cancellationToken = default)
-    {
-        var user = await _userRepository.GetWithOwnedDataAsync(userId, cancellationToken);
-
-        if (user is null)
-            return DeleteAccountResult.NotFound;
-
-        // Deleting now would leave the other party's need/resource stuck in Assigned.
-        if (await _matchRepository.HasAssignedMatchForUserAsync(userId, cancellationToken))
-            return DeleteAccountResult.BlockedByActiveMatch;
-
-        // Collect file keys before the rows disappear, so the stored files can be cleaned up afterwards.
-        var storageKeys = user.Resources
-            .SelectMany(r => r.Attachments)
-            .Concat(user.UploadedAttachments)
-            .Select(a => a.StorageKey)
-            .Distinct()
-            .ToList();
-
-        await _unitOfWork.ExecuteInTransactionAsync(async ct =>
-        {
-            _userRepository.RemoveAccount(user);
-            await _unitOfWork.CommitAsync(ct);
-        }, cancellationToken);
-
-        // Only delete files once the database commit succeeded (same order as ResourceService.DeleteAsync).
-        await _attachmentService.DeleteStorageObjectsAsync(storageKeys);
-
-        return DeleteAccountResult.Deleted;
     }
 
     /// <summary>

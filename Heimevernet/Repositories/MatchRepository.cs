@@ -63,16 +63,6 @@ public class MatchRepository : IMatchRepository
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<bool> HasAssignedMatchForUserAsync(int userId, CancellationToken cancellationToken = default)
-    {
-        return await _context.Matches
-            .AnyAsync(m => m.Status == MatchStatus.Assigned
-                        && (m.Need.UserId == userId
-                            || m.Resource.UserId == userId
-                            || m.MatchedByUserId == userId),
-                cancellationToken);
-    }
-
     /// <summary>
     /// Returns a tracked match including its Need and Resource, or null.
     /// </summary>
