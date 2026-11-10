@@ -269,6 +269,38 @@ public class NeedController(
         return ToApiResult(result, message);
     }
 
+    /// <summary>
+    /// Marks an Assigned Need as Resolved from the Need Details page (#97).
+    /// Uses the existing NeedService.ResolveAsync, which validates ownership and status.
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "PublicActor")]
+    public async Task<IActionResult> Resolve(int id, CancellationToken cancellationToken)
+    {
+        var (result, message) = await _needService.ResolveAsync(id, User.GetUserId(), cancellationToken);
+
+        switch (result)
+        {
+            case OwnedRecordMutationResult.Success:
+                TempData["Success"] = message;
+                return RedirectToAction(nameof(Details), new { id });
+
+            case OwnedRecordMutationResult.NotFound:
+                return NotFound();
+
+            case OwnedRecordMutationResult.Forbidden:
+                return Forbid();
+
+            case OwnedRecordMutationResult.Conflict:
+                TempData["Error"] = message;
+                return RedirectToAction(nameof(Details), new { id });
+
+            default:
+                return Problem(detail: "Unexpected resolve result.");
+        }
+    }
+
     [HttpPost("/api/needs/{id:int}/resolve")]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = "PublicActor")]

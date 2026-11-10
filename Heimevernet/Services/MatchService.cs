@@ -66,7 +66,11 @@ public class MatchService : IMatchService
     public async Task<bool> CanProposeAsync(int needId, int userId, CancellationToken cancellationToken = default)
     {
         var need = await _needRepository.GetByIdAsync(needId, cancellationToken);
-        return need is not null && need.UserId == userId;
+
+        // Same status rule as ProposeAsync, so the button is hidden when proposing would fail.
+        return need is not null
+            && need.UserId == userId
+            && need.Status is NeedStatus.New or NeedStatus.UnderReview;
     }
 
     public async Task<(ProposeMatchResult Result, int? MatchId, int? MaxAllowedQuantity)> ProposeAsync(
