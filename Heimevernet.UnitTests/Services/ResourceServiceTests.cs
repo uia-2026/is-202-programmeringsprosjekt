@@ -1,6 +1,7 @@
 using Heimevernet.Mappers;
 using Heimevernet.Mappers.Interfaces;
 using Heimevernet.Exceptions;
+using Heimevernet.Infrastructure.Outbox;
 using Heimevernet.Models;
 using Heimevernet.Repositories.Interfaces;
 using Heimevernet.Services;
@@ -23,6 +24,7 @@ public class ResourceServiceTests
     private readonly Mock<IMapMarkerMapper> _mapMarkerMapperMock;
     private readonly Mock<INearbyResourceMapper> _mapNearbyResourceMapperMock;
     private readonly Mock<IUnitOfWork> _uowMock;
+    private readonly Mock<IOutbox> _outboxMock;
     private readonly Mock<IAuditLogger> _auditLoggerMock;
     private readonly ResourceService _sut;
 
@@ -37,6 +39,7 @@ public class ResourceServiceTests
         _mapMarkerMapperMock = new Mock<IMapMarkerMapper>();
         _mapNearbyResourceMapperMock = new Mock<INearbyResourceMapper>();
         _uowMock = new Mock<IUnitOfWork>();
+        _outboxMock = new Mock<IOutbox>();
         _auditLoggerMock = new Mock<IAuditLogger>();
         _uowMock
             .Setup(u => u.ExecuteInTransactionAsync(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()))
@@ -44,7 +47,7 @@ public class ResourceServiceTests
             {
                 await operation(ct);
             });
-        _sut = new ResourceService(_repoMock.Object, _categoryRepoMock.Object, _attachmentServiceMock.Object, _mapperMock.Object, _mapMarkerMapperMock.Object, _mapNearbyResourceMapperMock.Object, _uowMock.Object, _auditLoggerMock.Object);
+        _sut = new ResourceService(_repoMock.Object, _categoryRepoMock.Object, _attachmentServiceMock.Object, _mapperMock.Object, _mapMarkerMapperMock.Object, _mapNearbyResourceMapperMock.Object, _outboxMock.Object, _uowMock.Object, _auditLoggerMock.Object);
     }
 
     /// <summary>
@@ -68,6 +71,24 @@ public class ResourceServiceTests
 
         _repoMock.Verify(r => r.AddAsync(mapped, It.IsAny<CancellationToken>()), Times.Once);
         _uowMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
+
+    /// <summary>
+    /// Ensures every new resource queues one ResourceRegistered event for the notification emails.
+    /// </summary>
+    [Fact]
+    public async Task CreateAsync_Queues_Resource_Registered_Event()
+    {
+        var model = new ResourceCreateViewModel { CategoryId = 1, Title = "Shelter", Region = "Agder", ContactPoint = "contact", AvailableFrom = new DateTime(2026, 05, 01) };
+        _mapperMock.Setup(m => m.ToEntity(model, 42)).Returns(new Resource { Id = 9, Title = "Shelter" });
+
+        await _sut.CreateAsync(model, 42, CancellationToken.None);
+
+        _outboxMock.Verify(o => o.Enqueue(
+            OutboxTypes.ResourceRegistered,
+            It.IsAny<object>(),
+            "resource-registered:9",
+            null), Times.Once);
     }
 
     /// <summary>
