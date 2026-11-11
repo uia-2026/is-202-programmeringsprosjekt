@@ -1,11 +1,11 @@
 # Testing
 
-The project has two automated test projects with 201 tests in total, and all of them pass.
+The project has two automated test projects with 279 tests in total, and all of them pass.
 
 | Project                        | Tests | What it tests                                                    | Needs                                |
 | ------------------------------ | ----- | ---------------------------------------------------------------- | ------------------------------------ |
-| `Heimevernet.UnitTests`        | 87    | Services, mappers and the exporter, in isolation                 | Nothing                              |
-| `Heimevernet.IntegrationTests` | 114   | Full HTTP requests through controllers, services and a real database | Docker running and the storage secrets |
+| `Heimevernet.UnitTests`        | 102   | Services, mappers and the exporter, in isolation                 | Nothing                              |
+| `Heimevernet.IntegrationTests` | 177   | Full HTTP requests through controllers, services and a real database | Docker running and the storage secrets |
 
 ## Unit tests
 
@@ -13,14 +13,15 @@ Unit tests check business rules in isolation. They use **xUnit** and **Moq**: re
 
 | Test class                               | Checks                                                                                                                                                                                                                                     |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `NeedServiceTests`, `ResourceServiceTests` | Create saves and commits, and a repository failure does not commit. Get returns mapped view models, including empty and not-found cases. Update and delete check the owner, reject protected-field changes while a match is pending, return a conflict on a concurrency conflict, and never change the owner, status or creation time. |
+| `NeedServiceTests`, `ResourceServiceTests` | Create saves, writes an audit entry and commits, and a repository or audit failure does not commit. Creating a critical need or any resource queues a notification event in the outbox, while low and medium needs queue nothing. Get returns mapped view models, including empty and not-found cases. Update and delete check the owner, reject protected-field changes while a match is pending, return a conflict on a concurrency conflict, and never change the owner, status or creation time. Resolving a need resolves its assigned matches, leaves the others alone and is refused unless the need is assigned. |
 | `AuthServiceTests`                       | Registration hashes the password, trims input and rejects an existing email. Login handles an unknown email, a wrong password, and accounts with and without two-factor. Two-factor setup returns a QR code and only enables 2FA after a valid code. Sign-in issues the expected claims. |
 | `ResourceExporterTests`                  | CSV starts with a UTF-8 BOM, follows the header order, formats dates, quotes special characters and neutralises formula prefixes (`=`, `+`, `-`, `@`, tab and carriage return) to prevent CSV injection. JSON exports only the agreed fields, uses ISO dates and keeps Norwegian letters readable. |
+| `YourDataServiceTests`                  | The overview returns `null` for an unknown user, maps the account fields and only reads the user's own activity, newest first. Activity on a listing is labelled with its region, or its id if the listing is gone. The export includes the account, listings and activity. |
 | `NeedMapperTests`, `ResourceMapperTests` | Mapping from entity to view model and back, trimming, nullable fields and empty collections.                                                                                                                                                       |
 
 ## Integration tests
 
-Integration tests send real HTTP requests to the application and check the response and the resulting database state. They show that controllers, authorisation, validation, services, EF Core and the database work together.
+Integration tests send real HTTP requests to the application and check the response and the resulting database state. They show that controllers, authorisation, validation, services, EF Core and the database work together. The outbox and recipient tests call the services and repositories directly instead, because they test database behaviour such as concurrent claims and SQL queries that a mock could not reproduce.
 
 ### How they work
 
@@ -30,27 +31,32 @@ Integration tests send real HTTP requests to the application and check the respo
 - **`AuthenticatedClientHelper`** logs a test user in and returns a client with the login cookie.
 - **`AntiforgeryHelper`** reads the anti-forgery token from a form and posts it back, just like a browser. Form posts therefore go through the same CSRF protection as in production.
 - File storage uses the separate test bucket `test_bucket_is202`, so tests never touch development or production files.
+- **`NotificationsWebApplicationFactory`** extends the normal factory for the notification tests. It switches email on, swaps the real sender for **`FakeEmailSender`**, which records emails instead of sending them, and removes the background `OutboxWorker`. Tests call `DrainOutboxAsync` to process the outbox the way the worker does, so they decide when it runs instead of racing a timer.
+- **`NotificationTestData`** places users, needs and resources in a fresh area for each test. Areas are over 400 km apart, far outside the 50 km search radius, so rows from other tests never become recipients.
 
 ### What they cover
 
 | Area          | Test classes                                                                                                     | Checks                                                                                                                                                                                                                                                                                           |
 | ------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Account       | `LoginTests`, `LogoutTests`, `RegistrationTests`, `TwoFactorAuthenticationTests`, `TwoFactorSetupTests`, `AccountPageTests` | Valid and invalid login with a generic error message, logout only through POST, registration without duplicates, the full two-factor login and setup flow, and protected pages redirecting anonymous users to login.                                                                              |
-| Needs         | `CreateNeedTests`, `EditNeedTests`, `DeleteNeedTests`                                                            | Creating with validation (title, category, quantity, latitude). Only the owner may edit or delete. Resource providers and anonymous users are refused. A need with a pending or assigned match cannot be deleted.                                                                                  |
+| Your data     | `YourDataPageTests`                                                                                              | The page and the export redirect anonymous users to login. Both roles see their own account details, and the activity list only shows the user's own entries. The JSON export contains the account, needs, resources and activity, but never the password hash or the two-factor secret.          |
+| Privacy       | `PrivacyPageTests`                                                                                               | The privacy policy opens for anonymous visitors without a redirect to login.                                                                                                                                                                                                                       |
+| Needs         | `CreateNeedTests`, `EditNeedTests`, `DeleteNeedTests`, `ResolveNeedTests`                                        | Creating with validation (title, category, quantity, latitude). Only the owner may edit, delete or resolve. Resource providers and anonymous users are refused. A need with a pending or assigned match cannot be deleted. Only an assigned need can be resolved: its assigned matches become resolved, rejected and cancelled matches are left alone, and both changes are audited. New, under-review and already resolved needs return `409`. |
 | Resources     | `CreateResourceTests`, `EditResourceTests`, `DeleteResourceTests`                                                | Creating with validation, including `AvailableTo` before `AvailableFrom`. Only the owner may edit or delete, and a resource with a match cannot be deleted.                                                                                                                                         |
 | Export        | `ExportResourceTests`                                                                                            | CSV and JSON export of available resources, with and without a region filter. Only the allowed role can export, and the print-by-region page keeps the selected region in its export links.                                                                                                      |
 | Matching      | `MatchProposalTests`, `MatchAcceptanceTests`, `MatchRejectionTests`                                              | Proposing (no duplicates, valid quantity, only the need owner, not to busy resources). Accepting and rejecting (only the resource owner, only proposals under review, quantity limits on both sides). When a need or resource becomes fully allocated, other pending proposals are cancelled. After a rejection, the need's status falls back correctly. |
 | Map           | `MapControllerTests`                                                                                             | Public actors see needs and available resources, while providers see needs and their own resources. Resolved needs and markers outside the bounds are excluded, invalid bounds return `400`, and the 500-marker cap sets `Truncated`.                                                              |
+| Audit log     | `AuditLoggingTests`                                                                                              | Creating a need writes an audit entry with the new entity's id and no email in the details. A failed login with an unknown email is logged without revealing the address. Only resource providers can open the audit history. The audit entry is rolled back with the business transaction, and a failing audit write rolls back the need. Deleting a user keeps their history and sets the actor to `null`. |
+| Notifications | `OutboxEnqueueTests`, `OutboxClaimTests`, `NotificationRecipientQueryTests`, `NotificationDeliveryTests`         | **Outbox:** a critical need or a new resource writes one event in the same transaction, low and medium needs write nothing, a duplicate dedup key fails the commit, and a failing outbox write saves neither the need nor the event. **Claiming:** with real concurrent connections, only one worker claims a message, parallel workers claim each message exactly once, a lease must expire before a reclaim, done and not-yet-due messages are skipped, and a failing message is retried with delays and then marked failed. **Recipients:** run against MariaDB and return one row per user with their nearest match, limited to the nearest providers. Owners, opted-out users, listings outside the radius, other categories, busy, expired, resolved, assigned and out-of-date listings are excluded. **Delivery:** every outbox type has exactly one handler. A critical need emails a nearby provider once with a link and no contact details, and a new resource emails the owner of a nearby open need. Handling an event twice queues each email once, opting out after queueing skips the email, and the daily limit of five emails per user is respected. |
 
 ## What is not covered yet
 
 | Area                                      | Status                                                                                                                    |
 | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `MatchService` unit tests                 | `MatchServiceTests` is an empty placeholder. Matching is covered end to end by 22 integration tests.                      |
+| `MatchService` unit tests                 | `MatchServiceTests` is an empty placeholder. Matching is covered end to end by 28 integration tests.                      |
 | `GeoMath` (distance and bounding box)     | No tests. It is pure logic and a good candidate for unit tests.                                                           |
 | Search                                    | `SearchController` and `SearchRepository` have no tests.                                                                  |
 | Attachments                               | Upload, validation and storage are only mocked inside other tests, never tested directly.                                 |
-| Audit logging                             | No tests check that actions write audit entries.                                                                          |
 | Nearby resources and suggestions on a need | No tests.                                                                                                                 |
 | Razor views and the map JavaScript        | No automated browser tests. These are checked by hand.                                                                    |
 
@@ -66,7 +72,7 @@ Or run one project at a time:
 
 ```bash
 dotnet test Heimevernet.UnitTests          # no requirements, under a second
-dotnet test Heimevernet.IntegrationTests   # needs Docker and the storage secrets, about 20 seconds
+dotnet test Heimevernet.IntegrationTests   # needs Docker and the storage secrets, about 30 seconds
 ```
 
 The integration tests need **Docker Desktop running**, so Testcontainers can start MariaDB, and the **storage secrets** from [Getting started](./getting-started.md#_2-set-the-storage-secrets), because the application validates its storage settings at start-up. The first run also downloads the MariaDB image.
