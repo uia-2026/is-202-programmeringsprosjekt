@@ -1,30 +1,36 @@
+using Heimevernet.Infrastructure.Email;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.Extensions.Options;
 using MimeKit;
 
-namespace Heimevernet.Infrastructure.Email;
-
-public sealed class SmtpEmailSender : IEmailSender
+public sealed class SmtpEmailSender(IOptions<EmailOptions> options) : IEmailSender
 {
-    private readonly EmailOptions _options;
+    private readonly EmailOptions _options = options.Value;
 
-    public SmtpEmailSender(IOptions<EmailOptions> options) => _options = options.Value;
-
-    public async Task SendAsync(string toAddress, string toName, string subject, string textBody, CancellationToken ct = default)
+    public async Task SendAsync(string toAddress, string toName, string subject, string body, CancellationToken ct)
     {
         var message = new MimeMessage();
-        message.From.Add(new MailboxAddress(_options.FromName, _options.FromAddress));
+        message.From.Add(new MailboxAddress("Heimevernet", _options.FromAddress));
         message.To.Add(new MailboxAddress(toName, toAddress));
-        message.Subject = subject.ReplaceLineEndings(" ");        // user text can end up here: no line breaks
-        message.Body = new TextPart("plain") { Text = textBody }; // plain text, so user input is never rendered as HTML
+        message.Subject = subject;
+        message.Body = new TextPart("plain") { Text = body };
 
-        using var client = new SmtpClient { Timeout = 15_000 };   // a new client per message, with a 15 second timeout
-        await client.ConnectAsync(_options.Host, _options.Port,
-            _options.UseStartTls ? SecureSocketOptions.StartTls : SecureSocketOptions.None, ct);
+        using var client = new SmtpClient();
+
+        await client.ConnectAsync(
+            _options.Host,
+            _options.Port,
+            _options.UseStartTls ? SecureSocketOptions.StartTls : SecureSocketOptions.None,
+            ct);
 
         if (!string.IsNullOrEmpty(_options.Username))
         {
+            if (string.IsNullOrEmpty(_options.Password))
+            {
+                throw new InvalidOperationException("Email:Username is set but Email:Password is missing.");
+            }
+
             await client.AuthenticateAsync(_options.Username, _options.Password, ct);
         }
 
