@@ -5,9 +5,14 @@ on:
     branches:
       - main
 
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false # let the running deploy finish, then run the next
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Deploy to Azure VM
@@ -16,7 +21,9 @@ jobs:
           host: 158.158.122.123
           username: danylo-bodnar
           key: ${{ secrets.VM_SSH_PRIVATE_KEY }}
+          script_stop: true
           script: |
+            set -e
             cd ~/heimevernet
-            git pull origin main
+            git pull --ff-only origin main
             docker compose up -d --build
