@@ -39,6 +39,7 @@ export default defineConfig({
           { text: "Map", link: "/features/map" },
           { text: "Attachments", link: "/features/attachments" },
           { text: "Audit logging", link: "/features/audit-log" },
+          { text: "Email notifications", link: "/features/notifications" },
         ],
       },
       {
