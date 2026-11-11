@@ -46,4 +46,19 @@ public class UserRepository : IUserRepository
     {
         await _context.Users.AddAsync(user, cancellationToken);
     }
+
+    public async Task<bool> SetEmailNotificationsAsync(
+    int userId,
+    bool enabled,
+    CancellationToken cancellationToken = default)
+    {
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+
+        if (user is null)
+            return false;
+
+        user.EmailNotifications = enabled;
+        return true;
+    }
 }

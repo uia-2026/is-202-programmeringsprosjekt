@@ -137,6 +137,21 @@ public class AccountController(IAuthService authService, IUserService userServic
         return RedirectToAction("Index", "Home");
     }
 
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateNotifications(bool emailNotifications, CancellationToken ct)
+    {
+        var found = await _userService.SetEmailNotificationsAsync(User.GetUserId(), emailNotifications, ct);
+        if (!found) return NotFound();
+
+        TempData["Success"] = emailNotifications
+            ? "Email notifications are on."
+            : "Email notifications are off.";
+
+        return RedirectToAction(nameof(Index));
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()

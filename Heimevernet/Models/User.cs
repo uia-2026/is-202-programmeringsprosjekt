@@ -22,6 +22,8 @@ public class User
 
     public string? TwoFactorSecret { get; set; }
 
+    public bool EmailNotifications { get; set; } = true;
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<Need> Needs { get; set; } = [];

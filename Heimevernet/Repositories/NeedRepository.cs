@@ -6,6 +6,7 @@ using Heimevernet.Repositories.Interfaces;
 using Heimevernet.ViewModels.Map;
 using Microsoft.EntityFrameworkCore;
 using Heimevernet.DTOs.Needs;
+using Heimevernet.DTOs.Notifications;
 
 namespace Heimevernet.Repositories;
 
@@ -147,6 +148,54 @@ public class NeedRepository : INeedRepository
         .Distinct()
         .OrderBy(r => r)
         .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<NeedNotificationRecipientDto>> GetNotificationRecipientsAsync(
+    int categoryId,
+    double latitude,
+    double longitude,
+    DateTime availableFrom,
+    DateTime? availableTo,
+    DateTime now,
+    int excludeUserId,
+    double radiusKm,
+    int maxRecipients,
+    CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(radiusKm);
+
+        if (maxRecipients <= 0)
+            return [];
+
+        var box = GeoMath.BoundingBox(latitude, longitude, radiusKm);
+
+        // Same suitability rules as the candidate search: open, same category, and the resource
+        // is available no later than the deadline. Only critical needs trigger mail.
+        var candidates = await _context.Needs
+            .AsNoTracking()
+            .Where(n =>
+                n.CategoryId == categoryId &&
+                (n.Status == NeedStatus.New || n.Status == NeedStatus.UnderReview) &&
+                n.UserId != excludeUserId &&
+                n.User.EmailNotifications &&
+                (n.Deadline == null || (n.Deadline >= now && n.Deadline >= availableFrom)) &&
+                n.Latitude >= box.MinLat && n.Latitude <= box.MaxLat &&
+                n.Longitude >= box.MinLng && n.Longitude <= box.MaxLng)
+            .Select(n => new { n.Id, n.UserId, n.Title, n.Latitude, n.Longitude })
+            .ToListAsync(cancellationToken);
+
+        return candidates
+            .Select(n => new NeedNotificationRecipientDto(
+                n.UserId,
+                n.Id,
+                n.Title,
+                GeoMath.DistanceKm(latitude, longitude, n.Latitude, n.Longitude)))
+            .Where(r => r.DistanceKm <= radiusKm)
+            .GroupBy(r => r.UserId)                                  // one email per person
+            .Select(g => g.OrderBy(r => r.DistanceKm).First())       // their nearest need
+            .OrderBy(r => r.DistanceKm)
+            .Take(maxRecipients)
+            .ToList();
+    }
 
 }
 

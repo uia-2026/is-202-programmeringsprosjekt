@@ -2,6 +2,7 @@ using Heimevernet.DTOs.Map;
 using Heimevernet.Infrastructure.Geo;
 using Heimevernet.Models;
 using Heimevernet.DTOs.Needs;
+using Heimevernet.DTOs.Notifications;
 
 namespace Heimevernet.Repositories.Interfaces;
 
@@ -21,4 +22,15 @@ public interface INeedRepository
     void MarkForConcurrencyCheck(Need need);
     Task<IReadOnlyList<Need>> GetFilteredAsync(NeedFilterDto filter, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<string>> GetDistinctRegionsAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<NeedNotificationRecipientDto>> GetNotificationRecipientsAsync(
+    int categoryId,
+    double latitude,
+    double longitude,
+    DateTime availableFrom,
+    DateTime? availableTo,
+    DateTime now,
+    int excludeUserId,
+    double radiusKm,
+    int maxRecipients,
+    CancellationToken cancellationToken = default);
 }

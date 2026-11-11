@@ -14,4 +14,7 @@ public interface IUserRepository
     /// (with categories), for the "Your data" overview and export.
     /// </summary>
     Task<User?> GetWithOwnedDataAsync(int id, CancellationToken ct = default);
+
+    /// <summary>Sets the email notification flag. Returns false when the user does not exist.</summary>
+    Task<bool> SetEmailNotificationsAsync(int userId, bool enabled, CancellationToken cancellationToken = default);
 }

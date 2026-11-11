@@ -1,0 +1,2 @@
+/// <summary>One public actor to notify about a new resource, with their nearest suitable need.</summary>
+public sealed record NeedNotificationRecipientDto(int UserId, int NeedId, string NeedTitle, double DistanceKm);

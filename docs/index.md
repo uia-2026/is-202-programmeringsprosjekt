@@ -18,6 +18,7 @@ The project is built for IS-202 with ASP.NET Core MVC (.NET 10), MariaDB, Leafle
 | See how matching works               | [Matching](./features/matching.md)             |
 | See how the map works                | [Map](./features/map.md)                       |
 | See how photo uploads work           | [Attachments](./features/attachments.md)       |
+| See how email notifications work     | [Email notifications](./features/notifications.md) |
 | Deploy the application               | [Deployment](./deployment.md)                  |
 | See what was tested and the results  | [Testing](./testing.md)                        |
 | See how we used AI                   | [AI usage](./ai-usage.md)                      |

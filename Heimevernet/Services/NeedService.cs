@@ -9,6 +9,8 @@ using Heimevernet.Services.Rules;
 using Heimevernet.ViewModels.Map;
 using Heimevernet.ViewModels.Need;
 using Heimevernet.DTOs.Needs;
+using Heimevernet.Infrastructure.Outbox;
+using Heimevernet.Infrastructure.Notifications;
 
 namespace Heimevernet.Services;
 
@@ -22,6 +24,7 @@ public class NeedService(
     INeedMapper needMapper,
     IMapMarkerMapper mapMarkerMapper,
     IUnitOfWork unitOfWork,
+    IOutbox outBox,
     IAuditLogger auditLogger) : INeedService
 {
     private readonly INeedRepository _needRepository = repository;
@@ -29,6 +32,7 @@ public class NeedService(
     private readonly ICategoryRepository _categoryRepository = categoryRepository;
     private readonly IMapMarkerMapper _mapMarkerMapper = mapMarkerMapper;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
+    private readonly IOutbox _outbox = outBox;
     private readonly IAuditLogger _auditLogger = auditLogger;
 
     /// <summary>
@@ -48,7 +52,17 @@ public class NeedService(
         {
             await _needRepository.AddAsync(need, ct);
             await _unitOfWork.CommitAsync(ct);
+
             _auditLogger.Record(AuditAction.NeedCreated, "Need", need.Id);
+
+            if (need.Priority == NeedPriority.Critical)
+            {
+                _outbox.Enqueue(
+                OutboxTypes.CriticalNeedRegistered,
+                new CriticalNeedRegisteredPayload(need.Id),
+                dedupKey: $"critical-need-registered:{need.Id}");
+            }
+
             await _unitOfWork.CommitAsync(ct);
         }, cancellationToken);
 

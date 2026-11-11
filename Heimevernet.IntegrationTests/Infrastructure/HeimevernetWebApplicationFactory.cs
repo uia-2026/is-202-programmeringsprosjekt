@@ -16,8 +16,9 @@ namespace Heimevernet.IntegrationTests.Infrastructure;
 /// <summary>
 /// Custom ASP.NET Core <see cref="WebApplicationFactory{TEntryPoint}"/> that spins up an isolated 
 /// MariaDB Testcontainer and configures test application services and environment settings.
+/// Not sealed, so feature-specific factories (see <see cref="NotificationsWebApplicationFactory"/>) can add settings.
 /// </summary>
-public sealed class HeimevernetWebApplicationFactory
+public class HeimevernetWebApplicationFactory
     : WebApplicationFactory<WebApp::Program>, IAsyncLifetime
 {
     // Configure an isolated MariaDB docker container for integration testing.

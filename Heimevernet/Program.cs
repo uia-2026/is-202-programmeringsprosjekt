@@ -16,6 +16,7 @@ builder.Services
     .AddAppAuthentication()
     .AddPersistence()
     .AddFileStorage()
+    .AddEmail()
     .AddApplicationServices();
 
 builder.Services.AddControllersWithViews();

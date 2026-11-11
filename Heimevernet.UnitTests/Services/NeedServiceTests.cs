@@ -1,6 +1,7 @@
 using Heimevernet.Mappers;
 using Heimevernet.Mappers.Interfaces;
 using Heimevernet.Exceptions;
+using Heimevernet.Infrastructure.Outbox;
 using Heimevernet.Models;
 using Heimevernet.Repositories.Interfaces;
 using Heimevernet.Services;
@@ -21,6 +22,7 @@ public class NeedServiceTests
     private readonly Mock<INeedMapper> _mapperMock;
     private readonly Mock<IMapMarkerMapper> _mapMarkerMapperMock;
     private readonly Mock<IUnitOfWork> _uowMock;
+    private readonly Mock<IOutbox> _outboxMock;
     private readonly Mock<IAuditLogger> _auditLoggerMock;
     private readonly NeedService _sut;
 
@@ -33,6 +35,7 @@ public class NeedServiceTests
         _mapperMock = new Mock<INeedMapper>();
         _mapMarkerMapperMock = new Mock<IMapMarkerMapper>();
         _uowMock = new Mock<IUnitOfWork>();
+        _outboxMock = new Mock<IOutbox>();
         _auditLoggerMock = new Mock<IAuditLogger>();
         _uowMock
             .Setup(u => u.ExecuteInTransactionAsync(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()))
@@ -40,7 +43,7 @@ public class NeedServiceTests
             {
                 await operation(ct);
             });
-        _sut = new NeedService(_needRepoMock.Object, _categoryRepoMock.Object, _mapperMock.Object, _mapMarkerMapperMock.Object, _uowMock.Object, _auditLoggerMock.Object);
+        _sut = new NeedService(_needRepoMock.Object, _categoryRepoMock.Object, _mapperMock.Object, _mapMarkerMapperMock.Object, _uowMock.Object, _outboxMock.Object, _auditLoggerMock.Object);
     }
 
     /// <summary>
@@ -64,6 +67,40 @@ public class NeedServiceTests
 
         _needRepoMock.Verify(r => r.AddAsync(mappedNeed, It.IsAny<CancellationToken>()), Times.Once);
         _uowMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
+
+    /// <summary>
+    /// Ensures a critical need queues one CriticalNeedRegistered event for the notification emails.
+    /// </summary>
+    [Fact]
+    public async Task CreateAsync_Critical_Need_Queues_Notification_Event()
+    {
+        var model = new NeedCreateViewModel { CategoryId = 1, Title = "Water", Region = "Agder", ContactPoint = "contact", Priority = NeedPriority.Critical };
+        _mapperMock.Setup(m => m.ToEntity(model, 42)).Returns(new Need { Id = 7, Title = "Water", Priority = NeedPriority.Critical });
+
+        await _sut.CreateAsync(model, 42);
+
+        _outboxMock.Verify(o => o.Enqueue(
+            OutboxTypes.CriticalNeedRegistered,
+            It.IsAny<object>(),
+            "critical-need-registered:7",
+            null), Times.Once);
+    }
+
+    /// <summary>
+    /// Ensures needs that are not critical do not queue any notification.
+    /// </summary>
+    [Theory]
+    [InlineData(NeedPriority.Low)]
+    [InlineData(NeedPriority.Medium)]
+    public async Task CreateAsync_Non_Critical_Need_Does_Not_Queue_Notification(NeedPriority priority)
+    {
+        var model = new NeedCreateViewModel { CategoryId = 1, Title = "Water", Region = "Agder", ContactPoint = "contact", Priority = priority };
+        _mapperMock.Setup(m => m.ToEntity(model, 42)).Returns(new Need { Id = 7, Title = "Water", Priority = priority });
+
+        await _sut.CreateAsync(model, 42);
+
+        _outboxMock.Verify(o => o.Enqueue(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<string>(), It.IsAny<int?>()), Times.Never);
     }
 
     /// <summary>
