@@ -188,7 +188,7 @@
 
 .map-action-toggle {
     position: absolute;
-    top: 300px;
+    bottom: 16px;
     left: 176px;
     z-index: 501;
     display: flex;
@@ -209,7 +209,7 @@
 
 .map-action-panel {
     position: absolute;
-    top: 300px;
+    bottom: 16px;
     left: 176px;
     z-index: 500;
     width: 260px;
@@ -696,6 +696,18 @@
         font-size: 11px;
     }
 
+    .map-action-toggle {
+        bottom: 16px;
+        left: 8px;
+        width: 120px;
+    }
+
+    .map-action-panel {
+        bottom: 16px;
+        left: 8px;
+        width: min(260px, calc(100% - 16px));
+    }
+
     .map-filter-box {
         top: 64px;
         right: 8px;
@@ -707,12 +719,6 @@
         bottom: 8px;
         left: 8px;
         max-width: calc(100% - 16px);
-    }
-
-    .map-action-panel {
-        top: 255px;
-        left: 8px;
-        width: min(260px, calc(100% - 16px));
     }
 }
 

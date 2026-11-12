@@ -270,6 +270,24 @@
         (function () {
             var legendBox = document.getElementById('mapLegendBox');
             var legendToggle = document.getElementById('mapLegendToggle');
+            var filterBox = document.getElementById('mapFilterBox');
+            var filterToggle = document.getElementById('mapFilterToggle');
+
+            if (window.matchMedia('(max-width: 600px)').matches) {
+                if (legendBox) {
+                    legendBox.classList.add('collapsed');
+                }
+                if (filterBox) {
+                    filterBox.classList.add('collapsed');
+                }
+                if (legendToggle) {
+                    legendToggle.setAttribute('aria-expanded', 'false');
+                }
+                if (filterToggle) {
+                    filterToggle.setAttribute('aria-expanded', 'false');
+                }
+            }
+
             if (!legendBox || !legendToggle) return;
 
             legendToggle.addEventListener('click', function () {
