@@ -1,5 +1,6 @@
 using Heimevernet.Extensions;
 using Heimevernet.Models;
+using Heimevernet.Services;
 using Heimevernet.Services.Interfaces;
 using Heimevernet.ViewModels.Account;
 using Microsoft.AspNetCore.Authorization;
@@ -156,7 +157,7 @@ public class AccountController(IAuthService authService, IUserService userServic
     [Authorize]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ChangePassword(ChangePasswordViewModel model, CancellationToken ct)
+    public async Task<IActionResult> ChangePassword([Bind(Prefix = "ChangePassword")] ChangePasswordViewModel model, CancellationToken ct)
     {
         if (!ModelState.IsValid)
         {
@@ -165,31 +166,41 @@ public class AccountController(IAuthService authService, IUserService userServic
         }
 
         var userId = User.GetUserId();
-        var changed = await _authService.ChangePasswordAsync(userId, model, ct);
+        var result = await _authService.ChangePasswordAsync(userId, model, ct);
 
-        if (!changed)
+        if (!result.Success)
         {
-            ModelState.AddModelError(string.Empty, "The current password is incorrect.");
+            ModelState.AddModelError(string.Empty, result.Error ?? "Unable to change password.");
             var account = await _userService.GetAccountAsync(userId, ct);
             return account is null ? NotFound() : View(nameof(Index), account);
         }
 
-        TempData["Success"] = "Password updated successfully.";
+        await _authService.SignInAsync(result.User!, HttpContext);
+
+        TempData["Success"] = "Success";
         return RedirectToAction(nameof(Index));
     }
 
     [Authorize]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> UpdateProfile(EditProfileViewModel model, CancellationToken ct)
+    public async Task<IActionResult> UpdateProfile([Bind(Prefix = "EditProfile")]EditProfileViewModel model, CancellationToken ct)
     {
         if (!ModelState.IsValid)
         {
             var account = await _userService.GetAccountAsync(User.GetUserId(), ct);
             return account is null ? NotFound() : View(nameof(Index), account);
         }
-        await _authService.UpdateProfileAsync(User.GetUserId(), model, ct);
-        TempData["Success"] = "Profile updated successfully.";
+        var result = await _authService.UpdateProfileAsync(User.GetUserId(), model, ct);
+        if (!result.Success)
+        {
+            ModelState.AddModelError(string.Empty, "Failed to update profile.");
+            var account = await _userService.GetAccountAsync(User.GetUserId(), ct);
+            return account is null ? NotFound() : View(nameof(Index), account);
+        }
+        await _authService.SignInAsync(result.User!, HttpContext);
+
+        TempData["Success"] = "Success";
         return RedirectToAction(nameof(Index));
     }
 

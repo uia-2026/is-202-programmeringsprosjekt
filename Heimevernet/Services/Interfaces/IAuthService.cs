@@ -23,7 +23,7 @@ public interface IAuthService
     Task<TwoFactorSetupResult> CompleteTwoFactorSetupAsync(int userId, string secret, string code, CancellationToken ct);
 
     /// <summary>Verifies the user's current password, updates it to the new one, rotates the security stamp, and records the change.</summary>
-    Task<bool> ChangePasswordAsync(int userId, ChangePasswordViewModel model, CancellationToken ct);
+    Task<ChangePasswordResult> ChangePasswordAsync(int userId, ChangePasswordViewModel model, CancellationToken ct);
 
     /// <summary>Updates a user's editable profile fields after trimming whitespace and rejecting duplicate email addresses.</summary>
     Task<AccountResult> UpdateProfileAsync(int userId, EditProfileViewModel model, CancellationToken ct);
@@ -52,6 +52,12 @@ public record TwoFactorVerifyResult(
 public record TwoFactorSetupResult(
     bool Success,
     string? Error = null);
+
+public record ChangePasswordResult(
+    bool Success,
+    string? Error = null,
+    User? User = null);
+
 public record AccountResult(
     bool Success,
     string? Error = null,

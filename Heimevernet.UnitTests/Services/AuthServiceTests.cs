@@ -299,7 +299,7 @@ public sealed class AuthServiceTests
     #region ChangePasswordAsync Tests
 
     [Fact]
-    public async Task ChangePasswordAsync_InvalidCurrentPassword_ReturnsFalseWithoutChangingUserOrCommitting()
+    public async Task ChangePasswordAsync_InvalidCurrentPassword_ReturnsFailureWithoutChangingUserOrCommitting()
     {
         // Arrange
         var user = new User
@@ -328,7 +328,8 @@ public sealed class AuthServiceTests
         var result = await _sut.ChangePasswordAsync(user.Id, model, CancellationToken.None);
 
         // Assert
-        Assert.False(result);
+        Assert.False(result.Success);
+        Assert.Equal("The current password is incorrect.", result.Error);
         Assert.Equal("old_hash", user.PasswordHash);
         Assert.Equal("old_stamp", user.SecurityStamp);
         _unitOfWorkMock.Verify(u => u.CommitAsync(), Times.Never);
@@ -369,7 +370,7 @@ public sealed class AuthServiceTests
         var result = await _sut.ChangePasswordAsync(user.Id, model, CancellationToken.None);
 
         // Assert
-        Assert.True(result);
+        Assert.True(result.Success);
         Assert.Equal("new_hash", user.PasswordHash);
         Assert.NotEqual("old_stamp", user.SecurityStamp);
         _auditLoggerMock.Verify(a => a.Record(

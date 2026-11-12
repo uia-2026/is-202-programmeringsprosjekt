@@ -198,7 +198,7 @@ public class AuthService(
             Success: true);
     }
 
-    public async Task<bool> ChangePasswordAsync(
+    public async Task<ChangePasswordResult> ChangePasswordAsync(
         int userId,
         ChangePasswordViewModel model,
         CancellationToken ct)
@@ -206,7 +206,9 @@ public class AuthService(
         var user = await _userRepository.GetByIdAsync(userId, ct);
 
         if (user == null)
-            return false;
+            return new ChangePasswordResult(
+                Success: false,
+                Error: "User not found.");
 
         var verification = _passwordHasher.VerifyHashedPassword(
             user,
@@ -214,7 +216,9 @@ public class AuthService(
             model.CurrentPassword);
 
         if (verification == PasswordVerificationResult.Failed)
-            return false;
+            return new ChangePasswordResult(
+                Success: false,
+                Error: "The current password is incorrect.");
 
         user.PasswordHash = _passwordHasher.HashPassword(user, model.NewPassword);
         user.SecurityStamp = Guid.NewGuid().ToString();
@@ -229,7 +233,8 @@ public class AuthService(
 
         await _unitOfWork.CommitAsync(ct);
 
-        return true;
+        return new ChangePasswordResult(
+            Success: true);
     }
     public async Task<AccountResult> UpdateProfileAsync(int userId, EditProfileViewModel model, CancellationToken ct)
     {
