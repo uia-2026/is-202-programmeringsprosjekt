@@ -250,11 +250,19 @@ public class AuthService(
         var trimmedUsername = model.Username.Trim();
         var trimmedEmail = model.Email.Trim();
 
-        var existingUser = await _userRepository.GetByEmailAsync(trimmedEmail, ct);
-        if (existingUser != null && existingUser.Id != user.Id)
+        var existingEmail = await _userRepository.GetByEmailAsync(trimmedEmail, ct);
+        if (existingEmail != null && existingEmail.Id != user.Id)
             return new AccountResult(
                 Success: false,
                 Error: "Email is already in use.");
+
+        var existingUsername = await _userRepository.GetByUsernameAsync(trimmedUsername, ct);
+        
+        if (existingUsername != null && existingUsername.Id != user.Id)
+            return new AccountResult(
+                Success: false,
+                Error: "Username is already in use.");
+           
 
         user.Username = trimmedUsername;
         user.Email = trimmedEmail;

@@ -170,15 +170,26 @@ public class AccountController(IAuthService authService, IUserService userServic
 
         if (!result.Success)
         {
-            ModelState.AddModelError(string.Empty, result.Error ?? "Unable to change password.");
+            var error = result.Error ?? "Failed to update password.";
+
+            if (error.Contains("current password", StringComparison.OrdinalIgnoreCase))
+            {
+                ModelState.AddModelError(nameof(ChangePasswordViewModel.CurrentPassword), error);
+            }
+            else
+            {
+                ModelState.AddModelError(string.Empty, error);
+            }
+
             var account = await _userService.GetAccountAsync(userId, ct);
             return account is null ? NotFound() : View(nameof(Index), account);
         }
 
         await _authService.SignInAsync(result.User!, HttpContext);
 
-        TempData["Success"] = "Success";
-        return RedirectToAction(nameof(Index));
+        TempData["Success"] = "Password updated successfully.";
+        var updatedAccount = await _userService.GetAccountAsync(userId, ct);
+        return updatedAccount is null ? NotFound() : View(nameof(Index), updatedAccount);
     }
 
     [Authorize]
@@ -194,14 +205,29 @@ public class AccountController(IAuthService authService, IUserService userServic
         var result = await _authService.UpdateProfileAsync(User.GetUserId(), model, ct);
         if (!result.Success)
         {
-            ModelState.AddModelError(string.Empty, "Failed to update profile.");
+            var error = result.Error ?? "Failed to update profile.";
+
+            if (error.Contains("email", StringComparison.OrdinalIgnoreCase))
+            {
+                ModelState.AddModelError(nameof(AccountViewModel.Email), error);
+            }
+            else if (error.Contains("username", StringComparison.OrdinalIgnoreCase))
+            {
+                ModelState.AddModelError(nameof(AccountViewModel.Username), error);
+            }
+            else
+            {
+                ModelState.AddModelError(string.Empty, error);
+            }
+
             var account = await _userService.GetAccountAsync(User.GetUserId(), ct);
             return account is null ? NotFound() : View(nameof(Index), account);
         }
         await _authService.SignInAsync(result.User!, HttpContext);
 
-        TempData["Success"] = "Success";
-        return RedirectToAction(nameof(Index));
+        TempData["Success"] = "Profile updated successfully.";
+        var updatedProfileAccount = await _userService.GetAccountAsync(User.GetUserId(), ct);
+        return updatedProfileAccount is null ? NotFound() : View(nameof(Index), updatedProfileAccount);
     }
 
     [HttpPost]
