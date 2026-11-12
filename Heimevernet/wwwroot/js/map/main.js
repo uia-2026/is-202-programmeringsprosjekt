@@ -56,6 +56,24 @@ function updateMeasurementMarkers() {
     }
 }
 
+function toggleMeasurementLayer(visible) {
+    if (!state.measurementLayer || !state.map) {
+        return;
+    }
+
+    if (visible) {
+        if (!state.map.hasLayer(state.measurementLayer)) {
+            state.measurementLayer.addTo(state.map);
+        }
+        updateMeasurementMarkers();
+        return;
+    }
+
+    if (state.map.hasLayer(state.measurementLayer)) {
+        state.measurementLayer.remove();
+    }
+}
+
 function setActionPanelVisible(visible) {
     const panel = elements.mapActionPanel;
     const toggle = elements.mapActionToggle;
@@ -67,6 +85,8 @@ function setActionPanelVisible(visible) {
     panel.hidden = !visible;
     toggle.setAttribute("aria-expanded", String(visible));
     toggle.style.display = visible ? "none" : "flex";
+
+    toggleMeasurementLayer(visible);
 }
 
 function updateMapActionDisplay() {
@@ -119,6 +139,17 @@ function updateMapActionDisplay() {
     const lng = second.lng.toFixed(6);
     if (needLink) needLink.href = `/Need/Create?lat=${lat}&lng=${lng}`;
     if (resourceLink) resourceLink.href = `/Resource/Create?lat=${lat}&lng=${lng}`;
+}
+
+function toggleActionPanel() {
+    const panel = elements.mapActionPanel;
+    const toggle = elements.mapActionToggle;
+    if (!panel || !toggle) {
+        return;
+    }
+
+    const shouldShow = panel.hidden;
+    setActionPanelVisible(shouldShow);
 }
 
 if (!mapElement || typeof L === "undefined") {
@@ -191,79 +222,10 @@ if (!mapElement || typeof L === "undefined") {
     updateMapActionDisplay();
 }
 
-// Opened from the search box on another page
 const request = readMapRequest(new URLSearchParams(window.location.search));
 if (request) {
     state.pendingFocus = request.focus;
     state.map.setView([request.lat, request.lng],
         request.focus ? CONFIG.focusZoom : CONFIG.addressZoom, { animate: false });
-    history.replaceState(null, "", window.location.pathname);   // a refresh must not repeat it
-}
-
-
-function toggleActionPanel() {
-    const panel = elements.mapActionPanel;
-    const toggle = elements.mapActionToggle;
-    if (!panel || !toggle) {
-        return;
-    }
-
-    const shouldShow = panel.hidden;
-    setActionPanelVisible(shouldShow);
-}
-
-if (!mapElement || typeof L === "undefined") {
-    console.error("Map initialization failed: map element or Leaflet is missing.");
-} else {
-    cacheElements();
-
-    state.map = L.map(mapElement, { zoomControl: false }).setView(CONFIG.initialCenter, CONFIG.initialZoom);
-    L.tileLayer(CONFIG.tileUrl, {
-        attribution: CONFIG.tileAttribution,
-        maxZoom: CONFIG.maxZoom
-    }).addTo(state.map);
-    L.control.zoom({ position: "bottomright" }).addTo(state.map);
-
-    state.markerLayer = L.layerGroup().addTo(state.map);
-    state.searchLayer = L.layerGroup().addTo(state.map);
-    state.measurementLayer = L.layerGroup().addTo(state.map);
-    state.mapActionPoints = [];
-
-    state.map.on("click", function (event) {
-        const selected = { lat: event.latlng.lat, lng: event.latlng.lng };
-        const points = state.mapActionPoints ?? [];
-
-        if (points.length === 0) {
-            state.mapActionPoints = [selected];
-            updateMapActionDisplay();
-            return;
-        }
-
-        if (points.length === 1) {
-            const first = points[0];
-            const samePointDistance = L.latLng(first.lat, first.lng).distanceTo(L.latLng(selected.lat, selected.lng));
-
-            if (samePointDistance < 5) {
-                elements.mapActionHint.textContent = "Choose a different point from the first one.";
-                return;
-            }
-
-            state.mapActionPoints = [first, selected];
-            updateMapActionDisplay();
-            return;
-        }
-
-        state.mapActionPoints = [selected];
-        updateMapActionDisplay();
-    });
-
-    wireFilterControls();
-    wireLocationControls();
-
-    elements.mapActionToggle?.addEventListener("click", toggleActionPanel);
-    elements.mapActionClose?.addEventListener("click", () => setActionPanelVisible(false));
-
-    state.map.on("moveend", scheduleLoad);
-    loadMarkers();
-    updateMapActionDisplay();
+    history.replaceState(null, "", window.location.pathname);
 }
