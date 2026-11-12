@@ -76,16 +76,12 @@ function toggleMeasurementLayer(visible) {
 
 function setActionPanelVisible(visible) {
     const panel = elements.mapActionPanel;
-    const toggle = elements.mapActionToggle;
 
-    if (!panel || !toggle) {
+    if (!panel) {
         return;
     }
 
     panel.hidden = !visible;
-    toggle.setAttribute("aria-expanded", String(visible));
-    toggle.style.display = visible ? "none" : "flex";
-
     toggleMeasurementLayer(visible);
 }
 
@@ -139,17 +135,6 @@ function updateMapActionDisplay() {
     const lng = second.lng.toFixed(6);
     if (needLink) needLink.href = `/Need/Create?lat=${lat}&lng=${lng}`;
     if (resourceLink) resourceLink.href = `/Resource/Create?lat=${lat}&lng=${lng}`;
-}
-
-function toggleActionPanel() {
-    const panel = elements.mapActionPanel;
-    const toggle = elements.mapActionToggle;
-    if (!panel || !toggle) {
-        return;
-    }
-
-    const shouldShow = panel.hidden;
-    setActionPanelVisible(shouldShow);
 }
 
 if (!mapElement || typeof L === "undefined") {
@@ -214,7 +199,6 @@ if (!mapElement || typeof L === "undefined") {
     wireFilterControls();
     wireLocationControls();
 
-    elements.mapActionToggle?.addEventListener("click", toggleActionPanel);
     elements.mapActionClose?.addEventListener("click", () => setActionPanelVisible(false));
 
     state.map.on("moveend", scheduleLoad);
