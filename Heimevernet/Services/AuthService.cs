@@ -234,7 +234,8 @@ public class AuthService(
         await _unitOfWork.CommitAsync(ct);
 
         return new ChangePasswordResult(
-            Success: true);
+            Success: true,
+            User: user);
     }
     public async Task<AccountResult> UpdateProfileAsync(int userId, EditProfileViewModel model, CancellationToken ct)
     {

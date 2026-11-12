@@ -1,21 +1,30 @@
 @{
+    var alertKey = "__TempDataAlertsRendered";
+    var alreadyRendered = TempData[alertKey] is bool rendered && rendered;
+    TempData[alertKey] = true;
+
     var success = TempData["Success"];
     var error = TempData["Error"];
     var alertClasses = ViewData["TempDataAlertClasses"] as string ?? string.Empty;
 }
 
-@if (success != null)
+@if (!alreadyRendered)
 {
-    <div class="alert alert-success alert-dismissible fade show @alertClasses" role="alert">
-        @success
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
+    @if (success != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show @alertClasses" role="alert">
+            @success
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (error != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show @alertClasses" role="alert">
+            @error
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
 }
 
-@if (error != null)
-{
-    <div class="alert alert-danger alert-dismissible fade show @alertClasses" role="alert">
-        @error
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-}
+@* Render only once per request to avoid duplicate alerts when the partial is included in both layout and page markup. *@

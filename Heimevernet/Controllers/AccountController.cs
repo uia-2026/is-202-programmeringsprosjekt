@@ -157,7 +157,7 @@ public class AccountController(IAuthService authService, IUserService userServic
     [Authorize]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ChangePassword([Bind(Prefix = "ChangePassword")] ChangePasswordViewModel model, CancellationToken ct)
+    public async Task<IActionResult> ChangePassword(ChangePasswordViewModel model, CancellationToken ct)
     {
         if (!ModelState.IsValid)
         {
@@ -184,7 +184,7 @@ public class AccountController(IAuthService authService, IUserService userServic
     [Authorize]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> UpdateProfile([Bind(Prefix = "EditProfile")]EditProfileViewModel model, CancellationToken ct)
+    public async Task<IActionResult> UpdateProfile(EditProfileViewModel model, CancellationToken ct)
     {
         if (!ModelState.IsValid)
         {

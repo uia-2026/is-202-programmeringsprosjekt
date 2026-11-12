@@ -294,6 +294,20 @@
         }
 
         @@media (max-width: 640px) {
+            .acct-wrap {
+                flex-direction: column;
+            }
+
+            .acct-side {
+                flex: 1 1 100%;
+                width: 100%;
+                max-width: none;
+            }
+
+            .acct-main {
+                width: 100%;
+            }
+
             .acct-fields-grid,
             .acct-form-grid {
                 grid-template-columns: 1fr;
@@ -314,8 +328,6 @@
 <div class="acct-page">
     <h1 class="acct-title">Profile</h1>
 
-    @await Html.PartialAsync("_TempDataAlerts")
-
     <div class="acct-wrap">
         <div class="acct-side">
             <div class="acct-avatar">@initial</div>
@@ -329,11 +341,6 @@
             <form asp-controller="Account" asp-action="Logout" method="post">
                 <button type="submit" class="acct-btn-outline">Log out</button>
             </form>
-
-            <button type="button" class="acct-btn-switch" disabled>
-                Switch to @otherRoleLabel
-            </button>
-            <p class="acct-switch-note">Coming soon</p>
         </div>
 
         <div class="acct-main">
@@ -496,6 +503,14 @@
                 if (!panel) return;
 
                 panel.hidden = !visible;
+
+                if (panelId === 'account-details-edit') {
+                    var readonlyPanel = document.getElementById('account-details-readonly');
+                    if (readonlyPanel) {
+                        readonlyPanel.hidden = visible;
+                    }
+                }
+
                 var trigger = document.querySelector('[data-toggle-target="' + panelId + '"]');
                 if (trigger) {
                     trigger.setAttribute('aria-expanded', visible ? 'true' : 'false');
