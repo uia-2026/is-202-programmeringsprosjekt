@@ -21,7 +21,7 @@ const ELEMENT_IDS = [
     "mapFilterNeedStatus", "mapFilterResourceStatus", "mapFilterRadius",
     "mapFilterLocationBtn", "mapFilterDistanceNote", "mapFilterResetBtn",
     "mapEmptyNote", "mapCapNote", "globalSearchInput",
-    "mapActionToggle", "mapActionPanel", "mapActionClose", "mapActionDistance", "mapActionHint",
+    "mapActionPanel", "mapActionClose", "mapActionDistance", "mapActionHint",
     "mapActionNeedCreate", "mapActionResourceCreate"
 ];
 
