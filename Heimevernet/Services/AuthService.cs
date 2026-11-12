@@ -231,6 +231,42 @@ public class AuthService(
 
         return true;
     }
+    public async Task<AccountResult> UpdateProfileAsync(int userId, EditProfileViewModel model, CancellationToken ct)
+    {
+        var user = await _userRepository.GetByIdAsync(userId, ct);
+
+        if (user == null)
+            return new AccountResult(
+                Success: false,
+                Error: "User not found.");
+
+
+        var trimmedUsername = model.Username.Trim();
+        var trimmedEmail = model.Email.Trim();
+
+        var existingUser = await _userRepository.GetByEmailAsync(trimmedEmail, ct);
+        if (existingUser != null && existingUser.Id != user.Id)
+            return new AccountResult(
+                Success: false,
+                Error: "Email is already in use.");
+
+        user.Username = trimmedUsername;
+        user.Email = trimmedEmail;
+
+        _auditLogger.Record(
+            AuditAction.ProfileUpdated,
+            "User",
+            user.Id,
+            user.Id,
+            user.Username,
+            "Profile updated.");
+
+        await _unitOfWork.CommitAsync(ct);
+
+        return new AccountResult(
+            Success: true,
+            User: user);
+    }
 
     public async Task SignInAsync(User user, HttpContext httpContext)
     {
@@ -238,8 +274,12 @@ public class AuthService(
         {
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new(ClaimTypes.Name, user.Username),
-            new(ClaimTypes.Role, user.Role.ToString())
+            new(ClaimTypes.Role, user.Role.ToString()),
+            new("AspNet.Identity.SecurityStamp", user.SecurityStamp)
         };
+
+        // Consider adding more identity claims here if the app later needs
+        // additional ASP.NET Identity compatibility data.
 
         var identity = new ClaimsIdentity(
             claims,

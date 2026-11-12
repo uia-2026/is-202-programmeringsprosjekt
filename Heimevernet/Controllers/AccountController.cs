@@ -178,6 +178,21 @@ public class AccountController(IAuthService authService, IUserService userServic
         return RedirectToAction(nameof(Index));
     }
 
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateProfile(EditProfileViewModel model, CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+        {
+            var account = await _userService.GetAccountAsync(User.GetUserId(), ct);
+            return account is null ? NotFound() : View(nameof(Index), account);
+        }
+        await _authService.UpdateProfileAsync(User.GetUserId(), model, ct);
+        TempData["Success"] = "Profile updated successfully.";
+        return RedirectToAction(nameof(Index));
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()

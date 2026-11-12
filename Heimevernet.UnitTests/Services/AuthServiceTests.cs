@@ -384,13 +384,95 @@ public sealed class AuthServiceTests
 
     #endregion
 
+    #region UpdateProfileAsync Tests
+
+    [Fact]
+    public async Task UpdateProfileAsync_ValidProfile_TrimmedValuesAndAuditLogged()
+    {
+        // Arrange
+        var user = new User
+        {
+            Id = 15,
+            Username = " old_name ",
+            Email = "old@example.com"
+        };
+        var model = new EditProfileViewModel
+        {
+            Username = "  new_name  ",
+            Email = "  new@example.com  "
+        };
+
+        _userRepositoryMock
+            .Setup(r => r.GetByIdAsync(user.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+        _userRepositoryMock
+            .Setup(r => r.GetByEmailAsync("new@example.com", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((User?)null);
+
+        // Act
+        await _sut.UpdateProfileAsync(user.Id, model, CancellationToken.None);
+
+        // Assert
+        Assert.Equal("new_name", user.Username);
+        Assert.Equal("new@example.com", user.Email);
+        _auditLoggerMock.Verify(a => a.Record(
+            AuditAction.ProfileUpdated,
+            "User",
+            user.Id,
+            user.Id,
+            "new_name",
+            "Profile updated."), Times.Once);
+        _unitOfWorkMock.Verify(u => u.CommitAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateProfileAsync_EmailAlreadyUsedByAnotherUser_DoesNotUpdateOrCommit()
+    {
+        // Arrange
+        var user = new User
+        {
+            Id = 16,
+            Username = "existing_user",
+            Email = "existing@example.com"
+        };
+        var otherUser = new User
+        {
+            Id = 99,
+            Username = "other_user",
+            Email = "taken@example.com"
+        };
+        var model = new EditProfileViewModel
+        {
+            Username = "  changed_name  ",
+            Email = "  taken@example.com  "
+        };
+
+        _userRepositoryMock
+            .Setup(r => r.GetByIdAsync(user.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+        _userRepositoryMock
+            .Setup(r => r.GetByEmailAsync("taken@example.com", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(otherUser);
+
+        // Act
+        await _sut.UpdateProfileAsync(user.Id, model, CancellationToken.None);
+
+        // Assert
+        Assert.Equal("existing_user", user.Username);
+        Assert.Equal("existing@example.com", user.Email);
+        _auditLoggerMock.Verify(a => a.Record(It.IsAny<AuditAction>(), It.IsAny<string>(), It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<string>(), It.IsAny<string?>()), Times.Never);
+        _unitOfWorkMock.Verify(u => u.CommitAsync(), Times.Never);
+    }
+
+    #endregion
+
     #region SignIn / SignOut Tests
 
     [Fact]
     public async Task SignInAsync_InvokesAuthenticationServiceWithUserClaims()
     {
         // Arrange
-        var user = new User { Id = 99, Username = "test_user", Role = UserRole.PublicActor };
+        var user = new User { Id = 99, Username = "test_user", Role = UserRole.PublicActor, SecurityStamp = "security-stamp-123" };
 
         var authServiceMock = new Mock<IAuthenticationService>();
         var serviceProviderMock = new Mock<IServiceProvider>();
@@ -410,7 +492,8 @@ public sealed class AuthServiceTests
             It.Is<ClaimsPrincipal>(cp =>
                 cp.HasClaim(ClaimTypes.NameIdentifier, "99") &&
                 cp.HasClaim(ClaimTypes.Name, "test_user") &&
-                cp.HasClaim(ClaimTypes.Role, UserRole.PublicActor.ToString())
+                cp.HasClaim(ClaimTypes.Role, UserRole.PublicActor.ToString()) &&
+                cp.HasClaim("AspNet.Identity.SecurityStamp", "security-stamp-123")
             ),
             It.IsAny<AuthenticationProperties>()
         ), Times.Once);
@@ -453,4 +536,4 @@ public sealed class AuthServiceTests
     };
 
     #endregion
-}
+} 
