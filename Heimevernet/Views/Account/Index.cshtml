@@ -5,7 +5,9 @@
     ViewData["Title"] = "My Account";
     var roleLabel = Model.Role == UserRole.PublicActor ? "Public actor" : "Resource provider";
     var otherRoleLabel = Model.Role == UserRole.PublicActor ? "Resource provider" : "Public actor";
-    var initial = Model.Username.Length > 0 ? Model.Username.Substring(0, 1).ToUpperInvariant() : "?";
+    var initial = !string.IsNullOrWhiteSpace(Model.Username)
+        ? Model.Username.Substring(0, 1).ToUpperInvariant()
+        : "?";
 }
 
 @section Styles {
@@ -52,6 +54,27 @@
             padding: 24px;
         }
 
+        .acct-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .acct-card-header h2 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #1d385a;
+            margin-bottom: 4px;
+        }
+
+        .acct-card-subtitle {
+            color: #6b7a90;
+            font-size: 0.85rem;
+            margin-bottom: 18px;
+        }
+
         .acct-avatar {
             width: 56px;
             height: 56px;
@@ -88,6 +111,15 @@
             margin: 18px 0;
         }
 
+        .acct-btn-outline,
+        .acct-btn-inline,
+        .acct-btn-primary,
+        .acct-btn-secondary {
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
         .acct-btn-outline {
             display: block;
             width: 100%;
@@ -95,16 +127,45 @@
             border: 1px solid #1d385a;
             color: #1d385a;
             background: #fff;
-            border-radius: 10px;
-            font-weight: 600;
             padding: 9px;
             margin-bottom: 10px;
             font-size: 0.9rem;
+            text-decoration: none;
         }
 
         .acct-btn-outline:hover {
             background: #1d385a;
             color: #fff;
+        }
+
+        .acct-btn-inline {
+            border: 1px solid #cdd8e5;
+            background: #f5f8fc;
+            color: #1d385a;
+            padding: 8px 14px;
+            font-size: 0.85rem;
+        }
+
+        .acct-btn-inline:hover {
+            background: #eaf0fa;
+        }
+
+        .acct-btn-primary {
+            border: 1px solid #1d385a;
+            background: #1d385a;
+            color: #fff;
+            padding: 10px 18px;
+        }
+
+        .acct-btn-primary:hover {
+            background: #163456;
+        }
+
+        .acct-btn-secondary {
+            border: 1px solid #d7dde4;
+            background: #fff;
+            color: #34465d;
+            padding: 10px 18px;
         }
 
         .acct-btn-switch {
@@ -128,20 +189,8 @@
             margin-top: 6px;
         }
 
-        .acct-card h2 {
-            font-size: 1.05rem;
-            font-weight: 700;
-            color: #1d385a;
-            margin-bottom: 4px;
-        }
-
-        .acct-card-subtitle {
-            color: #6b7a90;
-            font-size: 0.85rem;
-            margin-bottom: 18px;
-        }
-
-        .acct-fields-grid {
+        .acct-fields-grid,
+        .acct-form-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 16px 20px;
@@ -163,6 +212,54 @@
             border: 1px solid #d7e0ec;
             border-radius: 10px;
             padding: 9px 12px;
+        }
+
+        .acct-form-grid .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .acct-input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .acct-input {
+            width: 100%;
+            border: 1px solid #d7e0ec;
+            border-radius: 10px;
+            background: #fff;
+            color: #1a2430;
+            padding: 10px 12px;
+            font-size: 0.92rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .acct-input:focus {
+            outline: none;
+            border-color: #1d385a;
+            box-shadow: 0 0 0 3px rgba(29, 56, 90, 0.12);
+        }
+
+        .acct-input.input-validation-error,
+        .acct-input-validation-error {
+            border-color: #d93f3f;
+        }
+
+        .acct-field-error {
+            min-height: 1.2em;
+            margin-top: 6px;
+            font-size: 0.75rem;
+        }
+
+        .acct-form-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .acct-edit-panel[hidden] {
+            display: none;
         }
 
         .acct-row-card {
@@ -195,15 +292,31 @@
             height: 18px;
             accent-color: #1d385a;
         }
+
+        @@media (max-width: 640px) {
+            .acct-fields-grid,
+            .acct-form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .acct-row-card {
+                display: block;
+            }
+
+            .acct-card-header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+        }
     </style>
 }
 
 <div class="acct-page">
-
     <h1 class="acct-title">Profile</h1>
 
-    <div class="acct-wrap">
+    @await Html.PartialAsync("_TempDataAlerts")
 
+    <div class="acct-wrap">
         <div class="acct-side">
             <div class="acct-avatar">@initial</div>
             <div class="acct-name">@Model.Username</div>
@@ -224,12 +337,19 @@
         </div>
 
         <div class="acct-main">
-
             <div class="acct-card">
-                <h2>Account details</h2>
-                <p class="acct-card-subtitle">Your registered account information.</p>
+                <div class="acct-card-header">
+                    <div>
+                        <h2>Account details</h2>
+                        <p class="acct-card-subtitle">Your registered account information.</p>
+                    </div>
 
-                <div class="acct-fields-grid">
+                    <button type="button" class="acct-btn-inline" data-toggle-target="account-details-edit" aria-expanded="false">
+                        Edit
+                    </button>
+                </div>
+
+                <div id="account-details-readonly" class="acct-fields-grid">
                     <div>
                         <span class="acct-field-label">Username</span>
                         <div class="acct-field-value">@Model.Username</div>
@@ -245,61 +365,167 @@
                         <div class="acct-field-value">@Model.Email</div>
                     </div>
                 </div>
+
+                <form asp-controller="Account" asp-action="UpdateProfile" method="post" id="account-details-edit" class="acct-edit-panel" hidden>
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+                    <div class="acct-form-grid">
+                        <div class="acct-input-group">
+                            <label asp-for="Username" class="acct-field-label">Username</label>
+                            <input asp-for="Username" class="acct-input" autocomplete="username" />
+                            <span asp-validation-for="Username" class="text-danger acct-field-error"></span>
+                        </div>
+
+                        <div class="acct-input-group">
+                            <label asp-for="Email" class="acct-field-label">Email</label>
+                            <input asp-for="Email" class="acct-input" autocomplete="email" />
+                            <span asp-validation-for="Email" class="text-danger acct-field-error"></span>
+                        </div>
+                    </div>
+
+                    <div class="acct-form-actions">
+                        <button type="submit" class="acct-btn-primary">Save changes</button>
+                        <button type="button" class="acct-btn-secondary" data-toggle-target="account-details-edit">Cancel</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="acct-card">
+                <div class="acct-card-header">
+                    <div>
+                        <h2>Password</h2>
+                        <p class="acct-card-subtitle">Update your password for better account security.</p>
+                    </div>
+
+                    <button type="button" class="acct-btn-inline" data-toggle-target="password-edit" aria-expanded="false">
+                        Change password
+                    </button>
+                </div>
+
+                <form asp-controller="Account" asp-action="ChangePassword" method="post" id="password-edit" class="acct-edit-panel" hidden>
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+                    <div class="acct-form-grid">
+                        <div class="acct-input-group full-width">
+                            <label asp-for="CurrentPassword" class="acct-field-label">Current password</label>
+                            <input asp-for="CurrentPassword" class="acct-input" type="password" autocomplete="current-password" />
+                            <span asp-validation-for="CurrentPassword" class="text-danger acct-field-error"></span>
+                        </div>
+
+                        <div class="acct-input-group full-width">
+                            <label asp-for="NewPassword" class="acct-field-label">New password</label>
+                            <input asp-for="NewPassword" class="acct-input" type="password" autocomplete="new-password" />
+                            <span asp-validation-for="NewPassword" class="text-danger acct-field-error"></span>
+                        </div>
+
+                        <div class="acct-input-group full-width">
+                            <label asp-for="ConfirmNewPassword" class="acct-field-label">Confirm new password</label>
+                            <input asp-for="ConfirmNewPassword" class="acct-input" type="password" autocomplete="new-password" />
+                            <span asp-validation-for="ConfirmNewPassword" class="text-danger acct-field-error"></span>
+                        </div>
+                    </div>
+
+                    <div class="acct-form-actions">
+                        <button type="submit" class="acct-btn-primary">Update password</button>
+                        <button type="button" class="acct-btn-secondary" data-toggle-target="password-edit">Cancel</button>
+                    </div>
+                </form>
             </div>
 
             <div class="acct-card">
                 <div class="acct-row-card">
                     <div class="acct-row-text">
                         <h2>Security</h2>
-                        @if (Model.TwoFactorEnabled)
-                        {
-                            <p class="acct-card-subtitle">Two-factor authentication is enabled for your account.</p>
-                        }
-                        else
-                        {
-                            <p class="acct-card-subtitle">Add an extra layer of security by enabling two-factor
-                                authentication.</p>
+                        <p class="acct-card-subtitle">
+                            @if (Model.TwoFactorEnabled)
+                            {
+                                <text>Two-factor authentication is enabled for this account.</text>
                             }
-                        </div>
-
-                        @if (!Model.TwoFactorEnabled)
-                        {
-                            <a asp-controller="Account" asp-action="SetupTwoFactor" class="acct-btn-outline"
-                               style="width:auto; margin-bottom:0; padding:10px 20px; white-space:nowrap;">
-                                Enable two-factor authentication
-                            </a>
-                        }
+                            else
+                            {
+                                <text>Protect your account with two-factor authentication.</text>
+                            }
+                        </p>
                     </div>
+
+                    @if (!Model.TwoFactorEnabled)
+                    {
+                        <a asp-controller="Account" asp-action="SetupTwoFactor" class="acct-btn-outline"
+                           style="width:auto; margin-bottom:0; padding:10px 20px; white-space:nowrap;">
+                            Enable two-factor authentication
+                        </a>
+                    }
                 </div>
-
-                <div class="acct-card">
-                    <form asp-controller="Account" asp-action="UpdateNotifications" method="post">
-                        <div class="acct-row-card">
-                            <div class="acct-row-text">
-                                <h2>Email notifications</h2>
-                                <p class="acct-card-subtitle">
-                                    Get an email when a critical need is registered near one of your resources,
-                                    or when a resource that may fit one of your open needs is registered.
-                                </p>
-
-                                <label class="acct-check" style="margin-top: 14px;">
-                                    <input type="checkbox" name="emailNotifications" value="true" @(Model.EmailNotifications
-                                           ? "checked" : "") />
-                                    <input type="hidden" name="emailNotifications" value="false" />
-                                    Send me notification emails
-                                </label>
-                            </div>
-
-                            <button type="submit" class="acct-btn-outline"
-                                    style="width:auto; margin-bottom:0; padding:10px 20px; white-space:nowrap;">
-                                Save
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
             </div>
 
-        </div>
+            <div class="acct-card">
+                <form asp-controller="Account" asp-action="UpdateNotifications" method="post">
+                    <div class="acct-row-card">
+                        <div class="acct-row-text">
+                            <h2>Email notifications</h2>
+                            <p class="acct-card-subtitle">
+                                Get an email when a critical need is registered near one of your resources,
+                                or when a resource that may fit one of your open needs is registered.
+                            </p>
 
+                            <label class="acct-check" style="margin-top: 14px;">
+                                <input type="checkbox" name="emailNotifications" value="true" @(Model.EmailNotifications ? "checked" : "") />
+                                <input type="hidden" name="emailNotifications" value="false" />
+                                Send me notification emails
+                            </label>
+                        </div>
+
+                        <button type="submit" class="acct-btn-outline"
+                                style="width:auto; margin-bottom:0; padding:10px 20px; white-space:nowrap;">
+                            Save
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
+</div>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+
+    <script>
+        (function () {
+            function setFormVisible(panelId, visible) {
+                var panel = document.getElementById(panelId);
+                if (!panel) return;
+
+                panel.hidden = !visible;
+                var trigger = document.querySelector('[data-toggle-target="' + panelId + '"]');
+                if (trigger) {
+                    trigger.setAttribute('aria-expanded', visible ? 'true' : 'false');
+                }
+            }
+
+            document.querySelectorAll('[data-toggle-target]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    var targetId = button.getAttribute('data-toggle-target');
+                    var panel = document.getElementById(targetId);
+                    if (!panel) return;
+
+                    var shouldShow = panel.hasAttribute('hidden');
+                    setFormVisible(targetId, shouldShow);
+                });
+            });
+
+            var accountPanel = document.getElementById('account-details-edit');
+            var passwordPanel = document.getElementById('password-edit');
+
+            var accountHasErrors = accountPanel && accountPanel.querySelector('.field-validation-error, .input-validation-error');
+            var passwordHasErrors = passwordPanel && passwordPanel.querySelector('.field-validation-error, .input-validation-error');
+
+            if (accountHasErrors) {
+                setFormVisible('account-details-edit', true);
+            }
+
+            if (passwordHasErrors) {
+                setFormVisible('password-edit', true);
+            }
+        })();
+    </script>
+}

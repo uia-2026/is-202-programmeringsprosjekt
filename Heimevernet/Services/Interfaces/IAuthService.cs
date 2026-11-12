@@ -22,6 +22,9 @@ public interface IAuthService
     /// <summary>Confirms the code matches the pending secret, then saves and enables 2FA.</summary>
     Task<TwoFactorSetupResult> CompleteTwoFactorSetupAsync(int userId, string secret, string code, CancellationToken ct);
 
+    /// <summary>Verifies the user's current password, updates it to the new one, rotates the security stamp, and records the change.</summary>
+    Task<bool> ChangePasswordAsync(int userId, ChangePasswordViewModel model, CancellationToken ct);
+
     Task SignInAsync(User user, HttpContext httpContext);
 
     Task SignOutAsync(HttpContext httpContext);

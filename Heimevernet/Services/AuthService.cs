@@ -198,6 +198,40 @@ public class AuthService(
             Success: true);
     }
 
+    public async Task<bool> ChangePasswordAsync(
+        int userId,
+        ChangePasswordViewModel model,
+        CancellationToken ct)
+    {
+        var user = await _userRepository.GetByIdAsync(userId, ct);
+
+        if (user == null)
+            return false;
+
+        var verification = _passwordHasher.VerifyHashedPassword(
+            user,
+            user.PasswordHash,
+            model.CurrentPassword);
+
+        if (verification == PasswordVerificationResult.Failed)
+            return false;
+
+        user.PasswordHash = _passwordHasher.HashPassword(user, model.NewPassword);
+        user.SecurityStamp = Guid.NewGuid().ToString();
+
+        _auditLogger.Record(
+            AuditAction.PasswordChanged,
+            "User",
+            user.Id,
+            user.Id,
+            user.Username,
+            "Password changed.");
+
+        await _unitOfWork.CommitAsync(ct);
+
+        return true;
+    }
+
     public async Task SignInAsync(User user, HttpContext httpContext)
     {
         var claims = new List<Claim>
@@ -206,8 +240,14 @@ public class AuthService(
             new(ClaimTypes.Name, user.Username),
             new(ClaimTypes.Role, user.Role.ToString())
         };
-        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-        await httpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
+
+        var identity = new ClaimsIdentity(
+            claims,
+            CookieAuthenticationDefaults.AuthenticationScheme);
+
+        await httpContext.SignInAsync(
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            new ClaimsPrincipal(identity));
     }
 
     public async Task SignOutAsync(HttpContext httpContext)

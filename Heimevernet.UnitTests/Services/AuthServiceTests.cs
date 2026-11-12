@@ -296,6 +296,94 @@ public sealed class AuthServiceTests
 
     #endregion
 
+    #region ChangePasswordAsync Tests
+
+    [Fact]
+    public async Task ChangePasswordAsync_InvalidCurrentPassword_ReturnsFalseWithoutChangingUserOrCommitting()
+    {
+        // Arrange
+        var user = new User
+        {
+            Id = 7,
+            Username = "jane",
+            PasswordHash = "old_hash",
+            SecurityStamp = "old_stamp"
+        };
+        var model = new ChangePasswordViewModel
+        {
+            CurrentPassword = "wrong-password",
+            NewPassword = "NewPassword123!",
+            ConfirmNewPassword = "NewPassword123!"
+        };
+
+        _userRepositoryMock
+            .Setup(r => r.GetByIdAsync(user.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+
+        _passwordHasherMock
+            .Setup(h => h.VerifyHashedPassword(user, user.PasswordHash, model.CurrentPassword))
+            .Returns(PasswordVerificationResult.Failed);
+
+        // Act
+        var result = await _sut.ChangePasswordAsync(user.Id, model, CancellationToken.None);
+
+        // Assert
+        Assert.False(result);
+        Assert.Equal("old_hash", user.PasswordHash);
+        Assert.Equal("old_stamp", user.SecurityStamp);
+        _unitOfWorkMock.Verify(u => u.CommitAsync(), Times.Never);
+        _auditLoggerMock.Verify(a => a.Record(It.IsAny<AuditAction>(), It.IsAny<string>(), It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<string>(), It.IsAny<string?>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ChangePasswordAsync_ValidCurrentPassword_UpdatesHashSecurityStampAndLogsAudit()
+    {
+        // Arrange
+        var user = new User
+        {
+            Id = 8,
+            Username = "jane",
+            PasswordHash = "old_hash",
+            SecurityStamp = "old_stamp"
+        };
+        var model = new ChangePasswordViewModel
+        {
+            CurrentPassword = "correct-password",
+            NewPassword = "NewPassword123!",
+            ConfirmNewPassword = "NewPassword123!"
+        };
+
+        _userRepositoryMock
+            .Setup(r => r.GetByIdAsync(user.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+
+        _passwordHasherMock
+            .Setup(h => h.VerifyHashedPassword(user, user.PasswordHash, model.CurrentPassword))
+            .Returns(PasswordVerificationResult.Success);
+
+        _passwordHasherMock
+            .Setup(h => h.HashPassword(user, model.NewPassword))
+            .Returns("new_hash");
+
+        // Act
+        var result = await _sut.ChangePasswordAsync(user.Id, model, CancellationToken.None);
+
+        // Assert
+        Assert.True(result);
+        Assert.Equal("new_hash", user.PasswordHash);
+        Assert.NotEqual("old_stamp", user.SecurityStamp);
+        _auditLoggerMock.Verify(a => a.Record(
+            AuditAction.PasswordChanged,
+            "User",
+            user.Id,
+            user.Id,
+            user.Username,
+            "Password changed."), Times.Once);
+        _unitOfWorkMock.Verify(u => u.CommitAsync(), Times.Once);
+    }
+
+    #endregion
+
     #region SignIn / SignOut Tests
 
     [Fact]

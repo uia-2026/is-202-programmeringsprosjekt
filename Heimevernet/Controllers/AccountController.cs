@@ -1,4 +1,5 @@
 using Heimevernet.Extensions;
+using Heimevernet.Models;
 using Heimevernet.Services.Interfaces;
 using Heimevernet.ViewModels.Account;
 using Microsoft.AspNetCore.Authorization;
@@ -149,6 +150,31 @@ public class AccountController(IAuthService authService, IUserService userServic
             ? "Email notifications are on."
             : "Email notifications are off.";
 
+        return RedirectToAction(nameof(Index));
+    }
+
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ChangePassword(ChangePasswordViewModel model, CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+        {
+            var account = await _userService.GetAccountAsync(User.GetUserId(), ct);
+            return account is null ? NotFound() : View(nameof(Index), account);
+        }
+
+        var userId = User.GetUserId();
+        var changed = await _authService.ChangePasswordAsync(userId, model, ct);
+
+        if (!changed)
+        {
+            ModelState.AddModelError(string.Empty, "The current password is incorrect.");
+            var account = await _userService.GetAccountAsync(userId, ct);
+            return account is null ? NotFound() : View(nameof(Index), account);
+        }
+
+        TempData["Success"] = "Password updated successfully.";
         return RedirectToAction(nameof(Index));
     }
 
