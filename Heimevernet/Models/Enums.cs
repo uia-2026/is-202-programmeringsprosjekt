@@ -85,7 +85,10 @@ public enum AuditAction
     MatchProposed,
     MatchAccepted,
     MatchRejected,
-    MatchResolved
+    MatchResolved,
+    PasswordChanged,
+    ProfileUpdated,
+    TwoFactorDisabled
 }
 
 
