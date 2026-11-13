@@ -1,0 +1,16 @@
+<Project>
+  <!--
+    MSBuild's default BaseIntermediateOutputPath is "obj\" (Windows separator).
+    dotnet watch on macOS/Linux uses that raw value and then fails with
+    "Failed to read '.../obj\Debug/net10.0/staticwebassets.development.json'",
+    which breaks CSS/JS hot reload. A forward slash works on every OS
+    (Windows accepts "/" too), and the obj folder stays in the same place.
+
+    Only the Heimevernet project picks this file up. If a Directory.Build.props
+    is ever added at the repo root, import it here so both apply:
+    <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+  -->
+  <PropertyGroup>
+    <BaseIntermediateOutputPath>obj/</BaseIntermediateOutputPath>
+  </PropertyGroup>
+</Project>

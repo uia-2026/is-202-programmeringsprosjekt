@@ -16,6 +16,7 @@ public class ResourceFilterDto
     public string? Region { get; set; }
     /// <summary>Only show resources owned by this user. Always set to the current user for resource providers.</summary>
     public int? OwnerUserId { get; set; }
+    public bool ShowOnlyMine { get; set; }
     /// <summary>
     /// Only include resources available during this window (inclusive).
     /// A resource matches if its own AvailableFrom/AvailableTo overlaps this range.

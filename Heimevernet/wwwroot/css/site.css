@@ -558,6 +558,11 @@ html {
 }
 
 .filter-search-btn {
+    display: inline-flex;
+    align-items: center;
+    height: 34px;
+    padding: 0 10px;
+    font-size: .82rem;
     border: 1px solid #d7e0ec;
     border-left: none;
     background: #f9fbfd;
@@ -568,6 +573,65 @@ html {
         background: #1d385a;
         color: #fff;
         border-color: #1d385a;
+    }
+
+/* "My needs / My resources only" pill toggle in the filter bar */
+.filter-bar .filter-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 34px;
+    margin: 0;
+    padding: 0 12px 0 10px;
+    border: 1px solid #d7e0ec;
+    border-radius: 999px;
+    background: #f9fbfd;
+    color: #4b5a6e;
+    font-size: .82rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+}
+
+    .filter-bar .filter-toggle:hover {
+        border-color: #1d385a;
+        color: #1d385a;
+    }
+
+    .filter-bar .filter-toggle i {
+        font-size: .9rem;
+    }
+
+    .filter-bar .filter-toggle .form-check-input {
+        float: none;
+        flex-shrink: 0;
+        width: 2em;
+        height: 1.1em;
+        margin: 0;
+        cursor: pointer;
+        border-color: #c3cfdf;
+        background-color: #fff;
+    }
+
+        .filter-bar .filter-toggle .form-check-input:focus {
+            border-color: #1d385a;
+            box-shadow: 0 0 0 .15rem rgba(29, 56, 90, .15);
+            /* Navy knob instead of Bootstrap's light-blue focus knob */
+            --bs-form-switch-bg: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%231d385a'/%3e%3c/svg%3e");
+        }
+
+        .filter-bar .filter-toggle .form-check-input:checked {
+            background-color: #1d385a;
+            border-color: #1d385a;
+            --bs-form-switch-bg: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e");
+        }
+
+    .filter-bar .filter-toggle:has(.form-check-input:checked) {
+        background: #e8eef6;
+        border-color: #1d385a;
+        color: #1d385a;
     }
 
 .filter-bar-label {
@@ -734,6 +798,55 @@ html {
     font-size: .8rem;
     color: #4b5a6e;
     margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Need card accent by priority (matches .chip-priority-* colours) */
+.entity-card--low {
+    --entity-accent: #2563eb;
+}
+
+.entity-card--medium {
+    --entity-accent: #ca8a04;
+}
+
+.entity-card--critical {
+    --entity-accent: #dc2626;
+}
+
+/* Deadline urgency on need cards */
+.entity-card-meta.is-overdue,
+.entity-card-meta.is-overdue strong,
+.entity-card-meta.is-overdue i {
+    color: #dc2626;
+}
+
+.entity-card-meta.is-due-soon,
+.entity-card-meta.is-due-soon strong,
+.entity-card-meta.is-due-soon i {
+    color: #b45309;
+}
+
+.deadline-flag {
+    font-size: .65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    padding: 1px 6px;
+    border-radius: 999px;
+}
+
+.is-overdue .deadline-flag {
+    color: #fff;
+    background: #dc2626;
+}
+
+.is-due-soon .deadline-flag {
+    color: #fff;
+    background: #b45309;
 }
 
 .entity-card-footer {

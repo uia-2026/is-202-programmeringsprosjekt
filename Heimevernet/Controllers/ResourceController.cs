@@ -58,10 +58,12 @@ public class ResourceController(
             }
             else
             {
-                filter.OwnerUserId = ownerId;
+                var selectedOwnerId = filter.ShowOnlyMine ? User.GetUserId() : ownerId;
+                filter.OwnerUserId = selectedOwnerId;
+                filter.ShowOnlyMine = selectedOwnerId == User.GetUserId() && filter.ShowOnlyMine;
 
                 ViewBag.Owners = await _resourceService.GetOwnersAsync(cancellationToken);
-                ViewBag.SelectedOwnerId = ownerId;
+                ViewBag.SelectedOwnerId = selectedOwnerId;
                 ViewBag.CurrentUserId = User.GetUserId();
             }
 

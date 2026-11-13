@@ -1,4 +1,5 @@
 using Heimevernet.Models;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace Heimevernet.DTOs.Needs;
 
@@ -12,10 +13,18 @@ public class NeedFilterDto
     public NeedStatus? Status { get; set; }
     /// <summary>Only show needs with this priority.</summary>
     public NeedPriority? Priority { get; set; }
-    /// <summary>Only show needs in this category.</summary>
+   
+  /// <summary>Only show needs in this category.</summary>
     public int? CategoryId { get; set; }
+  
+    /// <summary>Set server-side from the logged-in user; never bound from the request.</summary>
+    [BindNever]
+    public int? OwnerUserId { get; set; }
+    /// <summary>When <see langword="true"/>, only show needs owned by the signed-in user.</summary>
+    public bool ShowOnlyMine { get; set; }
     /// <summary>Only show needs in this region (exact match).</summary>
     public string? Region { get; set; }
+  
     /// <summary>Free text searched in title, description and region.</summary>
     public string? Search { get; set; }
     /// <summary>Sort order. Defaults to newest first.</summary>
