@@ -33,6 +33,11 @@ public class User
     /// <summary>Whether the user wants notification emails. On by default.</summary>
     public bool EmailNotifications { get; set; } = true;
 
+    /// <summary>
+    /// Random value that changes when the password changes. Sign-in cookies with an old stamp are no longer accepted.
+    /// </summary>
+    public string SecurityStamp { get; set; } = Guid.NewGuid().ToString();
+
     /// <summary>When the account was created (UTC).</summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

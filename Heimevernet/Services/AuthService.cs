@@ -17,7 +17,7 @@ namespace Heimevernet.Services;
 /// <param name="userRepository">Repository for users.</param>
 /// <param name="passwordHasher">Hashes and checks passwords.</param>
 /// <param name="unitOfWork">Saves changes.</param>
-/// <param name="auditLogger">Logs login and 2FA events.</param>
+/// <param name="auditLogger">Logs login, 2FA, password and profile events.</param>
 public class AuthService(
     IUserRepository userRepository,
     IPasswordHasher<User> passwordHasher,
@@ -211,16 +211,113 @@ public class AuthService(
     }
 
     /// <inheritdoc />
+    public async Task<ChangePasswordResult> ChangePasswordAsync(
+        int userId,
+        ChangePasswordViewModel model,
+        CancellationToken ct)
+    {
+        var user = await _userRepository.GetByIdAsync(userId, ct);
+
+        if (user == null)
+            return new ChangePasswordResult(
+                Success: false,
+                Error: "User not found.");
+
+        var verification = _passwordHasher.VerifyHashedPassword(
+            user,
+            user.PasswordHash,
+            model.CurrentPassword);
+
+        if (verification == PasswordVerificationResult.Failed)
+            return new ChangePasswordResult(
+                Success: false,
+                Error: "The current password is incorrect.");
+
+        user.PasswordHash = _passwordHasher.HashPassword(user, model.NewPassword);
+        user.SecurityStamp = Guid.NewGuid().ToString();
+
+        _auditLogger.Record(
+            AuditAction.PasswordChanged,
+            "User",
+            user.Id,
+            user.Id,
+            user.Username,
+            "Password changed.");
+
+        await _unitOfWork.CommitAsync(ct);
+
+        return new ChangePasswordResult(
+            Success: true,
+            User: user);
+    }
+
+    /// <inheritdoc />
+    public async Task<AccountResult> UpdateProfileAsync(int userId, EditProfileViewModel model, CancellationToken ct)
+    {
+        var user = await _userRepository.GetByIdAsync(userId, ct);
+
+        if (user == null)
+            return new AccountResult(
+                Success: false,
+                Error: "User not found.");
+
+
+        var trimmedUsername = model.Username.Trim();
+        var trimmedEmail = model.Email.Trim();
+
+        var existingEmail = await _userRepository.GetByEmailAsync(trimmedEmail, ct);
+        if (existingEmail != null && existingEmail.Id != user.Id)
+            return new AccountResult(
+                Success: false,
+                Error: "Email is already in use.");
+
+        var existingUsername = await _userRepository.GetByUsernameAsync(trimmedUsername, ct);
+        
+        if (existingUsername != null && existingUsername.Id != user.Id)
+            return new AccountResult(
+                Success: false,
+                Error: "Username is already in use.");
+           
+
+        user.Username = trimmedUsername;
+        user.Email = trimmedEmail;
+
+        _auditLogger.Record(
+            AuditAction.ProfileUpdated,
+            "User",
+            user.Id,
+            user.Id,
+            user.Username,
+            "Profile updated.");
+
+        await _unitOfWork.CommitAsync(ct);
+
+        return new AccountResult(
+            Success: true,
+            User: user);
+    }
+
+    /// <inheritdoc />
     public async Task SignInAsync(User user, HttpContext httpContext)
     {
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new(ClaimTypes.Name, user.Username),
-            new(ClaimTypes.Role, user.Role.ToString())
+            new(ClaimTypes.Role, user.Role.ToString()),
+            new("AspNet.Identity.SecurityStamp", user.SecurityStamp)
         };
-        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-        await httpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
+
+        // Consider adding more identity claims here if the app later needs
+        // additional ASP.NET Identity compatibility data.
+
+        var identity = new ClaimsIdentity(
+            claims,
+            CookieAuthenticationDefaults.AuthenticationScheme);
+
+        await httpContext.SignInAsync(
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            new ClaimsPrincipal(identity));
     }
 
     /// <inheritdoc />

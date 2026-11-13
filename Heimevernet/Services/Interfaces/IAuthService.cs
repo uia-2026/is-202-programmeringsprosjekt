@@ -4,7 +4,8 @@ using Heimevernet.ViewModels.Account;
 namespace Heimevernet.Services.Interfaces;
 
 /// <summary>
-/// Handles registration, login, two-factor authentication, and sign-in/out for users.
+/// Handles registration, login, two-factor authentication, password and profile changes,
+/// and sign-in/out for users.
 /// </summary>
 public interface IAuthService
 {
@@ -44,8 +45,23 @@ public interface IAuthService
     /// <returns>A <see cref="TwoFactorSetupResult"/> that tells if 2FA was enabled.</returns>
     Task<TwoFactorSetupResult> CompleteTwoFactorSetupAsync(int userId, string secret, string code, CancellationToken ct);
 
+    /// <summary>Verifies the user's current password, updates it to the new one, rotates the security stamp, and records the change.</summary>
+    /// <remarks>Rotating the security stamp signs the user out on other devices.</remarks>
+    /// <param name="userId">ID of the signed-in user.</param>
+    /// <param name="model">The submitted form with the current and new password.</param>
+    /// <param name="ct">Cancellation token for the operation.</param>
+    /// <returns>A <see cref="ChangePasswordResult"/>; fails if the user does not exist or the current password is wrong.</returns>
+    Task<ChangePasswordResult> ChangePasswordAsync(int userId, ChangePasswordViewModel model, CancellationToken ct);
+
+    /// <summary>Updates a user's editable profile fields after trimming whitespace and rejecting duplicate email addresses and usernames.</summary>
+    /// <param name="userId">ID of the signed-in user.</param>
+    /// <param name="model">The submitted form with the new username and email.</param>
+    /// <param name="ct">Cancellation token for the operation.</param>
+    /// <returns>An <see cref="AccountResult"/>; fails if the user does not exist or the email or username is taken by someone else.</returns>
+    Task<AccountResult> UpdateProfileAsync(int userId, EditProfileViewModel model, CancellationToken ct);
+
     /// <summary>
-    /// Signs the user in with a cookie that holds their ID, username and role as claims.
+    /// Signs the user in with a cookie that holds their ID, username, role and security stamp as claims.
     /// </summary>
     /// <param name="user">The user to sign in.</param>
     /// <param name="httpContext">The current HTTP context.</param>
@@ -59,7 +75,6 @@ public interface IAuthService
     /// <returns>A task that completes when the user has been signed out.</returns>
     Task SignOutAsync(HttpContext httpContext);
 }
-
 
 /// <summary>
 /// Outcome of <see cref="IAuthService.RegisterAsync"/>.
@@ -104,3 +119,25 @@ public record TwoFactorVerifyResult(
 public record TwoFactorSetupResult(
     bool Success,
     string? Error = null);
+
+/// <summary>
+/// Outcome of <see cref="IAuthService.ChangePasswordAsync"/>.
+/// </summary>
+/// <param name="Success"><see langword="true"/> when the password was changed.</param>
+/// <param name="Error">User-facing error message when the change failed.</param>
+/// <param name="User">The updated user, so the caller can sign them in again with the new security stamp.</param>
+public record ChangePasswordResult(
+    bool Success,
+    string? Error = null,
+    User? User = null);
+
+/// <summary>
+/// Outcome of <see cref="IAuthService.UpdateProfileAsync"/>.
+/// </summary>
+/// <param name="Success"><see langword="true"/> when the profile was updated.</param>
+/// <param name="Error">User-facing error message when the update failed.</param>
+/// <param name="User">The updated user, so the caller can refresh the sign-in cookie with the new username.</param>
+public record AccountResult(
+    bool Success,
+    string? Error = null,
+    User? User = null);

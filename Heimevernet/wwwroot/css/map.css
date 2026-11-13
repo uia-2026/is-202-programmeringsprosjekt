@@ -186,30 +186,9 @@
         padding: 4px 0;
     }
 
-.map-action-toggle {
-    position: absolute;
-    top: 300px;
-    left: 176px;
-    z-index: 501;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    width: 120px;
-    background: #fcfcfe;
-    border: 1px solid #e0eaf5;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(10, 30, 60, .12);
-    color: #1d385a;
-    font-size: 12px;
-    font-weight: 600;
-    padding: 9px 12px;
-    cursor: pointer;
-}
-
 .map-action-panel {
     position: absolute;
-    top: 300px;
+    bottom: 60px;
     left: 176px;
     z-index: 500;
     width: 260px;
@@ -225,6 +204,19 @@
         display: none;
     }
 
+.map-action-close {
+    appearance: none;
+    border: 1px solid #dfe8f4;
+    background: #f5f8fd;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    color: #41597d;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+}
+
 .map-action-header {
     display: flex;
     align-items: center;
@@ -239,19 +231,6 @@
     letter-spacing: .02em;
     text-transform: uppercase;
     color: #4b6386;
-}
-
-.map-action-close {
-    appearance: none;
-    border: 1px solid #dfe8f4;
-    background: #f5f8fd;
-    border-radius: 50%;
-    width: 24px;
-    height: 24px;
-    color: #41597d;
-    font-size: 18px;
-    line-height: 1;
-    cursor: pointer;
 }
 
 .map-measurement-tooltip {
@@ -690,10 +669,21 @@
     .map-legend-box {
         top: 64px;
         left: 8px;
-        padding: 8px 10px;
         width: 140px;
         min-width: 0;
         font-size: 11px;
+    }
+
+    .map-action-toggle {
+        bottom: 16px;
+        left: 8px;
+        width: 120px;
+    }
+
+    .map-action-panel {
+        bottom: 60px;
+        left: 8px;
+        width: min(260px, calc(100% - 16px));
     }
 
     .map-filter-box {
@@ -707,12 +697,6 @@
         bottom: 8px;
         left: 8px;
         max-width: calc(100% - 16px);
-    }
-
-    .map-action-panel {
-        top: 255px;
-        left: 8px;
-        width: min(260px, calc(100% - 16px));
     }
 }
 

@@ -71,13 +71,13 @@
         <div class="form-row-2">
 
             <div class="form-field-group">
-                <label asp-for="AvailableFrom"></label>
+                <label asp-for="AvailableFrom">Available From</label>
                 <input asp-for="AvailableFrom" class="form-control" type="datetime-local" />
                 <span asp-validation-for="AvailableFrom" class="text-danger small"></span>
             </div>
 
             <div class="form-field-group">
-                <label asp-for="AvailableTo"></label>
+                <label asp-for="AvailableTo">Available To</label>
                 <input asp-for="AvailableTo" class="form-control" type="datetime-local" />
                 <span asp-validation-for="AvailableTo" class="text-danger small"></span>
             </div>
@@ -87,13 +87,13 @@
         <div class="form-row-2">
 
             <div class="form-field-group">
-                <label asp-for="QuantityOffered"></label>
+                <label asp-for="QuantityOffered">Quantity Offered</label>
                 <input asp-for="QuantityOffered" class="form-control" type="number" min="1" max="10000" />
                 <span asp-validation-for="QuantityOffered" class="text-danger small"></span>
             </div>
 
             <div class="form-field-group">
-                <label asp-for="ContactPoint"></label>
+                <label asp-for="ContactPoint">Contact Point</label>
                 <input asp-for="ContactPoint" class="form-control"
                        placeholder="Phone, email, or other contact information" />
                 <span asp-validation-for="ContactPoint" class="text-danger small"></span>

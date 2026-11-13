@@ -1,4 +1,6 @@
 using Heimevernet.Extensions;
+using Heimevernet.Models;
+using Heimevernet.Services;
 using Heimevernet.Services.Interfaces;
 using Heimevernet.ViewModels.Account;
 using Microsoft.AspNetCore.Authorization;
@@ -7,14 +9,14 @@ using Microsoft.AspNetCore.Mvc;
 namespace Heimevernet.Controllers;
 
 /// <summary>
-/// MVC controller for account pages: registration, login, two-factor authentication (2FA),
-/// account settings and logout.
+/// MVC controller for accounts: registration, login with optional two-factor authentication,
+/// account settings (profile, password, email notifications) and logout.
 /// </summary>
 /// <remarks>
 /// The app has a fallback policy that requires a signed-in user, so actions without
-/// <see cref="AllowAnonymousAttribute"/> are only for signed-in users.
+/// <see cref="AllowAnonymousAttribute"/> need login even when they have no <see cref="AuthorizeAttribute"/>.
 /// </remarks>
-/// <param name="authService">Handles registration, login, 2FA and the auth cookie.</param>
+/// <param name="authService">Handles registration, login, 2FA, password and profile changes.</param>
 /// <param name="userService">Reads and updates account settings.</param>
 public class AccountController(IAuthService authService, IUserService userService) : Controller
 {
@@ -24,9 +26,9 @@ public class AccountController(IAuthService authService, IUserService userServic
     /// <summary>
     /// Shows the account page for the signed-in user.
     /// </summary>
-    /// <remarks><c>GET /Account/Index</c>. Requires a signed-in user (any role).</remarks>
+    /// <remarks><c>GET /Account</c>. Requires a signed-in user.</remarks>
     /// <param name="ct">Cancellation token for the request.</param>
-    /// <returns>The Index view with an <see cref="AccountViewModel"/>, or 404 Not Found if the user no longer exists.</returns>
+    /// <returns>The account view, or 404 Not Found if the user no longer exists.</returns>
     [Authorize]
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken ct)
@@ -42,8 +44,8 @@ public class AccountController(IAuthService authService, IUserService userServic
     /// <summary>
     /// Shows the registration form.
     /// </summary>
-    /// <remarks><c>GET /Account/Register</c>. Anonymous access allowed.</remarks>
-    /// <returns>The Register view with an empty <see cref="RegisterViewModel"/>.</returns>
+    /// <remarks><c>GET /Account/Register</c>. Open to anonymous users.</remarks>
+    /// <returns>The registration view with an empty form.</returns>
     [AllowAnonymous]
     [HttpGet]
     public IActionResult Register() => View(new RegisterViewModel());
@@ -51,10 +53,10 @@ public class AccountController(IAuthService authService, IUserService userServic
     /// <summary>
     /// Creates a new account from the submitted form.
     /// </summary>
-    /// <remarks><c>POST /Account/Register</c>. Anonymous access allowed. Requires an anti-forgery token.</remarks>
+    /// <remarks><c>POST /Account/Register</c>. Open to anonymous users. Requires an anti-forgery token.</remarks>
     /// <param name="model">The submitted registration form.</param>
     /// <param name="ct">Cancellation token for the request.</param>
-    /// <returns>A redirect to <see cref="Login()"/> on success, or the Register view with errors (for example a duplicate email).</returns>
+    /// <returns>A redirect to the login page on success; otherwise the form again with errors.</returns>
     [AllowAnonymous]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -76,22 +78,21 @@ public class AccountController(IAuthService authService, IUserService userServic
     /// <summary>
     /// Shows the login form.
     /// </summary>
-    /// <remarks><c>GET /Account/Login</c>. Anonymous access allowed. Unauthenticated users are sent here by the cookie handler.</remarks>
-    /// <returns>The Login view with an empty <see cref="LoginViewModel"/>.</returns>
+    /// <remarks><c>GET /Account/Login</c>. Open to anonymous users.</remarks>
+    /// <returns>The login view with an empty form.</returns>
     [AllowAnonymous]
     [HttpGet]
     public IActionResult Login() => View(new LoginViewModel());
 
     /// <summary>
-    /// Checks the email and password. If the user has 2FA on, the user ID is kept in TempData and the
-    /// user is sent to the 2FA step; otherwise the user is signed in.
+    /// Checks the email and password. Signs the user in, or sends them to the 2FA step if 2FA is on.
     /// </summary>
-    /// <remarks><c>POST /Account/Login</c>. Anonymous access allowed. Requires an anti-forgery token.</remarks>
+    /// <remarks><c>POST /Account/Login</c>. Open to anonymous users. Requires an anti-forgery token.</remarks>
     /// <param name="model">The submitted login form.</param>
     /// <param name="ct">Cancellation token for the request.</param>
     /// <returns>
-    /// A redirect to <see cref="VerifyTwoFactor()"/> when 2FA is needed, a redirect to Home/Index after sign-in,
-    /// or the Login view with an error.
+    /// A redirect to the home page, a redirect to <see cref="VerifyTwoFactor()"/> when 2FA is needed,
+    /// or the form again with errors.
     /// </returns>
     [AllowAnonymous]
     [HttpPost]
@@ -118,10 +119,10 @@ public class AccountController(IAuthService authService, IUserService userServic
     }
 
     /// <summary>
-    /// Shows the form for the 2FA code during login.
+    /// Shows the form for the 2FA code after a correct password.
     /// </summary>
-    /// <remarks><c>GET /Account/VerifyTwoFactor</c>. Anonymous access allowed, but only works right after a correct password.</remarks>
-    /// <returns>The VerifyTwoFactor view, or a redirect to <see cref="Login()"/> when there is no pending login.</returns>
+    /// <remarks><c>GET /Account/VerifyTwoFactor</c>. Open to anonymous users. Needs the pending user ID from the login step in TempData.</remarks>
+    /// <returns>The 2FA view, or a redirect to the login page if there is no pending login.</returns>
     [AllowAnonymous]
     [HttpGet]
     public IActionResult VerifyTwoFactor()
@@ -135,12 +136,12 @@ public class AccountController(IAuthService authService, IUserService userServic
     }
 
     /// <summary>
-    /// Checks the 2FA code and signs the user in if it is valid.
+    /// Checks the 2FA code and signs the user in when it is valid.
     /// </summary>
-    /// <remarks><c>POST /Account/VerifyTwoFactor</c>. Anonymous access allowed. Requires an anti-forgery token.</remarks>
+    /// <remarks><c>POST /Account/VerifyTwoFactor</c>. Open to anonymous users. Requires an anti-forgery token.</remarks>
     /// <param name="model">The submitted user ID and code.</param>
     /// <param name="ct">Cancellation token for the request.</param>
-    /// <returns>A redirect to Home/Index on success, or the VerifyTwoFactor view with an error.</returns>
+    /// <returns>A redirect to the home page on success; otherwise the form again with errors.</returns>
     [AllowAnonymous]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -159,11 +160,11 @@ public class AccountController(IAuthService authService, IUserService userServic
     }
 
     /// <summary>
-    /// Starts 2FA setup: creates a new secret, keeps it in TempData, and shows it with a QR code.
+    /// Starts 2FA setup: makes a new secret and shows it as a QR code.
     /// </summary>
-    /// <remarks><c>GET /Account/SetupTwoFactor</c>. Requires a signed-in user (fallback policy).</remarks>
+    /// <remarks><c>GET /Account/SetupTwoFactor</c>. Requires a signed-in user (fallback policy). The secret is kept in TempData until the code is confirmed.</remarks>
     /// <param name="ct">Cancellation token for the request.</param>
-    /// <returns>The SetupTwoFactor view with a <see cref="TwoFactorSetupViewModel"/>.</returns>
+    /// <returns>The setup view with the QR code and the key for manual entry.</returns>
     [HttpGet]
     public async Task<IActionResult> SetupTwoFactor(CancellationToken ct)
     {
@@ -173,14 +174,14 @@ public class AccountController(IAuthService authService, IUserService userServic
     }
 
     /// <summary>
-    /// Finishes 2FA setup by checking a code against the pending secret and turning 2FA on.
+    /// Confirms the first code from the authenticator app and turns on 2FA.
     /// </summary>
-    /// <remarks><c>POST /Account/SetupTwoFactor</c>. Requires a signed-in user (fallback policy) and an anti-forgery token.</remarks>
+    /// <remarks><c>POST /Account/SetupTwoFactor</c>. Requires a signed-in user (fallback policy). Requires an anti-forgery token.</remarks>
     /// <param name="model">The submitted code.</param>
     /// <param name="ct">Cancellation token for the request.</param>
     /// <returns>
-    /// A redirect to Home/Index on success, the SetupTwoFactor view with an error for a wrong code,
-    /// or a redirect to the GET action when the pending secret has expired.
+    /// A redirect to the home page on success, a redirect to start over if the secret has expired,
+    /// or the form again with errors.
     /// </returns>
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -212,10 +213,10 @@ public class AccountController(IAuthService authService, IUserService userServic
     /// <summary>
     /// Turns email notifications on or off for the signed-in user.
     /// </summary>
-    /// <remarks><c>POST /Account/UpdateNotifications</c>. Requires a signed-in user (any role) and an anti-forgery token.</remarks>
-    /// <param name="emailNotifications"><see langword="true"/> to turn notifications on.</param>
+    /// <remarks><c>POST /Account/UpdateNotifications</c>. Requires a signed-in user and an anti-forgery token.</remarks>
+    /// <param name="emailNotifications"><see langword="true"/> to turn notifications on; <see langword="false"/> to turn them off.</param>
     /// <param name="ct">Cancellation token for the request.</param>
-    /// <returns>A redirect to <see cref="Index"/>, or 404 Not Found if the user no longer exists.</returns>
+    /// <returns>A redirect to the account page, or 404 Not Found if the user no longer exists.</returns>
     [Authorize]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -232,10 +233,106 @@ public class AccountController(IAuthService authService, IUserService userServic
     }
 
     /// <summary>
+    /// Changes the signed-in user's password and signs them in again with the new security stamp.
+    /// </summary>
+    /// <remarks><c>POST /Account/ChangePassword</c>. Requires a signed-in user and an anti-forgery token.</remarks>
+    /// <param name="model">The submitted current password, new password and confirmation.</param>
+    /// <param name="ct">Cancellation token for the request.</param>
+    /// <returns>
+    /// The account view with a success message, the account view with errors,
+    /// or 404 Not Found if the user no longer exists.
+    /// </returns>
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ChangePassword(ChangePasswordViewModel model, CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+        {
+            var account = await _userService.GetAccountAsync(User.GetUserId(), ct);
+            return account is null ? NotFound() : View(nameof(Index), account);
+        }
+
+        var userId = User.GetUserId();
+        var result = await _authService.ChangePasswordAsync(userId, model, ct);
+
+        if (!result.Success)
+        {
+            var error = result.Error ?? "Failed to update password.";
+
+            if (error.Contains("current password", StringComparison.OrdinalIgnoreCase))
+            {
+                ModelState.AddModelError(nameof(ChangePasswordViewModel.CurrentPassword), error);
+            }
+            else
+            {
+                ModelState.AddModelError(string.Empty, error);
+            }
+
+            var account = await _userService.GetAccountAsync(userId, ct);
+            return account is null ? NotFound() : View(nameof(Index), account);
+        }
+
+        await _authService.SignInAsync(result.User!, HttpContext);
+
+        TempData["Success"] = "Password updated successfully.";
+        var updatedAccount = await _userService.GetAccountAsync(userId, ct);
+        return updatedAccount is null ? NotFound() : View(nameof(Index), updatedAccount);
+    }
+
+    /// <summary>
+    /// Updates the signed-in user's username and email, and refreshes the sign-in cookie.
+    /// </summary>
+    /// <remarks><c>POST /Account/UpdateProfile</c>. Requires a signed-in user and an anti-forgery token.</remarks>
+    /// <param name="model">The submitted username and email.</param>
+    /// <param name="ct">Cancellation token for the request.</param>
+    /// <returns>
+    /// The account view with a success message, the account view with errors
+    /// (for example when the email or username is taken), or 404 Not Found if the user no longer exists.
+    /// </returns>
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateProfile(EditProfileViewModel model, CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+        {
+            var account = await _userService.GetAccountAsync(User.GetUserId(), ct);
+            return account is null ? NotFound() : View(nameof(Index), account);
+        }
+        var result = await _authService.UpdateProfileAsync(User.GetUserId(), model, ct);
+        if (!result.Success)
+        {
+            var error = result.Error ?? "Failed to update profile.";
+
+            if (error.Contains("email", StringComparison.OrdinalIgnoreCase))
+            {
+                ModelState.AddModelError(nameof(AccountViewModel.Email), error);
+            }
+            else if (error.Contains("username", StringComparison.OrdinalIgnoreCase))
+            {
+                ModelState.AddModelError(nameof(AccountViewModel.Username), error);
+            }
+            else
+            {
+                ModelState.AddModelError(string.Empty, error);
+            }
+
+            var account = await _userService.GetAccountAsync(User.GetUserId(), ct);
+            return account is null ? NotFound() : View(nameof(Index), account);
+        }
+        await _authService.SignInAsync(result.User!, HttpContext);
+
+        TempData["Success"] = "Profile updated successfully.";
+        var updatedProfileAccount = await _userService.GetAccountAsync(User.GetUserId(), ct);
+        return updatedProfileAccount is null ? NotFound() : View(nameof(Index), updatedProfileAccount);
+    }
+
+    /// <summary>
     /// Signs the current user out.
     /// </summary>
     /// <remarks><c>POST /Account/Logout</c>. Requires a signed-in user (fallback policy) and an anti-forgery token.</remarks>
-    /// <returns>A redirect to Home/Index (which then sends the user to the login page).</returns>
+    /// <returns>A redirect to the home page.</returns>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
@@ -245,10 +342,10 @@ public class AccountController(IAuthService authService, IUserService userServic
     }
 
     /// <summary>
-    /// Shows the "access denied" page for signed-in users who lack the needed role.
+    /// Shows the page users see when they lack the role for a page.
     /// </summary>
-    /// <remarks><c>GET /Account/AccessDenied</c>. Anonymous access allowed.</remarks>
-    /// <returns>The AccessDenied view.</returns>
+    /// <remarks><c>GET /Account/AccessDenied</c>. Open to anonymous users.</remarks>
+    /// <returns>The access denied view.</returns>
     [AllowAnonymous]
     [HttpGet]
     public IActionResult AccessDenied()

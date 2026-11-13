@@ -120,9 +120,15 @@ public enum AuditAction
     /// <summary>A proposed match was rejected.</summary>
     MatchRejected,
     /// <summary>A match was resolved together with its need.</summary>
-    MatchResolved
-}
+    MatchResolved,
 
+    /// <summary>A user changed their password.</summary>
+    PasswordChanged,
+    /// <summary>A user updated their profile details.</summary>
+    ProfileUpdated,
+    /// <summary>A user turned off two-factor authentication.</summary>
+    TwoFactorDisabled
+}
 
 /// <summary>
 /// Lifecycle of an outbox message.
