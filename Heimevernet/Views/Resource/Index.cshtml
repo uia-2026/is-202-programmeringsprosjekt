@@ -50,7 +50,7 @@
         int? selectedOwnerId = ViewBag.SelectedOwnerId;
         int currentUserId = ViewBag.CurrentUserId;
 
-        <select id="ownerId" name="ownerId" class="form-select" onchange="this.form.submit()" aria-label="Filter by owner">
+        <select id="ownerId" name="ownerId" class="form-select" onchange="this.form.requestSubmit()" aria-label="Filter by owner">
             <option value="">All owners</option>
             @foreach (var owner in owners)
             {
@@ -60,7 +60,7 @@
         </select>
     }
 
-    <select name="CategoryId" class="form-select" onchange="this.form.submit()" aria-label="Filter by type">
+    <select name="CategoryId" class="form-select" onchange="this.form.requestSubmit()" aria-label="Filter by type">
         <option value="">All types</option>
         @foreach (var category in Model.AvailableCategories)
         {
@@ -68,7 +68,7 @@
         }
     </select>
 
-    <select name="Status" class="form-select" onchange="this.form.submit()" aria-label="Filter by status">
+    <select name="Status" class="form-select" onchange="this.form.requestSubmit()" aria-label="Filter by status">
         <option value="">All status</option>
         @foreach (ResourceStatus status in Enum.GetValues(typeof(ResourceStatus)))
         {
@@ -76,7 +76,7 @@
         }
     </select>
 
-    <select name="Region" class="form-select" onchange="this.form.submit()" aria-label="Filter by region">
+    <select name="Region" class="form-select" onchange="this.form.requestSubmit()" aria-label="Filter by region">
         <option value="">All regions</option>
         @foreach (var region in Model.AvailableRegions)
         {
@@ -86,10 +86,26 @@
 
     <span class="filter-bar-label">Available</span>
     <input type="date" name="AvailableFrom" value="@Model.Filter.AvailableFrom?.ToString("yyyy-MM-dd")"
-           class="form-control" onchange="this.form.submit()" aria-label="Available from" />
+           class="form-control" onchange="this.form.requestSubmit()" aria-label="Available from" />
     <span class="filter-bar-label">to</span>
     <input type="date" name="AvailableTo" value="@Model.Filter.AvailableTo?.ToString("yyyy-MM-dd")"
-           class="form-control" onchange="this.form.submit()" aria-label="Available to" />
+           class="form-control" onchange="this.form.requestSubmit()" aria-label="Available to" />
+
+    @if (isPublicActor)
+    {
+        <label class="filter-toggle form-switch" for="showOnlyMineResources">
+            <input class="form-check-input"
+                   type="checkbox"
+                   role="switch"
+                   id="showOnlyMineResources"
+                   name="ShowOnlyMine"
+                   value="true"
+                   checked="@Model.Filter.ShowOnlyMine"
+                   onchange="this.form.requestSubmit()" />
+            <i class="bi bi-person"></i>
+            <span>My resources only</span>
+        </label>
+    }
 
     <div class="input-group filter-bar-search">
         <input type="text" name="Search" value="@Model.Filter.Search" placeholder="Search resources..." class="form-control" aria-label="Search resources" />
@@ -98,7 +114,7 @@
         </button>
     </div>
 
-    <select name="Sort" class="form-select" onchange="this.form.submit()" aria-label="Sort">
+    <select name="Sort" class="form-select" onchange="this.form.requestSubmit()" aria-label="Sort">
         <option value="@ResourceSortOption.CreatedAtDescending" selected="@(Model.Filter.Sort == ResourceSortOption.CreatedAtDescending)">Newest first</option>
         <option value="@ResourceSortOption.CreatedAtAscending" selected="@(Model.Filter.Sort == ResourceSortOption.CreatedAtAscending)">Oldest first</option>
         <option value="@ResourceSortOption.AvailableFromAscending" selected="@(Model.Filter.Sort == ResourceSortOption.AvailableFromAscending)">Available soonest</option>
@@ -107,21 +123,6 @@
     @if (hasFilters)
     {
         <a asp-action="Index" class="filter-clear"><i class="bi bi-x-circle"></i> Clear filters</a>
-    }
-
-    @if (isPublicActor)
-    {
-        <div class="form-check form-switch ms-2 me-2">
-            <input class="form-check-input"
-                   type="checkbox"
-                   role="switch"
-                   id="showOnlyMineResources"
-                   name="ShowOnlyMine"
-                   value="true"
-                   checked="@(Model.Filter.ShowOnlyMine ? "checked" : null)"
-                   onchange="this.form.submit()" />
-            <label class="form-check-label" for="showOnlyMineResources">Show only mine</label>
-        </div>
     }
 
 </form>

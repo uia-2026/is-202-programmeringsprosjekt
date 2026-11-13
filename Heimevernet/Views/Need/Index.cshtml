@@ -23,21 +23,25 @@
         _ => ("chip-status-new", s.ToString())
     };
 
-    string AccentFor(NeedPriority p) => p switch
+    string AccentClassFor(NeedPriority p) => p switch
     {
-        NeedPriority.Critical => "#dc2626",
-        NeedPriority.Medium => "#ca8a04",
-        _ => "#2563eb"
+        NeedPriority.Critical => "entity-card--critical",
+        NeedPriority.Medium => "entity-card--medium",
+        _ => "entity-card--low"
     };
 
     var isPublicActor = User.IsInRole("PublicActor");
+    var showOnlyMine = isPublicActor && Model.Filter.ShowOnlyMine;
 
-    var hasFilters = Model.Filter.CategoryId.HasValue
+    var hasOtherFilters = Model.Filter.CategoryId.HasValue
         || Model.Filter.Priority.HasValue
         || Model.Filter.Status.HasValue
         || !string.IsNullOrWhiteSpace(Model.Filter.Region)
-        || !string.IsNullOrWhiteSpace(Model.Filter.Search)
-        || (isPublicActor && Model.Filter.ShowOnlyMine);
+        || !string.IsNullOrWhiteSpace(Model.Filter.Search);
+
+    var hasFilters = hasOtherFilters || showOnlyMine;
+
+    var now = DateTime.Now;
 
     var loadError = ViewBag.LoadError as string;
 }
@@ -50,14 +54,17 @@
         <p>Overview of registered needs. Filter, sort and search to find what matters right now.</p>
     </div>
 
-    <a asp-controller="Need" asp-action="Create" class="btn btn-brand">
-        <i class="bi bi-plus-lg"></i> Register Need
-    </a>
+    @if (isPublicActor)
+    {
+        <a asp-controller="Need" asp-action="Create" class="btn btn-brand">
+            <i class="bi bi-plus-lg"></i> Register Need
+        </a>
+    }
 </div>
 
 <form method="get" asp-action="Index" class="filter-bar" id="needFilterForm">
 
-    <select name="CategoryId" class="form-select" onchange="this.form.submit()" aria-label="Filter by type">
+    <select name="CategoryId" class="form-select" onchange="this.form.requestSubmit()" aria-label="Filter by type">
         <option value="">All types</option>
         @foreach (var category in Model.AvailableCategories)
         {
@@ -65,7 +72,7 @@
         }
     </select>
 
-    <select name="Priority" class="form-select" onchange="this.form.submit()" aria-label="Filter by priority">
+    <select name="Priority" class="form-select" onchange="this.form.requestSubmit()" aria-label="Filter by priority">
         <option value="">All priorities</option>
         @foreach (NeedPriority priority in Enum.GetValues(typeof(NeedPriority)))
         {
@@ -73,7 +80,7 @@
         }
     </select>
 
-    <select name="Status" class="form-select" onchange="this.form.submit()" aria-label="Filter by status">
+    <select name="Status" class="form-select" onchange="this.form.requestSubmit()" aria-label="Filter by status">
         <option value="">All status</option>
         @foreach (NeedStatus status in Enum.GetValues(typeof(NeedStatus)))
         {
@@ -81,7 +88,7 @@
         }
     </select>
 
-    <select name="Region" class="form-select" onchange="this.form.submit()" aria-label="Filter by region">
+    <select name="Region" class="form-select" onchange="this.form.requestSubmit()" aria-label="Filter by region">
         <option value="">All regions</option>
         @foreach (var region in Model.AvailableRegions)
         {
@@ -89,7 +96,21 @@
         }
     </select>
 
-
+    @if (isPublicActor)
+    {
+        <label class="filter-toggle form-switch" for="showOnlyMineNeeds">
+            <input class="form-check-input"
+                   type="checkbox"
+                   role="switch"
+                   id="showOnlyMineNeeds"
+                   name="ShowOnlyMine"
+                   value="true"
+                   checked="@Model.Filter.ShowOnlyMine"
+                   onchange="this.form.requestSubmit()" />
+            <i class="bi bi-person"></i>
+            <span>My needs only</span>
+        </label>
+    }
 
     <div class="input-group filter-bar-search">
         <input type="text" name="Search" value="@Model.Filter.Search" placeholder="Search needs..." class="form-control" aria-label="Search needs" />
@@ -98,7 +119,7 @@
         </button>
     </div>
 
-    <select name="Sort" class="form-select" onchange="this.form.submit()" aria-label="Sort">
+    <select name="Sort" class="form-select" onchange="this.form.requestSubmit()" aria-label="Sort">
         <option value="@NeedSortOption.CreatedAtDescending" selected="@(Model.Filter.Sort == NeedSortOption.CreatedAtDescending)">Newest first</option>
         <option value="@NeedSortOption.CreatedAtAscending" selected="@(Model.Filter.Sort == NeedSortOption.CreatedAtAscending)">Oldest first</option>
         <option value="@NeedSortOption.PriorityDescending" selected="@(Model.Filter.Sort == NeedSortOption.PriorityDescending)">Priority (high to low)</option>
@@ -108,20 +129,6 @@
     @if (hasFilters)
     {
         <a asp-action="Index" class="filter-clear"><i class="bi bi-x-circle"></i> Clear filters</a>
-    }
-    @if (isPublicActor)
-    {
-        <div class="form-check form-switch ms-2 me-2">
-            <input class="form-check-input"
-                   type="checkbox"
-                   role="switch"
-                   id="showOnlyMineNeeds"
-                   name="ShowOnlyMine"
-                   value="true"
-                   checked="@(Model.Filter.ShowOnlyMine ? "checked" : null)"
-                   onchange="this.form.submit()" />
-            <label class="form-check-label" for="showOnlyMineNeeds">My needs only</label>
-        </div>
     }
 
 </form>
@@ -143,7 +150,7 @@ else if (Model.Items.Any())
             var (chipCss, chipLabel) = PriorityChip(need.Priority);
             var (statusCss, statusLabel) = StatusChip(need.Status);
 
-            <div class="entity-card" style="--entity-accent: @AccentFor(need.Priority)">
+            <div class="entity-card @AccentClassFor(need.Priority)">
                 <div class="entity-card-head">
                     <h2 class="entity-card-title">@need.Title</h2>
                     <span class="chip @chipCss"><span class="chip-dot"></span>@chipLabel</span>
@@ -154,9 +161,24 @@ else if (Model.Items.Any())
                 <p class="entity-card-meta"><i class="bi bi-tag"></i> @need.CategoryName</p>
                 <p class="entity-card-meta"><i class="bi bi-geo-alt"></i> @need.FullAddress</p>
 
-                @if (need.Deadline.HasValue)
+                @if (need.Deadline is { } deadline)
                 {
-                    <p class="entity-card-meta"><i class="bi bi-clock"></i> Deadline: <strong>@need.Deadline.Value.ToString("dd.MM.yyyy HH:mm")</strong></p>
+                    var isOpen = need.Status != NeedStatus.Resolved;
+                    var isOverdue = isOpen && deadline < now;
+                    var isDueSoon = isOpen && !isOverdue && deadline < now.AddHours(24);
+                    var deadlineCss = isOverdue ? "is-overdue" : isDueSoon ? "is-due-soon" : null;
+
+                    <p class="entity-card-meta @deadlineCss">
+                        <i class="bi bi-clock"></i> Deadline: <strong>@deadline.ToString("dd.MM.yyyy HH:mm")</strong>
+                        @if (isOverdue)
+                        {
+                            <span class="deadline-flag">Overdue</span>
+                        }
+                        else if (isDueSoon)
+                        {
+                            <span class="deadline-flag">Due soon</span>
+                        }
+                    </p>
                 }
 
                 <p class="entity-card-meta"><i class="bi bi-boxes"></i> Quantity needed: @need.QuantityNeeded</p>
@@ -173,6 +195,17 @@ else if (Model.Items.Any())
                 </div>
             </div>
         }
+    </div>
+}
+else if (showOnlyMine && !hasOtherFilters)
+{
+    <div class="state-panel">
+        <i class="bi bi-inbox fs-3"></i>
+        <strong>You haven't registered any needs yet</strong>
+        <span>Needs you register will show up here.</span>
+        <a asp-controller="Need" asp-action="Create" class="btn btn-brand btn-sm mt-2">
+            <i class="bi bi-plus-lg"></i> Register Need
+        </a>
     </div>
 }
 else
