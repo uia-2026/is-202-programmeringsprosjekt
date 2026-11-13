@@ -89,20 +89,7 @@
         }
     </select>
 
-    @if (isPublicActor)
-    {
-        <div class="form-check form-switch ms-2 me-2">
-            <input class="form-check-input"
-                   type="checkbox"
-                   role="switch"
-                   id="showOnlyMineNeeds"
-                   name="ShowOnlyMine"
-                   value="true"
-                   checked="@(Model.Filter.ShowOnlyMine ? "checked" : null)"
-                   onchange="this.form.submit()" />
-            <label class="form-check-label" for="showOnlyMineNeeds">Show only mine</label>
-        </div>
-    }
+
 
     <div class="input-group filter-bar-search">
         <input type="text" name="Search" value="@Model.Filter.Search" placeholder="Search needs..." class="form-control" aria-label="Search needs" />
@@ -121,6 +108,20 @@
     @if (hasFilters)
     {
         <a asp-action="Index" class="filter-clear"><i class="bi bi-x-circle"></i> Clear filters</a>
+    }
+    @if (isPublicActor)
+    {
+        <div class="form-check form-switch ms-2 me-2">
+            <input class="form-check-input"
+                   type="checkbox"
+                   role="switch"
+                   id="showOnlyMineNeeds"
+                   name="ShowOnlyMine"
+                   value="true"
+                   checked="@(Model.Filter.ShowOnlyMine ? "checked" : null)"
+                   onchange="this.form.submit()" />
+            <label class="form-check-label" for="showOnlyMineNeeds">My needs only</label>
+        </div>
     }
 
 </form>
