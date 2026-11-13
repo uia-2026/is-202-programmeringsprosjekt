@@ -18,6 +18,13 @@ namespace Heimevernet.Services;
 /// Application service handling operations related to Needs.
 /// Orchestrates repository access, mapping and unit-of-work commits.
 /// </summary>
+/// <param name="repository">Repository for needs.</param>
+/// <param name="categoryRepository">Used to check that the chosen category exists.</param>
+/// <param name="needMapper">Maps between needs and view models.</param>
+/// <param name="mapMarkerMapper">Maps marker DTOs to view models.</param>
+/// <param name="unitOfWork">Saves changes in a transaction.</param>
+/// <param name="outBox">Queues the "critical need registered" notification.</param>
+/// <param name="auditLogger">Logs need events.</param>
 public class NeedService(
     INeedRepository repository,
     ICategoryRepository categoryRepository,
@@ -41,6 +48,7 @@ public class NeedService(
     /// <param name="model">The data used to create the need.</param>
     /// <param name="userId">The id of the user creating the need.</param>
     /// <param name="cancellationToken">A token used to cancel the operation.</param>
+    /// <returns>The ID of the new need.</returns>
     public async Task<int> CreateAsync(
         NeedCreateViewModel model,
         int userId,
@@ -106,6 +114,7 @@ public class NeedService(
         return _needMapper.ToViewModels(needs);
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<string>> GetDistinctRegionsAsync(CancellationToken cancellationToken = default) =>
     await _needRepository.GetDistinctRegionsAsync(cancellationToken);
 
@@ -124,6 +133,7 @@ public class NeedService(
             : _needMapper.ToViewModel(need);
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<MapMarkerViewModel>> GetMapMarkersAsync(
         GeoBox box, int limit, CancellationToken cancellationToken = default)
     {
@@ -131,6 +141,7 @@ public class NeedService(
         return _mapMarkerMapper.ToViewModels(dtos);
     }
 
+    /// <inheritdoc />
     public async Task<(OwnedRecordMutationResult Result, string Message)> UpdateAsync(
         int id,
         NeedCreateViewModel model,
@@ -183,6 +194,7 @@ public class NeedService(
         return (OwnedRecordMutationResult.Success, "Need updated.");
     }
 
+    /// <inheritdoc />
     public async Task<(OwnedRecordMutationResult Result, string Message)> DeleteAsync(
         int id,
         int userId,
@@ -223,6 +235,7 @@ public class NeedService(
         return (OwnedRecordMutationResult.Success, "Need deleted.");
     }
 
+    /// <inheritdoc />
     public async Task<(OwnedRecordMutationResult Result, string Message)> ResolveAsync(
         int id,
         int userId,

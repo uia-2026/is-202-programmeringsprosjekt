@@ -12,6 +12,8 @@ namespace Heimevernet.Controllers;
 /// My Matches (#64, #96): lists matches on the user's own Needs and Resources.
 /// The owner of the Resource can accept or reject, regardless of role.
 /// </summary>
+/// <param name="matchService">Business logic for matches.</param>
+/// <param name="needService">Used to load the need shown on the Propose page.</param>
 public class MatchController(IMatchService matchService, INeedService needService) : Controller
 {
     private const string AnyAppRole = "PublicActor,ResourceProvider";
@@ -22,6 +24,13 @@ public class MatchController(IMatchService matchService, INeedService needServic
     /// <summary>
     /// Shows candidate resources for a Need owned by the current user.
     /// </summary>
+    /// <remarks><c>GET /Match/Propose?needId={needId}</c>. Requires the PublicActor role.</remarks>
+    /// <param name="needId">ID of the need.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>
+    /// The Propose view with a <see cref="ProposeMatchViewModel"/>, 404 Not Found if the need does not exist,
+    /// or 403 Forbidden if the user cannot propose for it.
+    /// </returns>
     [Authorize(Roles = "PublicActor")]
     [HttpGet]
     public async Task<IActionResult> Propose(int needId, CancellationToken cancellationToken)
@@ -56,6 +65,15 @@ public class MatchController(IMatchService matchService, INeedService needServic
     /// <summary>
     /// Validates the submitted choice and proposes a Resource for the Need.
     /// </summary>
+    /// <remarks><c>POST /Match/Propose</c>. Requires the PublicActor role and an anti-forgery token.</remarks>
+    /// <param name="needId">ID of the need.</param>
+    /// <param name="resourceId">ID of the chosen resource.</param>
+    /// <param name="quantity">How many units to allocate.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>
+    /// A redirect to Need/Details on success, a redirect back to the Propose page with an error message,
+    /// 404 Not Found, or 403 Forbidden, depending on the <see cref="ProposeMatchResult"/>.
+    /// </returns>
     [Authorize(Roles = "PublicActor")]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -140,6 +158,9 @@ public class MatchController(IMatchService matchService, INeedService needServic
     /// <summary>
     /// "My Matches": every match where the current user owns the Need, the Resource, or both.
     /// </summary>
+    /// <remarks><c>GET /Match/Index</c>. Requires the PublicActor or ResourceProvider role.</remarks>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>The Index view with a <see cref="MatchIndexViewModel"/>.</returns>
     [Authorize(Roles = AnyAppRole)]
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
@@ -153,6 +174,10 @@ public class MatchController(IMatchService matchService, INeedService needServic
     /// The owner of the match's Resource accepts a proposed match.
     /// Ownership is enforced in MatchService.AcceptAsync, not by role.
     /// </summary>
+    /// <remarks><c>POST /Match/Accept/{id}</c>. Requires the PublicActor or ResourceProvider role and an anti-forgery token.</remarks>
+    /// <param name="id">ID of the match.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>A redirect to <see cref="Index"/> with a message, 404 Not Found, or 403 Forbidden.</returns>
     [Authorize(Roles = AnyAppRole)]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -167,6 +192,10 @@ public class MatchController(IMatchService matchService, INeedService needServic
     /// The owner of the match's Resource rejects a proposed match.
     /// Ownership is enforced in MatchService.RejectAsync, not by role.
     /// </summary>
+    /// <remarks><c>POST /Match/Reject/{id}</c>. Requires the PublicActor or ResourceProvider role and an anti-forgery token.</remarks>
+    /// <param name="id">ID of the match.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>A redirect to <see cref="Index"/> with a message, 404 Not Found, or 403 Forbidden.</returns>
     [Authorize(Roles = AnyAppRole)]
     [HttpPost]
     [ValidateAntiForgeryToken]

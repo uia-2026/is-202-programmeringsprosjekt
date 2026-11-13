@@ -13,6 +13,10 @@ public class CategoryRepository : ICategoryRepository
 {
     private readonly AppDbContext _context;
 
+    /// <summary>
+    /// Creates the repository.
+    /// </summary>
+    /// <param name="context">The database context.</param>
     public CategoryRepository(AppDbContext context)
     {
         _context = context;
@@ -29,6 +33,7 @@ public class CategoryRepository : ICategoryRepository
             .ToListAsync();
     }
 
+    /// <inheritdoc />
     public async Task<Category?> GetByIdAsync(int id)
     {
         return await _context.Categories

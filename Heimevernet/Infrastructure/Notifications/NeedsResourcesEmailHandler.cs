@@ -23,6 +23,16 @@ public sealed class NeedsResourcesEmailHandler : IOutboxHandler
     private readonly TimeProvider _time;
     private readonly ILogger<NeedsResourcesEmailHandler> _logger;
 
+    /// <summary>
+    /// Creates the handler with its dependencies (injected by DI).
+    /// </summary>
+    /// <param name="users">Repository used to load the recipient.</param>
+    /// <param name="needs">Repository used to check that the need is still open.</param>
+    /// <param name="outbox">Repository used to count today's emails for the daily cap.</param>
+    /// <param name="sender">Sends the email.</param>
+    /// <param name="options">Notification limits and the public base URL for links.</param>
+    /// <param name="time">Clock, so tests can control the time.</param>
+    /// <param name="logger">Logger.</param>
     public NeedsResourcesEmailHandler(
         IUserRepository users,
         INeedRepository needs,
@@ -41,8 +51,10 @@ public sealed class NeedsResourcesEmailHandler : IOutboxHandler
         _logger = logger;
     }
 
+    /// <inheritdoc />
     public string Type => OutboxTypes.CriticalNeedEmail;
 
+    /// <inheritdoc />
     public async Task HandleAsync(OutboxMessage message, CancellationToken ct)
     {
         var payload = JsonSerializer.Deserialize<CriticalNeedEmailPayload>(message.Payload)

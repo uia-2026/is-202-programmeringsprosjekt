@@ -4,8 +4,12 @@ using Heimevernet.ViewModels.Map;
 
 namespace Heimevernet.Mappers;
 
+/// <summary>
+/// Default <see cref="IMapMarkerMapper"/> that copies each field one to one.
+/// </summary>
 public class MapMarkerMapper : IMapMarkerMapper
 {
+    /// <inheritdoc />
     public MapMarkerViewModel ToViewModel(MapMarkerDto dto)
     {
         return new MapMarkerViewModel(
@@ -25,6 +29,7 @@ public class MapMarkerMapper : IMapMarkerMapper
             dto.Longitude);
     }
 
+    /// <inheritdoc />
     public IReadOnlyList<MapMarkerViewModel> ToViewModels(
         IEnumerable<MapMarkerDto> dtos)
     {

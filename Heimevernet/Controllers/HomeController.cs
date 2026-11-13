@@ -10,6 +10,11 @@ namespace Heimevernet.Controllers;
 /// </summary>
 public class HomeController : Controller
 {
+    /// <summary>
+    /// Entry point of the site. Sends the user straight on to the map page.
+    /// </summary>
+    /// <remarks><c>GET /</c> or <c>GET /Home/Index</c>. Requires a signed-in user (fallback policy).</remarks>
+    /// <returns>A redirect to Map/Index.</returns>
     [HttpGet]
     public IActionResult Index()
     {
@@ -20,6 +25,8 @@ public class HomeController : Controller
     /// Displays the public privacy policy. Reachable without logging in so
     /// visitors can read it before creating an account.
     /// </summary>
+    /// <remarks><c>GET /Privacy</c>. Anonymous access allowed.</remarks>
+    /// <returns>The Privacy view.</returns>
     [AllowAnonymous]
     [HttpGet("/Privacy")]
     public IActionResult Privacy()

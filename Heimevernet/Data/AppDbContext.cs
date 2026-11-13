@@ -17,17 +17,34 @@ namespace Heimevernet.Data;
 /// </remarks>
 public class AppDbContext : DbContext
 {
+    /// <summary>
+    /// Creates the context with options from dependency injection.
+    /// </summary>
+    /// <param name="options">Database provider and connection settings.</param>
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
+    /// <summary>User accounts.</summary>
     public DbSet<User> Users => Set<User>();
+    /// <summary>Categories for needs and resources.</summary>
     public DbSet<Category> Categories => Set<Category>();
+    /// <summary>Registered needs.</summary>
     public DbSet<Need> Needs => Set<Need>();
+    /// <summary>Registered resources.</summary>
     public DbSet<Resource> Resources => Set<Resource>();
+    /// <summary>Photos attached to resources.</summary>
     public DbSet<Attachment> Attachments => Set<Attachment>();
+    /// <summary>Matches between needs and resources.</summary>
     public DbSet<Match> Matches => Set<Match>();
+    /// <summary>Audit history.</summary>
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    /// <summary>Messages waiting to be delivered by the outbox worker.</summary>
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
+    /// <summary>
+    /// Configures column lengths, enum-to-string conversions, indexes, relationships,
+    /// check constraints and concurrency tokens for every entity.
+    /// </summary>
+    /// <param name="modelBuilder">The builder used to configure the model.</param>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -255,6 +272,8 @@ public class AppDbContext : DbContext
     /// Automatically increments the Version property of any modified <see cref="IVersioned"/> entities,
     /// to support optimistic concurrency control.
     /// </summary>
+    /// <param name="cancellationToken">Cancellation token for the operation.</param>
+    /// <returns>The number of rows written to the database.</returns>
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         foreach (var entry in ChangeTracker.Entries<IVersioned>()

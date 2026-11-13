@@ -5,8 +5,18 @@ using Heimevernet.ViewModels.Map;
 
 namespace Heimevernet.Services;
 
+/// <summary>
+/// Marker data returned to the map page.
+/// </summary>
+/// <param name="Markers">Need and resource markers to draw.</param>
+/// <param name="Truncated"><see langword="true"/> when there were more markers than the limit, so the user should zoom in.</param>
 public sealed record MapDataViewModel(IReadOnlyList<MapMarkerViewModel> Markers, bool Truncated);
 
+/// <summary>
+/// Default <see cref="IMapService"/> that combines need and resource markers.
+/// </summary>
+/// <param name="needService">Used to load need markers.</param>
+/// <param name="resourceService">Used to load resource markers.</param>
 public sealed class MapService(INeedService needService, IResourceService resourceService) : IMapService
 {
     private const int MaxPerKind = 500;
@@ -14,6 +24,7 @@ public sealed class MapService(INeedService needService, IResourceService resour
     private readonly INeedService _needService = needService;
     private readonly IResourceService _resourceService = resourceService;
 
+    /// <inheritdoc />
     public async Task<MapDataViewModel> GetMarkersAsync(
         int userId, UserRole role, GeoBox box, CancellationToken ct = default)
     {

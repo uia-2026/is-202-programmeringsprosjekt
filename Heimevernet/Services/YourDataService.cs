@@ -9,6 +9,8 @@ namespace Heimevernet.Services;
 /// <summary>
 /// Builds the "Your data" overview and the JSON export of the user's own data.
 /// </summary>
+/// <param name="userRepository">Repository used to load the user and their listings.</param>
+/// <param name="auditRepository">Repository used to load the user's own activity.</param>
 public class YourDataService(
     IUserRepository userRepository,
     IAuditRepository auditRepository) : IYourDataService
@@ -16,6 +18,7 @@ public class YourDataService(
     private readonly IUserRepository _userRepository = userRepository;
     private readonly IAuditRepository _auditRepository = auditRepository;
 
+    /// <inheritdoc />
     public async Task<YourDataViewModel?> GetOverviewAsync(
         int userId,
         CancellationToken cancellationToken = default)
@@ -46,6 +49,7 @@ public class YourDataService(
         };
     }
 
+    /// <inheritdoc />
     public async Task<YourDataExportDto?> ExportAsync(
         int userId,
         CancellationToken cancellationToken = default)

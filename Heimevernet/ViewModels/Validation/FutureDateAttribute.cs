@@ -7,6 +7,12 @@ namespace Heimevernet.ViewModels.Validation;
 /// </summary>
 public sealed class FutureDateAttribute : ValidationAttribute
 {
+    /// <summary>
+    /// Returns success for <see langword="null"/> or a date after the current UTC time, and an error otherwise.
+    /// </summary>
+    /// <param name="value">The value to check. Should be a <see cref="DateTime"/> or <see langword="null"/>.</param>
+    /// <param name="validationContext">The validation context (not used).</param>
+    /// <returns><see cref="ValidationResult.Success"/>, or a <see cref="ValidationResult"/> with the error message.</returns>
     protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
     {
         if (value == null) return ValidationResult.Success;

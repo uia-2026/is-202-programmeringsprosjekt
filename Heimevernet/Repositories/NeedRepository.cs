@@ -17,10 +17,15 @@ namespace Heimevernet.Repositories;
 public class NeedRepository : INeedRepository
 {
     private readonly AppDbContext _context;
+    /// <summary>
+    /// Creates the repository.
+    /// </summary>
+    /// <param name="context">The database context.</param>
     public NeedRepository(AppDbContext context)
     {
         _context = context;
     }
+    /// <inheritdoc />
     public async Task<IEnumerable<Need>> GetAllAsync(CancellationToken cancellationToken = default) =>
         await _context.Needs
             .Include(n => n.Category)
@@ -39,6 +44,7 @@ public class NeedRepository : INeedRepository
             .Include(n => n.Category)
             .FirstOrDefaultAsync(n => n.Id == id, cancellationToken);
 
+    /// <inheritdoc />
     public async Task<Need?> GetByIdForUpdateAsync(int id, CancellationToken cancellationToken = default) =>
         await _context.Needs
             .Include(n => n.Category)
@@ -55,11 +61,13 @@ public class NeedRepository : INeedRepository
         await _context.Needs.AddAsync(need, cancellationToken);
     }
 
+    /// <inheritdoc />
     public void Remove(Need need)
     {
         _context.Needs.Remove(need);
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<MapMarkerDto>> GetMapMarkersAsync(
         GeoBox box, int limit, CancellationToken cancellationToken = default)
     {
@@ -80,6 +88,7 @@ public class NeedRepository : INeedRepository
             .ToListAsync(cancellationToken);
     }
 
+    /// <inheritdoc />
     public void SetOriginalVersion(Need need, int version)
     {
         _context.Entry(need)
@@ -93,6 +102,7 @@ public class NeedRepository : INeedRepository
     /// Forces EF Core to check Need.Version on save, even if nothing else on the need changed.
     /// Prevents two users from over-allocating the same need at the same time.
     /// </summary>
+    /// <param name="need">The tracked need.</param>
     public void MarkForConcurrencyCheck(Need need)
     {
         _context.Entry(need)
@@ -100,6 +110,7 @@ public class NeedRepository : INeedRepository
             .IsModified = true;
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<Need>> GetFilteredAsync(NeedFilterDto filter, CancellationToken cancellationToken = default)
     {
         var query = _context.Needs
@@ -141,6 +152,7 @@ public class NeedRepository : INeedRepository
 
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<string>> GetDistinctRegionsAsync(CancellationToken cancellationToken = default) =>
     await _context.Needs
         .AsNoTracking()
@@ -149,6 +161,7 @@ public class NeedRepository : INeedRepository
         .OrderBy(r => r)
         .ToListAsync(cancellationToken);
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<NeedNotificationRecipientDto>> GetNotificationRecipientsAsync(
     int categoryId,
     double latitude,
@@ -198,4 +211,3 @@ public class NeedRepository : INeedRepository
     }
 
 }
-

@@ -18,6 +18,10 @@ public class ResourceRepository : IResourceRepository
 {
     private readonly AppDbContext _context;
 
+    /// <summary>
+    /// Creates the repository.
+    /// </summary>
+    /// <param name="context">The database context.</param>
     public ResourceRepository(AppDbContext context)
     {
         _context = context;
@@ -41,6 +45,9 @@ public class ResourceRepository : IResourceRepository
     /// Retrieves the Resources owned by <paramref name="userId"/>, newest first (#37).
     /// The owner filter runs in SQL, so other users' resources are never loaded.
     /// </summary>
+    /// <param name="userId">ID of the owner.</param>
+    /// <param name="cancellationToken">Cancellation token for the query.</param>
+    /// <returns>The user's resources.</returns>
     public async Task<IReadOnlyList<Resource>> GetByUserIdAsync(
         int userId,
         CancellationToken cancellationToken = default)
@@ -57,6 +64,8 @@ public class ResourceRepository : IResourceRepository
     /// Retrieves every user who owns at least one Resource, ordered by username (#37).
     /// Only the id and username are selected.
     /// </summary>
+    /// <param name="cancellationToken">Cancellation token for the query.</param>
+    /// <returns>The owners.</returns>
     public async Task<IReadOnlyList<ResourceOwnerDto>> GetOwnersAsync(
         CancellationToken cancellationToken = default)
     {
@@ -85,6 +94,7 @@ public class ResourceRepository : IResourceRepository
                 cancellationToken);
     }
 
+    /// <inheritdoc />
     public async Task<Resource?> GetByIdForUpdateAsync(
         int id,
         CancellationToken cancellationToken = default)
@@ -128,11 +138,13 @@ public class ResourceRepository : IResourceRepository
             cancellationToken);
     }
 
+    /// <inheritdoc />
     public void Remove(Resource resource)
     {
         _context.Resources.Remove(resource);
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<MapMarkerDto>> GetMapMarkersAsync(
         GeoBox box, int? ownerUserId, bool availableOnly, int limit,
         CancellationToken cancellationToken = default)
@@ -157,6 +169,7 @@ public class ResourceRepository : IResourceRepository
             .ToListAsync(cancellationToken);
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<NearbyResourceDto>> GetCompatibleNearbyAsync(
     int categoryId,
     double latitude,
@@ -219,6 +232,7 @@ public class ResourceRepository : IResourceRepository
             .ToList();
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<Resource>> GetCandidateResourcesAsync(
         int needId,
         int categoryId,
@@ -240,6 +254,7 @@ public class ResourceRepository : IResourceRepository
         return await query.ToListAsync(cancellationToken);
     }
 
+    /// <inheritdoc />
     public void SetOriginalVersion(Resource resource, int version)
     {
         _context.Entry(resource)
@@ -247,6 +262,7 @@ public class ResourceRepository : IResourceRepository
             .OriginalValue = version;
     }
 
+    /// <inheritdoc />
     public void MarkForConcurrencyCheck(Resource resource)
     {
         _context.Entry(resource)
@@ -254,6 +270,7 @@ public class ResourceRepository : IResourceRepository
             .IsModified = true;
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<Resource>> GetFilteredAsync(ResourceFilterDto filter, CancellationToken cancellationToken = default)
     {
         var query = _context.Resources
@@ -298,6 +315,7 @@ public class ResourceRepository : IResourceRepository
         return await query.ToListAsync(cancellationToken);
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<string>> GetDistinctRegionsAsync(CancellationToken cancellationToken = default) =>
     await _context.Resources
         .AsNoTracking()
@@ -307,6 +325,7 @@ public class ResourceRepository : IResourceRepository
         .ToListAsync(cancellationToken);
 
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<NotificationRecipientDto>> GetNotificationRecipientsAsync(
     int categoryId,
     double latitude,

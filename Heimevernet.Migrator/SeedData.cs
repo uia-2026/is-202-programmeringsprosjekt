@@ -6,7 +6,10 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace Heimevernet.Migrator;
-
+/// <summary>
+/// Seeds the database after migrations: reference data in every environment, and test users,
+/// resources and needs in Development. Seeding can run many times without making duplicates.
+/// </summary>
 public static class SeedData
 {
     private const string DevPassword = "DevPassword123!";
@@ -22,10 +25,12 @@ public static class SeedData
         ("Premises",      CategoryAppliesTo.Both),
         ("Materials",     CategoryAppliesTo.Both),
     };
-
     /// <summary>
     /// Data the application cannot work without. Runs in every environment, on every start.
     /// </summary>
+    /// <param name="db">The database context.</param>
+    /// <param name="ct">Cancellation token for the operation.</param>
+    /// <returns>A task that completes when the categories are saved.</returns>
     public static async Task SeedReferenceDataAsync(AppDbContext db, CancellationToken ct)
     {
         foreach (var (name, appliesTo) in Categories)
@@ -44,6 +49,13 @@ public static class SeedData
     /// <summary>
     /// Development-only fixtures: two users, two resources with images, two needs.
     /// </summary>
+    /// <remarks>Both test users get the password <c>DevPassword123!</c>. Never run this outside Development.</remarks>
+    /// <param name="db">The database context.</param>
+    /// <param name="attachmentRepository">Used to add the seed images as attachments.</param>
+    /// <param name="fileStorage">Used to upload the seed images.</param>
+    /// <param name="unitOfWork">Saves the attachments.</param>
+    /// <param name="ct">Cancellation token for the operation.</param>
+    /// <returns>A task that completes when the test data is saved.</returns>
     public static async Task SeedDevDataAsync(
         AppDbContext db,
         IAttachmentRepository attachmentRepository,

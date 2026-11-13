@@ -4,12 +4,21 @@ using Microsoft.Extensions.Options;
 
 namespace Heimevernet.Infrastructure.Storage;
 
+/// <summary>
+/// <see cref="IFileStorage"/> for S3-compatible object storage (for example MinIO or Cloudflare R2).
+/// </summary>
 public sealed class S3FileStorage : IFileStorage
 {
     private readonly IAmazonS3 _amazonS3;
     private readonly string _bucketName;
     private readonly string _publicBaseUrl;
 
+    /// <summary>
+    /// Creates the storage client wrapper.
+    /// </summary>
+    /// <param name="amazonS3">The configured S3 client.</param>
+    /// <param name="options">Storage settings with bucket name and public base URL.</param>
+    /// <exception cref="InvalidOperationException">Thrown when the bucket or public base URL is not configured.</exception>
     public S3FileStorage(
         IAmazonS3 amazonS3,
         IOptions<StorageOptions> options)
@@ -28,6 +37,7 @@ public sealed class S3FileStorage : IFileStorage
             : throw new InvalidOperationException("Storage:PublicBaseUrl is not configured.");
     }
 
+    /// <inheritdoc />
     public async Task<string> UploadAsync(
         string key,
         Stream content,
@@ -51,6 +61,7 @@ public sealed class S3FileStorage : IFileStorage
         return key;
     }
 
+    /// <inheritdoc />
     public async Task DeleteAsync(
         string key,
         CancellationToken ct = default)
@@ -66,10 +77,10 @@ public sealed class S3FileStorage : IFileStorage
         await _amazonS3.DeleteObjectAsync(request, ct);
     }
 
+    /// <inheritdoc />
     public string GetPublicUrl(string key)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         return $"{_publicBaseUrl}/{key}";
     }
 }
-

@@ -10,6 +10,12 @@ public sealed class OutboxWorker : BackgroundService
     private readonly EmailOptions _email;
     private readonly ILogger<OutboxWorker> _logger;
 
+    /// <summary>
+    /// Creates the worker.
+    /// </summary>
+    /// <param name="scopes">Creates a new DI scope for each pass and each message.</param>
+    /// <param name="email">Email settings; the worker only runs when email is enabled.</param>
+    /// <param name="logger">Logger.</param>
     public OutboxWorker(IServiceScopeFactory scopes, IOptions<EmailOptions> email, ILogger<OutboxWorker> logger)
     {
         _scopes = scopes;
@@ -17,6 +23,12 @@ public sealed class OutboxWorker : BackgroundService
         _logger = logger;
     }
 
+    /// <summary>
+    /// Polls for due messages every <see cref="OutboxPolicy.PollInterval"/> until the app stops.
+    /// Returns at once when email is disabled.
+    /// </summary>
+    /// <param name="stoppingToken">Cancelled when the app shuts down.</param>
+    /// <returns>A task that runs for the life of the app.</returns>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         if (!_email.Enabled)
