@@ -90,13 +90,13 @@
         <div class="form-row-2">
 
             <div class="form-field-group">
-                <label asp-for="QuantityNeeded"></label>
+                <label asp-for="QuantityNeeded">Quantity Needed</label>
                 <input asp-for="QuantityNeeded" class="form-control" type="number" min="1" max="10000" />
                 <span asp-validation-for="QuantityNeeded" class="text-danger small"></span>
             </div>
 
             <div class="form-field-group">
-                <label asp-for="ContactPoint"></label>
+                <label asp-for="ContactPoint">Contact Point</label>
                 <input asp-for="ContactPoint" class="form-control"
                        placeholder="Phone, email, or other contact information" />
                 <span asp-validation-for="ContactPoint" class="text-danger small"></span>

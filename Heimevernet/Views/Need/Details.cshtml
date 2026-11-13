@@ -48,7 +48,7 @@
 
     <style>
         #needMap {
-            height: 220px;
+            height: 400px;
         }
     </style>
 }
@@ -145,63 +145,67 @@
             <div id="needMap" class="map-panel" data-lat="@lat" data-lng="@lng"></div>
         </div>
 
-        <div class="side-card">
-            <h2 class="side-card-title">Actions</h2>
+        @if (Model.CanProposeMatch | need.IsOwner)
+        {
+            <div class="side-card">
+                <h2 class="side-card-title">Actions</h2>
 
-            @if (Model.CanProposeMatch)
-            {
-                <a asp-controller="Match"
-                   asp-action="Propose"
-                   asp-route-needId="@need.Id"
-                   class="btn btn-brand w-100 mb-2">
-                    Propose Match
-                </a>
-            }
-
-            @if (need.IsOwner)
-            {
-                @if (need.Status == Heimevernet.Models.NeedStatus.Assigned)
+                @if (Model.CanProposeMatch)
                 {
-                    <form asp-action="Resolve"
-                          asp-route-id="@need.Id"
-                          method="post"
-                          class="mb-2"
-                          onsubmit="return confirm('Mark this need as resolved? All assigned matches will also be resolved.');">
-                        @Html.AntiForgeryToken()
-
-                        <button type="submit" class="btn btn-brand w-100">
-                            Mark as Resolved
-                        </button>
-                    </form>
-                }
-
-                @if (need.Status != Heimevernet.Models.NeedStatus.Resolved)
-                {
-                    <a asp-action="Edit"
-                       asp-route-id="@need.Id"
-                       class="btn btn-outline-brand w-100 mb-2">
-                        Edit Need
+                    <a asp-controller="Match"
+                    asp-action="Propose"
+                    asp-route-needId="@need.Id"
+                    class="btn btn-brand w-100 mb-2">
+                        Propose Match
                     </a>
                 }
 
-                <form asp-action="Delete"
-                      asp-route-id="@need.Id"
-                      method="post"
-                      class="mb-2"
-                      onsubmit="return confirm('Delete this need? This cannot be undone.');">
-                    @Html.AntiForgeryToken()
+                @if (need.IsOwner)
+                {
+                    @if (need.Status == Heimevernet.Models.NeedStatus.Assigned)
+                    {
+                        <form asp-action="Resolve"
+                        asp-route-id="@need.Id"
+                        method="post"
+                        class="mb-2"
+                        onsubmit="return confirm('Mark this need as resolved? All assigned matches will also be resolved.');">
+                            @Html.AntiForgeryToken()
 
-                    <button type="submit" class="btn btn-danger-soft w-100">
-                        Delete Need
-                    </button>
-                </form>
-            }
-        </div>
+                            <button type="submit" class="btn btn-brand w-100">
+                                Mark as Resolved
+                            </button>
+                        </form>
+                    }
+
+                    @if (need.Status != Heimevernet.Models.NeedStatus.Resolved)
+                    {
+                        <a asp-action="Edit"
+                        asp-route-id="@need.Id"
+                        class="btn btn-outline-brand w-100 mb-2">
+                            Edit Need
+                        </a>
+                    }
+
+                    <form asp-action="Delete"
+                    asp-route-id="@need.Id"
+                    method="post"
+                    class="mb-2"
+                    onsubmit="return confirm('Delete this need? This cannot be undone.');">
+                        @Html.AntiForgeryToken()
+
+                        <button type="submit" class="btn btn-danger-soft w-100">
+                            Delete Need
+                        </button>
+                    </form>
+                }
+            </div>
+        }
     </div>
 
 </div>
-
-<div class="detail-card mt-3" id="nearby-resources">
+@if (User.IsInRole("PublicActor"))
+{
+    <div class="detail-card mt-3" id="nearby-resources">
     <h2 class="side-card-title">
         Nearby Resources
         <span class="detail-field-sub">(within @Model.NearbyResourcesRadiusKm km)</span>
@@ -216,7 +220,7 @@
 
                 <div class="nearby-row">
                     <div>
-                        <div class="nearby-row-title">@resource.Title</div>
+                        <a href="/Resource/Details/@resource.Id" class="nearby-row-title">@resource.Title</a>
                         <div class="nearby-row-meta">@resource.CategoryName &middot; @resource.Region</div>
                         <div class="nearby-row-meta">Contact: @resource.ContactPoint &middot; Quantity: @resource.QuantityOffered</div>
                     </div>
@@ -236,6 +240,8 @@
         </p>
     }
 </div>
+}
+
 
 @section Scripts {
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
