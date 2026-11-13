@@ -161,8 +161,6 @@ if (!mapElement || typeof L === "undefined") {
         collapsed: true
     }).addTo(state.map);
 
-    L.control.zoom({ position: "bottomright" }).addTo(state.map);
-
     state.markerLayer = L.layerGroup().addTo(state.map);
     state.searchLayer = L.layerGroup().addTo(state.map);
     state.measurementLayer = L.layerGroup().addTo(state.map);
