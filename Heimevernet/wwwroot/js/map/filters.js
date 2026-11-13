@@ -60,13 +60,30 @@ function matches(marker, f) {
     return true;
 }
 
+const allChecked = selector => [...document.querySelectorAll(selector)].every(i => i.checked);
+
+/** True when anything differs from the state "Reset filters" restores. */
+function hasActiveFilters(f) {
+    return !allChecked(".map-filter-kind")
+        || !allChecked(".map-filter-priority")
+        || Boolean(f.category || f.region || f.needStatus || f.resourceStatus)
+        || Boolean(state.searchLocation);
+}
+
+/** Makes the reset button glow while any filter is on, so it's easy to undo them. */
+function updateResetButton(filters) {
+    elements.mapFilterResetBtn?.classList.toggle("is-active", hasActiveFilters(filters));
+}
+
 export function applyFilters() {
+    const filters = readFilters();
+    updateResetButton(filters);
+
     if (!state.hasLoadedMarkers) {
         updateEmptyMessage(0);
         return;
     }
 
-    const filters = readFilters();
     renderMarkers(state.allMarkers.filter(m => matches(m, filters)));
     updateDistanceNote(filters.radiusKm);
 }

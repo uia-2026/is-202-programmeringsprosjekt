@@ -1,4 +1,5 @@
 using Heimevernet.Models;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace Heimevernet.DTOs.Needs;
 
@@ -11,6 +12,10 @@ public class NeedFilterDto
     public NeedStatus? Status { get; set; }
     public NeedPriority? Priority { get; set; }
     public int? CategoryId { get; set; }
+    /// <summary>Set server-side from the logged-in user; never bound from the request.</summary>
+    [BindNever]
+    public int? OwnerUserId { get; set; }
+    public bool ShowOnlyMine { get; set; }
     public string? Region { get; set; }
     public string? Search { get; set; }
     public NeedSortOption Sort { get; set; } = NeedSortOption.CreatedAtDescending;
