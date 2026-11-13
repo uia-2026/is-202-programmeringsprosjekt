@@ -20,6 +20,16 @@ public sealed class ResourceRegisteredHandler : IOutboxHandler
     private readonly TimeProvider _time;
     private readonly ILogger<ResourceRegisteredHandler> _logger;
 
+    /// <summary>
+    /// Creates the handler with its dependencies (injected by DI).
+    /// </summary>
+    /// <param name="needs">Repository used to find users with fitting needs.</param>
+    /// <param name="resources">Repository used to load the resource.</param>
+    /// <param name="outbox">Queues the per-recipient email messages.</param>
+    /// <param name="unitOfWork">Saves the queued messages.</param>
+    /// <param name="options">Notification radius and limits.</param>
+    /// <param name="time">Clock, so tests can control the time.</param>
+    /// <param name="logger">Logger.</param>
     public ResourceRegisteredHandler(
         INeedRepository needs,
         IResourceRepository resources,
@@ -38,8 +48,10 @@ public sealed class ResourceRegisteredHandler : IOutboxHandler
         _logger = logger;
     }
 
+    /// <inheritdoc />
     public string Type => OutboxTypes.ResourceRegistered;
 
+    /// <inheritdoc />
     public async Task HandleAsync(OutboxMessage message, CancellationToken ct)
     {
         var payload = JsonSerializer.Deserialize<ResourceRegisteredPayload>(message.Payload)

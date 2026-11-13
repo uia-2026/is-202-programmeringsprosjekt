@@ -5,8 +5,12 @@ using Heimevernet.ViewModels.Match;
 
 namespace Heimevernet.Mappers;
 
+/// <summary>
+/// Default <see cref="IMatchListMapper"/>.
+/// </summary>
 public class MatchListMapper : IMatchListMapper
 {
+    /// <inheritdoc />
     public MatchListItemViewModel ToListItem(Match match, int currentUserId, double needLatitude, double needLongitude, double resourceLatitude, double resourceLongitude)
     {
         var isResourceOwner = match.Resource.UserId == currentUserId;

@@ -14,6 +14,12 @@ namespace Heimevernet.Controllers;
 /// MVC controller for handling Need-related web pages (list, create, details).
 /// Uses INeedService for business operations and ICategoryRepository to populate category lists.
 /// </summary>
+/// <param name="needService">Business logic for needs.</param>
+/// <param name="categoryRepository">Loads categories for the forms and filters.</param>
+/// <param name="resourceService">Finds nearby resources for the Details page.</param>
+/// <param name="regionResolver">Finds the region from the chosen map location.</param>
+/// <param name="matchService">Checks if the user may propose a match.</param>
+/// <param name="logger">Logs errors when the list cannot be loaded.</param>
 public class NeedController(
     INeedService needService,
     ICategoryRepository categoryRepository,
@@ -38,7 +44,8 @@ public class NeedController(
     /// </summary>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>An <see cref="IActionResult"/> that renders the Index view.</returns>
-    ///
+    /// <remarks><c>GET /Need/Index</c>. Requires a signed-in user (fallback policy). If loading fails, the view shows an error message instead of throwing.</remarks>
+    /// <param name="filter">Filter and sort options from the query string.</param>
     [HttpGet]
     public async Task<IActionResult> Index(NeedFilterDto filter, CancellationToken cancellationToken)
     {
@@ -72,6 +79,7 @@ public class NeedController(
     /// Shows the create need form populated with available categories.
     /// </summary>
     /// <returns>An <see cref="IActionResult"/> that renders the Create view.</returns>
+    /// <remarks><c>GET /Need/Create</c>. Requires the PublicActor role.</remarks>
     [HttpGet]
     [Authorize(Roles = "PublicActor")]
     public async Task<IActionResult> Create()
@@ -92,6 +100,10 @@ public class NeedController(
     /// <param name="model">The create view model submitted by the user.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>Redirects to Index on success or returns the view with validation errors.</returns>
+    /// <remarks>
+    /// <c>POST /Need/Create</c>. Requires the PublicActor role and an anti-forgery token.
+    /// The region is found from the map location before validation.
+    /// </remarks>
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = "PublicActor")]
@@ -118,6 +130,13 @@ public class NeedController(
         return RedirectToAction(nameof(Details), new { id = createdId });
     }
 
+    /// <summary>
+    /// Shows the edit form for a need, using the same view as Create.
+    /// </summary>
+    /// <remarks><c>GET /Need/Edit/{id}</c>. Requires the PublicActor role, and the user must own the need.</remarks>
+    /// <param name="id">ID of the need.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>The Create view in edit mode, 404 Not Found, or 403 Forbidden.</returns>
     [HttpGet]
     [Authorize(Roles = "PublicActor")]
     public async Task<IActionResult> Edit(int id, CancellationToken cancellationToken)
@@ -154,6 +173,17 @@ public class NeedController(
         return View("Create", model);
     }
 
+    /// <summary>
+    /// Saves changes to a need owned by the user.
+    /// </summary>
+    /// <remarks><c>POST /Need/Edit/{id}</c>. Requires the PublicActor role and an anti-forgery token.</remarks>
+    /// <param name="id">ID of the need.</param>
+    /// <param name="model">The submitted form.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>
+    /// A redirect to <see cref="Details"/> on success, the form again with errors for validation errors or conflicts,
+    /// 404 Not Found, or 403 Forbidden.
+    /// </returns>
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = "PublicActor")]
@@ -204,6 +234,16 @@ public class NeedController(
         }
     }
 
+    /// <summary>
+    /// Deletes a need owned by the user. Needs with matches cannot be deleted.
+    /// </summary>
+    /// <remarks><c>POST /Need/Delete/{id}</c>. Requires the PublicActor role and an anti-forgery token.</remarks>
+    /// <param name="id">ID of the need.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>
+    /// A redirect to the list on success, a redirect to <see cref="Details"/> with an error on conflict,
+    /// 404 Not Found, or 403 Forbidden.
+    /// </returns>
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = "PublicActor")]
@@ -232,6 +272,17 @@ public class NeedController(
         }
     }
 
+    /// <summary>
+    /// JSON API version of <see cref="Edit(int, NeedCreateViewModel, CancellationToken)"/>.
+    /// </summary>
+    /// <remarks><c>PUT /api/needs/{id}</c>. Requires the PublicActor role.</remarks>
+    /// <param name="id">ID of the need.</param>
+    /// <param name="model">The new values as JSON in the request body.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>
+    /// 200 OK, 404 Not Found, 403 Forbidden or 409 Conflict with a <c>{ message }</c> body,
+    /// or 422 Unprocessable Entity with validation problems.
+    /// </returns>
     [HttpPut("/api/needs/{id:int}")]
     [Authorize(Roles = "PublicActor")]
     public async Task<IActionResult> UpdateApi(int id, [FromBody] NeedCreateViewModel? model, CancellationToken cancellationToken)
@@ -261,6 +312,13 @@ public class NeedController(
         return ToApiResult(result, message);
     }
 
+    /// <summary>
+    /// JSON API version of <see cref="Delete"/>.
+    /// </summary>
+    /// <remarks><c>DELETE /api/needs/{id}</c>. Requires the PublicActor role.</remarks>
+    /// <param name="id">ID of the need.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>200 OK, 404 Not Found, 403 Forbidden or 409 Conflict with a <c>{ message }</c> body.</returns>
     [HttpDelete("/api/needs/{id:int}")]
     [Authorize(Roles = "PublicActor")]
     public async Task<IActionResult> DeleteApi(int id, CancellationToken cancellationToken)
@@ -273,6 +331,10 @@ public class NeedController(
     /// Marks an Assigned Need as Resolved from the Need Details page (#97).
     /// Uses the existing NeedService.ResolveAsync, which validates ownership and status.
     /// </summary>
+    /// <remarks><c>POST /Need/Resolve/{id}</c>. Requires the PublicActor role and an anti-forgery token.</remarks>
+    /// <param name="id">ID of the need.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>A redirect to <see cref="Details"/> with a message, 404 Not Found, or 403 Forbidden.</returns>
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = "PublicActor")]
@@ -301,6 +363,13 @@ public class NeedController(
         }
     }
 
+    /// <summary>
+    /// JSON API version of <see cref="Resolve"/>.
+    /// </summary>
+    /// <remarks><c>POST /api/needs/{id}/resolve</c>. Requires the PublicActor role and an anti-forgery token.</remarks>
+    /// <param name="id">ID of the need.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>200 OK, 404 Not Found, 403 Forbidden or 409 Conflict with a <c>{ message }</c> body.</returns>
     [HttpPost("/api/needs/{id:int}/resolve")]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = "PublicActor")]
@@ -316,6 +385,10 @@ public class NeedController(
     /// <see cref="NearbyResourcesMaxResults"/> results. This is a plain "what's physically
     /// closest" list — no category/priority scoring, that belongs to a future matching feature.
     /// </summary>
+    /// <remarks><c>GET /Need/Details/{id}</c>. Requires the PublicActor or ResourceProvider role.</remarks>
+    /// <param name="id">ID of the need.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>The Details view with a <see cref="NeedDetailsViewModel"/>, or 404 Not Found.</returns>
     [HttpGet]
     [Authorize(Roles = "PublicActor,ResourceProvider")]
     public async Task<IActionResult> Details(

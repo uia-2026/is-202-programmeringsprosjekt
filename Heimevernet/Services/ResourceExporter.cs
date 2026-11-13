@@ -45,6 +45,8 @@ public static class ResourceExporter
     /// Builds a UTF-8 CSV file. It starts with a byte order mark so that Excel
     /// reads æ, ø and å correctly.
     /// </summary>
+    /// <param name="resources">The resources to export.</param>
+    /// <returns>The CSV file as bytes.</returns>
     public static byte[] ToCsv(IEnumerable<ResourceViewModel> resources)
     {
         var csv = new StringBuilder();
@@ -72,6 +74,8 @@ public static class ResourceExporter
     /// Builds an indented UTF-8 GeoJSON FeatureCollection. Dates use ISO 8601 and
     /// Status is written by name, so the file is machine-readable.
     /// </summary>
+    /// <param name="resources">The resources to export. Resources without a valid location get a <c>null</c> geometry.</param>
+    /// <returns>The GeoJSON file as bytes.</returns>
     public static byte[] ToGeoJson(IEnumerable<ResourceViewModel> resources)
     {
         var featureCollection = new
@@ -108,6 +112,8 @@ public static class ResourceExporter
     /// <summary>
     /// Builds a parquet file with the same resource fields plus a WKB point geometry column.
     /// </summary>
+    /// <param name="resources">The resources to export.</param>
+    /// <returns>The GeoParquet file as bytes.</returns>
     public static byte[] ToGeoParquet(IEnumerable<ResourceViewModel> resources)
     {
         var rows = resources

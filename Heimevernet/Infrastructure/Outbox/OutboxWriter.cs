@@ -6,17 +6,26 @@ using Microsoft.Extensions.Options;
 
 namespace Heimevernet.Infrastructure.Outbox;
 
+/// <summary>
+/// Default <see cref="IOutbox"/> that adds <see cref="OutboxMessage"/> rows to the current unit of work.
+/// </summary>
 public sealed class OutboxWriter : IOutbox
 {
     private readonly IOutboxRepository _repository;
     private readonly EmailOptions _email;
 
+    /// <summary>
+    /// Creates the writer.
+    /// </summary>
+    /// <param name="repository">Repository the messages are added to.</param>
+    /// <param name="email">Email settings; nothing is queued when email is disabled.</param>
     public OutboxWriter(IOutboxRepository repository, IOptions<EmailOptions> email)
     {
         _repository = repository;
         _email = email.Value;
     }
 
+    /// <inheritdoc />
     public void Enqueue(string type, object payload, string dedupKey, int? recipientUserId = null)
     {
         // Nothing reads the outbox when email is off, so the table would only fill up

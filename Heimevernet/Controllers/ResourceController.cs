@@ -15,6 +15,11 @@ namespace Heimevernet.Controllers;
 /// MVC controller for handling Resource-related web pages (list, create, details).
 /// Uses IResourceService for business operations and ICategoryRepository to populate category lists.
 /// </summary>
+/// <param name="resourceService">Business logic for resources.</param>
+/// <param name="categoryRepository">Loads categories for the forms and filters.</param>
+/// <param name="attachmentService">Uploads, lists and deletes photos.</param>
+/// <param name="regionResolver">Finds the region from the chosen map location.</param>
+/// <param name="logger">Logs errors when the list cannot be loaded.</param>
 public class ResourceController(
     IResourceService resourceService,
     ICategoryRepository categoryRepository,
@@ -34,7 +39,11 @@ public class ResourceController(
     /// Public Actors see every resource by default and can filter by owner with <paramref name="ownerId"/>.
     /// All filtering happens in the database.
     /// </summary>
-    /// 
+    /// <remarks><c>GET /Resource/Index</c>. Requires a signed-in user (fallback policy).</remarks>
+    /// <param name="filter">Filter and sort options from the query string.</param>
+    /// <param name="ownerId">Owner to filter by (Public Actors only).</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>The Index view with a <see cref="ResourceIndexViewModel"/>. On errors, the view shows an error message.</returns>
     [HttpGet]
     public async Task<IActionResult> Index(
     ResourceFilterDto filter,
@@ -80,6 +89,11 @@ public class ResourceController(
 
 
 
+    /// <summary>
+    /// Shows the form for registering a new resource.
+    /// </summary>
+    /// <remarks><c>GET /Resource/Create</c>. Requires the PublicActor or ResourceProvider role.</remarks>
+    /// <returns>The Create view with categories filled in.</returns>
     [HttpGet]
     [Authorize(Roles = "PublicActor,ResourceProvider")]
     public async Task<IActionResult> Create()
@@ -100,6 +114,12 @@ public class ResourceController(
     /// The resource is registered even if the photo upload fails.
     /// </summary>
     /// <returns>Redirects to the new resource's Details page, or redisplays the form on validation errors.</returns>
+    /// <remarks>
+    /// <c>POST /Resource/Create</c>. Requires the PublicActor or ResourceProvider role and an anti-forgery token.
+    /// Request size is limited to 6 MB.
+    /// </remarks>
+    /// <param name="model">The submitted form, with an optional image.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
     [HttpPost]
     [Authorize(Roles = "PublicActor,ResourceProvider")]
     [ValidateAntiForgeryToken]
@@ -142,6 +162,13 @@ public class ResourceController(
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    /// <summary>
+    /// Shows the edit form for a resource, using the same view as Create.
+    /// </summary>
+    /// <remarks><c>GET /Resource/Edit/{id}</c>. Requires the PublicActor or ResourceProvider role, and the user must own the resource.</remarks>
+    /// <param name="id">ID of the resource.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>The Create view in edit mode, 404 Not Found, or 403 Forbidden.</returns>
     [HttpGet]
     [Authorize(Roles = "PublicActor,ResourceProvider")]
     public async Task<IActionResult> Edit(int id, CancellationToken cancellationToken)
@@ -174,6 +201,17 @@ public class ResourceController(
         return View("Create", model);
     }
 
+    /// <summary>
+    /// Saves changes to a resource owned by the user.
+    /// </summary>
+    /// <remarks><c>POST /Resource/Edit/{id}</c>. Requires the PublicActor or ResourceProvider role and an anti-forgery token.</remarks>
+    /// <param name="id">ID of the resource.</param>
+    /// <param name="model">The submitted form.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>
+    /// A redirect to <see cref="Details"/> on success, the form again with errors for validation errors or conflicts,
+    /// 404 Not Found, or 403 Forbidden.
+    /// </returns>
     [HttpPost]
     [Authorize(Roles = "PublicActor,ResourceProvider")]
     [ValidateAntiForgeryToken]
@@ -223,6 +261,16 @@ public class ResourceController(
         }
     }
 
+    /// <summary>
+    /// Deletes a resource owned by the user. Resources with matches cannot be deleted.
+    /// </summary>
+    /// <remarks><c>POST /Resource/Delete/{id}</c>. Requires the PublicActor or ResourceProvider role and an anti-forgery token.</remarks>
+    /// <param name="id">ID of the resource.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>
+    /// A redirect to the list on success, a redirect to <see cref="Details"/> with an error on conflict,
+    /// 404 Not Found, or 403 Forbidden.
+    /// </returns>
     [HttpPost]
     [Authorize(Roles = "PublicActor,ResourceProvider")]
     [ValidateAntiForgeryToken]
@@ -251,6 +299,17 @@ public class ResourceController(
         }
     }
 
+    /// <summary>
+    /// JSON API version of <see cref="Edit(int, ResourceCreateViewModel, CancellationToken)"/>.
+    /// </summary>
+    /// <remarks><c>PUT /api/resources/{id}</c>. Requires the PublicActor or ResourceProvider role.</remarks>
+    /// <param name="id">ID of the resource.</param>
+    /// <param name="model">The new values as JSON in the request body.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>
+    /// 200 OK, 404 Not Found, 403 Forbidden or 409 Conflict with a <c>{ message }</c> body,
+    /// or 422 Unprocessable Entity with validation problems.
+    /// </returns>
     [HttpPut("/api/resources/{id:int}")]
     [Authorize(Roles = "PublicActor,ResourceProvider")]
     public async Task<IActionResult> UpdateApi(int id, [FromBody] ResourceCreateViewModel model, CancellationToken cancellationToken)
@@ -270,6 +329,13 @@ public class ResourceController(
         return ToApiResult(result, message);
     }
 
+    /// <summary>
+    /// JSON API version of <see cref="Delete"/>.
+    /// </summary>
+    /// <remarks><c>DELETE /api/resources/{id}</c>. Requires the PublicActor or ResourceProvider role.</remarks>
+    /// <param name="id">ID of the resource.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>200 OK, 404 Not Found, 403 Forbidden or 409 Conflict with a <c>{ message }</c> body.</returns>
     [HttpDelete("/api/resources/{id:int}")]
     [Authorize(Roles = "PublicActor,ResourceProvider")]
     public async Task<IActionResult> DeleteApi(int id, CancellationToken cancellationToken)
@@ -278,6 +344,13 @@ public class ResourceController(
         return ToApiResult(result, message);
     }
 
+    /// <summary>
+    /// Shows one resource with its photos.
+    /// </summary>
+    /// <remarks><c>GET /Resource/Details/{id}</c>. Requires a signed-in user (fallback policy).</remarks>
+    /// <param name="id">ID of the resource.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>The Details view with a <see cref="ResourceViewModel"/>, or 404 Not Found.</returns>
     [HttpGet]
     public async Task<IActionResult> Details(int id, CancellationToken cancellationToken)
     {
@@ -296,6 +369,10 @@ public class ResourceController(
     /// Only Resources currently marked Available are listed - a Public Actor printing
     /// this wants what can actually be requested right now, not resources already in use.
     /// </summary>
+    /// <remarks><c>GET /Resource/PrintByRegion?region={region}</c>. Requires the PublicActor role.</remarks>
+    /// <param name="region">Region to show, or empty for all regions.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>The PrintByRegion view with a <see cref="PrintByRegionViewModel"/>.</returns>
     [HttpGet]
     [Authorize(Roles = "PublicActor")]
     public async Task<IActionResult> PrintByRegion(string? region, CancellationToken cancellationToken)
@@ -319,6 +396,10 @@ public class ResourceController(
     }
 
     /// <summary>Downloads the same list as <see cref="PrintByRegion"/> as a CSV file (#94).</summary>
+    /// <remarks><c>GET /Resource/ExportCsv?region={region}</c>. Requires the PublicActor role.</remarks>
+    /// <param name="region">Region to export, or empty for all regions.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>A <c>text/csv</c> file download.</returns>
     [HttpGet]
     [Authorize(Roles = "PublicActor")]
     public async Task<IActionResult> ExportCsv(string? region, CancellationToken cancellationToken)
@@ -330,6 +411,10 @@ public class ResourceController(
     }
 
     /// <summary>Downloads the same list as <see cref="PrintByRegion"/> as a GeoJSON file (#94).</summary>
+    /// <remarks><c>GET /Resource/ExportGeoJson?region={region}</c>. Requires the PublicActor role.</remarks>
+    /// <param name="region">Region to export, or empty for all regions.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>An <c>application/geo+json</c> file download.</returns>
     [HttpGet]
     [Authorize(Roles = "PublicActor")]
     public async Task<IActionResult> ExportGeoJson(string? region, CancellationToken cancellationToken)
@@ -341,6 +426,10 @@ public class ResourceController(
     }
 
     /// <summary>Downloads the same list as <see cref="PrintByRegion"/> as a GeoParquet file.</summary>
+    /// <remarks><c>GET /Resource/ExportGeoParquet?region={region}</c>. Requires the PublicActor role.</remarks>
+    /// <param name="region">Region to export, or empty for all regions.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>An <c>application/vnd.apache.parquet</c> file download.</returns>
     [HttpGet]
     [Authorize(Roles = "PublicActor")]
     public async Task<IActionResult> ExportGeoParquet(string? region, CancellationToken cancellationToken)
@@ -373,6 +462,13 @@ public class ResourceController(
     }
 
     /// <summary>Uploads a photo to a resource owned by the current user.</summary>
+    /// <remarks>
+    /// <c>POST /Resource/UploadAttachment</c>. Requires the PublicActor or ResourceProvider role and an anti-forgery token.
+    /// Request size is limited to 6 MB. Ownership is checked in <see cref="IAttachmentService.UploadAsync"/>.
+    /// </remarks>
+    /// <param name="model">The resource ID and the image file.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>A redirect to <see cref="Details"/> with a success or error message.</returns>
     [HttpPost]
     [Authorize(Roles = "PublicActor,ResourceProvider")]
     [ValidateAntiForgeryToken]
@@ -396,6 +492,14 @@ public class ResourceController(
     }
 
     /// <summary>Deletes a photo from a resource owned by the current user.</summary>
+    /// <remarks>
+    /// <c>POST /Resource/DeleteAttachment</c>. Requires the PublicActor or ResourceProvider role and an anti-forgery token.
+    /// Ownership is checked in <see cref="IAttachmentService.DeleteAsync"/>.
+    /// </remarks>
+    /// <param name="attachmentId">ID of the photo to delete.</param>
+    /// <param name="resourceId">ID of the resource, used for the redirect.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>A redirect to <see cref="Details"/> with a success or error message.</returns>
     [HttpPost]
     [Authorize(Roles = "PublicActor,ResourceProvider")]
     [ValidateAntiForgeryToken]

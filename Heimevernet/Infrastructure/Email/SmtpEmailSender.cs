@@ -4,10 +4,17 @@ using MailKit.Security;
 using Microsoft.Extensions.Options;
 using MimeKit;
 
+/// <summary>
+/// <see cref="IEmailSender"/> that sends plain text email over SMTP with MailKit.
+/// It opens a new connection for each email.
+/// </summary>
+/// <param name="options">SMTP settings.</param>
 public sealed class SmtpEmailSender(IOptions<EmailOptions> options) : IEmailSender
 {
     private readonly EmailOptions _options = options.Value;
 
+    /// <inheritdoc />
+    /// <exception cref="InvalidOperationException">Thrown when a user name is set but the password is missing.</exception>
     public async Task SendAsync(string toAddress, string toName, string subject, string body, CancellationToken ct)
     {
         var message = new MimeMessage();

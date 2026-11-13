@@ -6,6 +6,9 @@ using Heimevernet.ViewModels.Attachment;
 
 namespace Heimevernet.Services;
 
+/// <summary>
+/// Default <see cref="IAttachmentService"/> that stores images in object storage and their metadata in the database.
+/// </summary>
 public sealed class AttachmentService : IAttachmentService
 {
     private const long MaxFileSize = 5 * 1024 * 1024;
@@ -25,6 +28,15 @@ public sealed class AttachmentService : IAttachmentService
     private readonly IAuditLogger _auditLogger;
     private readonly ILogger<AttachmentService> _logger;
 
+    /// <summary>
+    /// Creates the service with its dependencies (injected by DI).
+    /// </summary>
+    /// <param name="attachments">Repository for attachment rows.</param>
+    /// <param name="resources">Repository used to check resource ownership.</param>
+    /// <param name="storage">File storage for the image files.</param>
+    /// <param name="uow">Unit of work used to save changes in a transaction.</param>
+    /// <param name="auditLogger">Audit logger for upload and delete events.</param>
+    /// <param name="logger">Logger for storage errors.</param>
     public AttachmentService(
         IAttachmentRepository attachments,
         IResourceRepository resources,
@@ -41,6 +53,7 @@ public sealed class AttachmentService : IAttachmentService
         _logger = logger;
     }
 
+    /// <inheritdoc />
     public async Task<AttachmentResult> UploadAsync(
         int resourceId, Stream content, string fileName, long length, int userId, CancellationToken ct = default)
     {
@@ -97,6 +110,7 @@ public sealed class AttachmentService : IAttachmentService
         return new(true, null);
     }
 
+    /// <inheritdoc />
     public async Task<AttachmentResult> DeleteAsync(int attachmentId, int userId, CancellationToken ct = default)
     {
         var attachment = await _attachments.GetByIdAsync(attachmentId, ct);
@@ -114,6 +128,7 @@ public sealed class AttachmentService : IAttachmentService
         return new(true, null);
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<AttachmentViewModel>> GetForResourceAsync(int resourceId, CancellationToken ct = default)
     {
         var items = await _attachments.GetByResourceIdAsync(resourceId, ct);
@@ -123,6 +138,7 @@ public sealed class AttachmentService : IAttachmentService
             .ToList();
     }
 
+    /// <inheritdoc />
     public async Task DeleteStorageObjectsAsync(IEnumerable<string> storageKeys)
     {
         foreach (var key in storageKeys)

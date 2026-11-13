@@ -21,6 +21,16 @@ public sealed class CriticalNeedRegisteredHandler : IOutboxHandler
     private readonly TimeProvider _time;
     private readonly ILogger<CriticalNeedRegisteredHandler> _logger;
 
+    /// <summary>
+    /// Creates the handler with its dependencies (injected by DI).
+    /// </summary>
+    /// <param name="needs">Repository used to load the need.</param>
+    /// <param name="resources">Repository used to find providers to notify.</param>
+    /// <param name="outbox">Queues the per-recipient email messages.</param>
+    /// <param name="unitOfWork">Saves the queued messages.</param>
+    /// <param name="options">Notification radius and limits.</param>
+    /// <param name="time">Clock, so tests can control the time.</param>
+    /// <param name="logger">Logger.</param>
     public CriticalNeedRegisteredHandler(
         INeedRepository needs,
         IResourceRepository resources,
@@ -39,8 +49,10 @@ public sealed class CriticalNeedRegisteredHandler : IOutboxHandler
         _logger = logger;
     }
 
+    /// <inheritdoc />
     public string Type => OutboxTypes.CriticalNeedRegistered;
 
+    /// <inheritdoc />
     public async Task HandleAsync(OutboxMessage message, CancellationToken ct)
     {
         var payload = JsonSerializer.Deserialize<CriticalNeedRegisteredPayload>(message.Payload)

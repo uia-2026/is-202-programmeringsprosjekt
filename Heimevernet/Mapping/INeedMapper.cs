@@ -17,6 +17,12 @@ public interface INeedMapper
     /// <returns>A mapped <see cref="Need"/> entity.</returns>
     Need ToEntity(NeedCreateViewModel model, int userId);
 
+    /// <summary>
+    /// Copies the editable fields from a submitted form onto an existing need. Text is trimmed.
+    /// Owner, status and creation time are not changed.
+    /// </summary>
+    /// <param name="target">The tracked need to update.</param>
+    /// <param name="model">The submitted form.</param>
     void ApplyEditableFields(Need target, NeedCreateViewModel model);
 
     /// <summary>

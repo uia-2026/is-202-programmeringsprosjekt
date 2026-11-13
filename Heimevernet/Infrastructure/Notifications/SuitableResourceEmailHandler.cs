@@ -20,6 +20,16 @@ public sealed class SuitableResourceEmailHandler : IOutboxHandler
     private readonly TimeProvider _time;
     private readonly ILogger<SuitableResourceEmailHandler> _logger;
 
+    /// <summary>
+    /// Creates the handler with its dependencies (injected by DI).
+    /// </summary>
+    /// <param name="users">Repository used to load the recipient.</param>
+    /// <param name="resources">Repository used to check that the resource is still available.</param>
+    /// <param name="outbox">Repository used to count today's emails for the daily cap.</param>
+    /// <param name="sender">Sends the email.</param>
+    /// <param name="options">Notification limits and the public base URL for links.</param>
+    /// <param name="time">Clock, so tests can control the time.</param>
+    /// <param name="logger">Logger.</param>
     public SuitableResourceEmailHandler(
         IUserRepository users,
         IResourceRepository resources,
@@ -38,8 +48,10 @@ public sealed class SuitableResourceEmailHandler : IOutboxHandler
         _logger = logger;
     }
 
+    /// <inheritdoc />
     public string Type => OutboxTypes.SuitableResourceEmail;
 
+    /// <inheritdoc />
     public async Task HandleAsync(OutboxMessage message, CancellationToken ct)
     {
         var payload = JsonSerializer.Deserialize<SuitableResourceEmailPayload>(message.Payload)

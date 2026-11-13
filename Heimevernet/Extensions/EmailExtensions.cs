@@ -6,8 +6,18 @@ using Microsoft.Extensions.Options;
 
 namespace Heimevernet.Extensions;
 
+/// <summary>
+/// Startup registration for email, notifications and the outbox.
+/// </summary>
 public static class EmailExtensions
 {
+    /// <summary>
+    /// Registers email settings, the email sender, notification settings, the outbox handlers,
+    /// the outbox writer and the background <see cref="OutboxWorker"/>. Settings are validated at startup.
+    /// When email is disabled, <see cref="LoggingEmailSender"/> is used instead of <see cref="SmtpEmailSender"/>.
+    /// </summary>
+    /// <param name="services">The service collection to add to.</param>
+    /// <returns>The same <paramref name="services"/>, so calls can be chained.</returns>
     public static IServiceCollection AddEmail(this IServiceCollection services)
     {
         // Validated at start-up, but only when email is switched on

@@ -13,11 +13,16 @@ public class RegionResolver : Services.Interfaces.IRegionResolver
 {
     private readonly IHttpClientFactory _factory;
 
+    /// <summary>
+    /// Creates the resolver.
+    /// </summary>
+    /// <param name="factory">Factory used to create the named HTTP client for Nominatim.</param>
     public RegionResolver(IHttpClientFactory factory)
     {
         _factory = factory;
     }
 
+    /// <inheritdoc />
     public async Task<RegionResolutionResult> TryResolveRegionAsync(double latitude, double longitude, CancellationToken cancellationToken)
     {
         try

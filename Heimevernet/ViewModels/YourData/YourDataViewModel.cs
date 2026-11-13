@@ -10,9 +10,13 @@ public class YourDataViewModel
     /// <summary>Number of activity entries shown before the "View full activity" expander.</summary>
     public const int VisibleActivityCount = 5;
 
+    /// <summary>The user's display name.</summary>
     public string Username { get; set; } = string.Empty;
+    /// <summary>The user's email address.</summary>
     public string Email { get; set; } = string.Empty;
+    /// <summary>The user's role.</summary>
     public UserRole Role { get; set; }
+    /// <summary>Whether 2FA is turned on.</summary>
     public bool TwoFactorEnabled { get; set; }
 
     /// <summary>The user's own audit history, newest first.</summary>
@@ -24,7 +28,10 @@ public class YourDataViewModel
 /// </summary>
 public class ActivityItemViewModel
 {
+    /// <summary>What happened.</summary>
     public AuditAction Action { get; set; }
+    /// <summary>Short readable text for the row, e.g. "Need created — Agder".</summary>
     public string Label { get; set; } = string.Empty;
+    /// <summary>When it happened (UTC).</summary>
     public DateTime OccurredAt { get; set; }
 }

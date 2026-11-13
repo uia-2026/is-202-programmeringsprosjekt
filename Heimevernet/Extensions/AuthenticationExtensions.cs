@@ -7,11 +7,20 @@ using Microsoft.AspNetCore.Identity;
 
 namespace Heimevernet.Extensions;
 
+/// <summary>
+/// Startup registration for authentication and authorization.
+/// </summary>
 public static class AuthenticationExtensions
 {
     /// <summary>
     /// Registers cookie authentication, the authenticated-by-default authorization policy and the auth service.
     /// </summary>
+    /// <remarks>
+    /// Uses an 8-hour cookie (HttpOnly, Secure, SameSite=Lax). The fallback policy means every
+    /// endpoint needs a signed-in user unless it has <c>[AllowAnonymous]</c>.
+    /// </remarks>
+    /// <param name="services">The service collection to add to.</param>
+    /// <returns>The same <paramref name="services"/>, so calls can be chained.</returns>
     public static IServiceCollection AddAppAuthentication(this IServiceCollection services)
     {
         services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

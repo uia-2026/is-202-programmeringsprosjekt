@@ -1,4 +1,13 @@
-﻿using Heimevernet.Data;
+﻿
+// Console app that applies EF Core migrations and seeds the database, then exits.
+// Reference data is seeded in every environment; test data only in Development (see SeedData).
+
+
+
+
+
+
+using Heimevernet.Data;
 using Heimevernet.Infrastructure.Storage;
 using Heimevernet.Migrator;
 using Heimevernet.Repositories.Interfaces;

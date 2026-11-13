@@ -4,15 +4,23 @@ using Heimevernet.Models;
 using Heimevernet.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
+/// <summary>
+/// EF Core implementation of <see cref="ISearchRepository"/> using simple title <c>Contains</c> matching.
+/// </summary>
 public sealed class SearchRepository : ISearchRepository
 {
     private readonly AppDbContext _context;
 
+    /// <summary>
+    /// Creates the repository.
+    /// </summary>
+    /// <param name="context">The database context.</param>
     public SearchRepository(AppDbContext context)
     {
         _context = context;
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<SearchResultDto>> SearchNeedsAsync(
         string query,
         int limit,
@@ -36,6 +44,7 @@ public sealed class SearchRepository : ISearchRepository
             .ToListAsync(cancellationToken);
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<SearchResultDto>> SearchResourcesAsync(
         string query,
         int limit,

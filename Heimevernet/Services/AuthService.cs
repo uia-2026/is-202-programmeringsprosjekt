@@ -11,6 +11,13 @@ using QRCoder;
 
 namespace Heimevernet.Services;
 
+/// <summary>
+/// Default <see cref="IAuthService"/> using cookie authentication, ASP.NET Core password hashing and TOTP for 2FA.
+/// </summary>
+/// <param name="userRepository">Repository for users.</param>
+/// <param name="passwordHasher">Hashes and checks passwords.</param>
+/// <param name="unitOfWork">Saves changes.</param>
+/// <param name="auditLogger">Logs login and 2FA events.</param>
 public class AuthService(
     IUserRepository userRepository,
     IPasswordHasher<User> passwordHasher,
@@ -22,6 +29,7 @@ public class AuthService(
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly IAuditLogger _auditLogger = auditLogger;
 
+    /// <inheritdoc />
     public async Task<RegisterResult> RegisterAsync(
         RegisterViewModel model,
         CancellationToken ct)
@@ -53,6 +61,7 @@ public class AuthService(
             Success: true);
     }
 
+    /// <inheritdoc />
     public async Task<LoginResult> LoginAsync(
         LoginViewModel model,
         CancellationToken ct)
@@ -112,6 +121,7 @@ public class AuthService(
             User: user);
     }
 
+    /// <inheritdoc />
     public async Task<TwoFactorSetupViewModel> BeginTwoFactorSetupAsync(int userId, CancellationToken ct)
     {
         var user = await _userRepository.GetByIdAsync(userId, ct)
@@ -127,6 +137,7 @@ public class AuthService(
         };
     }
 
+    /// <inheritdoc />
     public async Task<TwoFactorVerifyResult> VerifyTwoFactorAsync(
         int userId,
         string code,
@@ -165,6 +176,7 @@ public class AuthService(
             User: user);
     }
 
+    /// <inheritdoc />
     public async Task<TwoFactorSetupResult> CompleteTwoFactorSetupAsync(
         int userId,
         string secret,
@@ -198,6 +210,7 @@ public class AuthService(
             Success: true);
     }
 
+    /// <inheritdoc />
     public async Task SignInAsync(User user, HttpContext httpContext)
     {
         var claims = new List<Claim>
@@ -210,6 +223,7 @@ public class AuthService(
         await httpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
     }
 
+    /// <inheritdoc />
     public async Task SignOutAsync(HttpContext httpContext)
     {
         await httpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
@@ -234,6 +248,6 @@ public class AuthService(
     private static bool VerifyTwoFactorCode(string secret, string code)
     {
         var totp = new Totp(Base32Encoding.ToBytes(secret));
-        return totp.VerifyTotp(code, out _, new VerificationWindow(2, 2)); /// Allows codes from 2 previous and 2 future time steps
+        return totp.VerifyTotp(code, out _, new VerificationWindow(2, 2)); // Allows codes from 2 previous and 2 future time steps
     }
 }

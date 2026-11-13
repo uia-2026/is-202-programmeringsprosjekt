@@ -5,8 +5,12 @@ using Heimevernet.ViewModels.Match;
 
 namespace Heimevernet.Mappers;
 
+/// <summary>
+/// Default <see cref="IMatchCandidateMapper"/> that uses <see cref="Heimevernet.Infrastructure.Geo.GeoMath.DistanceKm"/> for the distance.
+/// </summary>
 public class MatchCandidateMapper : IMatchCandidateMapper
 {
+    /// <inheritdoc />
     public MatchCandidateViewModel ToViewModel(
         Resource resource,
         double needLatitude,
