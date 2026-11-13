@@ -1,4 +1,6 @@
 using Heimevernet.Extensions;
+using Heimevernet.Models;
+using Heimevernet.Services;
 using Heimevernet.Services.Interfaces;
 using Heimevernet.ViewModels.Account;
 using Microsoft.AspNetCore.Authorization;
@@ -150,6 +152,82 @@ public class AccountController(IAuthService authService, IUserService userServic
             : "Email notifications are off.";
 
         return RedirectToAction(nameof(Index));
+    }
+
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ChangePassword(ChangePasswordViewModel model, CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+        {
+            var account = await _userService.GetAccountAsync(User.GetUserId(), ct);
+            return account is null ? NotFound() : View(nameof(Index), account);
+        }
+
+        var userId = User.GetUserId();
+        var result = await _authService.ChangePasswordAsync(userId, model, ct);
+
+        if (!result.Success)
+        {
+            var error = result.Error ?? "Failed to update password.";
+
+            if (error.Contains("current password", StringComparison.OrdinalIgnoreCase))
+            {
+                ModelState.AddModelError(nameof(ChangePasswordViewModel.CurrentPassword), error);
+            }
+            else
+            {
+                ModelState.AddModelError(string.Empty, error);
+            }
+
+            var account = await _userService.GetAccountAsync(userId, ct);
+            return account is null ? NotFound() : View(nameof(Index), account);
+        }
+
+        await _authService.SignInAsync(result.User!, HttpContext);
+
+        TempData["Success"] = "Password updated successfully.";
+        var updatedAccount = await _userService.GetAccountAsync(userId, ct);
+        return updatedAccount is null ? NotFound() : View(nameof(Index), updatedAccount);
+    }
+
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateProfile(EditProfileViewModel model, CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+        {
+            var account = await _userService.GetAccountAsync(User.GetUserId(), ct);
+            return account is null ? NotFound() : View(nameof(Index), account);
+        }
+        var result = await _authService.UpdateProfileAsync(User.GetUserId(), model, ct);
+        if (!result.Success)
+        {
+            var error = result.Error ?? "Failed to update profile.";
+
+            if (error.Contains("email", StringComparison.OrdinalIgnoreCase))
+            {
+                ModelState.AddModelError(nameof(AccountViewModel.Email), error);
+            }
+            else if (error.Contains("username", StringComparison.OrdinalIgnoreCase))
+            {
+                ModelState.AddModelError(nameof(AccountViewModel.Username), error);
+            }
+            else
+            {
+                ModelState.AddModelError(string.Empty, error);
+            }
+
+            var account = await _userService.GetAccountAsync(User.GetUserId(), ct);
+            return account is null ? NotFound() : View(nameof(Index), account);
+        }
+        await _authService.SignInAsync(result.User!, HttpContext);
+
+        TempData["Success"] = "Profile updated successfully.";
+        var updatedProfileAccount = await _userService.GetAccountAsync(User.GetUserId(), ct);
+        return updatedProfileAccount is null ? NotFound() : View(nameof(Index), updatedProfileAccount);
     }
 
     [HttpPost]

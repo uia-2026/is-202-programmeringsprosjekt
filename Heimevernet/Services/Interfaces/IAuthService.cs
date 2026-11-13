@@ -22,11 +22,16 @@ public interface IAuthService
     /// <summary>Confirms the code matches the pending secret, then saves and enables 2FA.</summary>
     Task<TwoFactorSetupResult> CompleteTwoFactorSetupAsync(int userId, string secret, string code, CancellationToken ct);
 
+    /// <summary>Verifies the user's current password, updates it to the new one, rotates the security stamp, and records the change.</summary>
+    Task<ChangePasswordResult> ChangePasswordAsync(int userId, ChangePasswordViewModel model, CancellationToken ct);
+
+    /// <summary>Updates a user's editable profile fields after trimming whitespace and rejecting duplicate email addresses.</summary>
+    Task<AccountResult> UpdateProfileAsync(int userId, EditProfileViewModel model, CancellationToken ct);
+
     Task SignInAsync(User user, HttpContext httpContext);
 
     Task SignOutAsync(HttpContext httpContext);
 }
-
 
 public record RegisterResult(
     bool Success,
@@ -47,3 +52,13 @@ public record TwoFactorVerifyResult(
 public record TwoFactorSetupResult(
     bool Success,
     string? Error = null);
+
+public record ChangePasswordResult(
+    bool Success,
+    string? Error = null,
+    User? User = null);
+
+public record AccountResult(
+    bool Success,
+    string? Error = null,
+    User? User = null);

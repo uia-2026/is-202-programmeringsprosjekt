@@ -23,6 +23,7 @@ public class User
     public string? TwoFactorSecret { get; set; }
 
     public bool EmailNotifications { get; set; } = true;
+    public string SecurityStamp { get; set; } = Guid.NewGuid().ToString();
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

@@ -1,6 +1,9 @@
+using System.Security.Claims;
 using Heimevernet.Models;
+using Heimevernet.Repositories.Interfaces;
 using Heimevernet.Services;
 using Heimevernet.Services.Interfaces;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -31,6 +34,38 @@ public static class AuthenticationExtensions
                 options.Cookie.HttpOnly = true;
                 options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
                 options.Cookie.SameSite = SameSiteMode.Lax;
+
+                options.Events = new CookieAuthenticationEvents
+                {
+                    OnValidatePrincipal = async context =>
+                    {
+                        var userIdClaim = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+                        var securityStampClaim = context.Principal?.FindFirstValue("AspNet.Identity.SecurityStamp");
+
+                        if (string.IsNullOrWhiteSpace(userIdClaim) || string.IsNullOrWhiteSpace(securityStampClaim))
+                        {
+                            context.RejectPrincipal();
+                            await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                            return;
+                        }
+
+                        if (!int.TryParse(userIdClaim, out var userId))
+                        {
+                            context.RejectPrincipal();
+                            await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                            return;
+                        }
+
+                        var userRepository = context.HttpContext.RequestServices.GetRequiredService<IUserRepository>();
+                        var user = await userRepository.GetByIdAsync(userId, context.HttpContext.RequestAborted);
+
+                        if (user is null || user.SecurityStamp != securityStampClaim)
+                        {
+                            context.RejectPrincipal();
+                            await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                        }
+                    }
+                };
             });
 
         services.AddAuthorizationBuilder()
