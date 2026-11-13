@@ -44,6 +44,11 @@ public class NeedController(
     {
         try
         {
+            if (User.IsInRole("PublicActor"))
+            {
+                filter.OwnerUserId = filter.ShowOnlyMine ? User.GetUserId() : null;
+            }
+
             var needs = await _needService.GetFilteredAsync(filter, cancellationToken);
             var categories = await _categoryRepository.GetAllAsync();
             var regions = await _needService.GetDistinctRegionsAsync(cancellationToken);

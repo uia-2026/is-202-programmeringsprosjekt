@@ -12,6 +12,7 @@ public class ResourceFilterDto
     public int? CategoryId { get; set; }
     public string? Region { get; set; }
     public int? OwnerUserId { get; set; }
+    public bool ShowOnlyMine { get; set; }
     /// <summary>
     /// Only include resources available during this window (inclusive).
     /// A resource matches if its own AvailableFrom/AvailableTo overlaps this range.

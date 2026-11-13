@@ -116,6 +116,9 @@ public class NeedRepository : INeedRepository
         if (filter.CategoryId.HasValue)
             query = query.Where(n => n.CategoryId == filter.CategoryId.Value);
 
+        if (filter.OwnerUserId.HasValue)
+            query = query.Where(n => n.UserId == filter.OwnerUserId.Value);
+
         if (!string.IsNullOrWhiteSpace(filter.Region))
             query = query.Where(n => n.Region == filter.Region);
 

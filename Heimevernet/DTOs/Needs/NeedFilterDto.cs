@@ -11,6 +11,8 @@ public class NeedFilterDto
     public NeedStatus? Status { get; set; }
     public NeedPriority? Priority { get; set; }
     public int? CategoryId { get; set; }
+    public int? OwnerUserId { get; set; }
+    public bool ShowOnlyMine { get; set; }
     public string? Region { get; set; }
     public string? Search { get; set; }
     public NeedSortOption Sort { get; set; } = NeedSortOption.CreatedAtDescending;
