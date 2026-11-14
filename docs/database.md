@@ -21,6 +21,10 @@ _The diagram shows the key columns. The following sections describe the tables, 
 
 ## Tables
 
+All configuration lives in `AppDbContext` (`Heimevernet/Data/AppDbContext.cs`), with one `Configure<Entity>` method per entity. Relationships are configured on the dependent (foreign-key-owning) entity.
+
+> **Naming.** This document uses snake_case names (`users`, `user_id`) for readability. EF Core creates the tables and columns with the C# names, so the actual tables are `Users`, `Needs`, `Resources`, `Attachments`, `Matches`, `AuditLogs` and `OutboxMessages`, and columns are named like `UserId` and `QuantityNeeded`. Use the PascalCase names when writing raw SQL.
+
 ### `users`
 
 Stores application accounts. `role` distinguishes `PublicActor` and `ResourceProvider`, while `actor_type` identifies the type of actor, such as Municipality, Police, Private individual or Company.
@@ -29,11 +33,17 @@ Stores application accounts. `role` distinguishes `PublicActor` and `ResourcePro
 
 `email_notifications` (bool, default `true`) is the user's opt-out for [email notifications](./features/notifications.md). It is changed on the account page.
 
+`security_stamp` is a random GUID string that is copied into the authentication cookie as a claim. On every request the cookie's stamp is compared with the stored value, and a mismatch signs the user out. Changing the password generates a new stamp, which invalidates all other sessions for that user. Existing rows were backfilled with `UUID()` by the `AddUserSecurityStamp` migration.
+
+`username` and `email` each have a unique index.
+
 ### `categories`
 
 Stores lookup values such as Transport, Machinery, Equipment, Power, Communication, Personnel, Premises and Materials. `applies_to` (`Need`, `Resource` or `Both`) indicates which entity type can use a category.
 
 The current seed data uses `Both` for all categories, allowing the same category to be used for needs and resources. This supports category-based matching between them.
+
+`name` has a unique index.
 
 ### `needs`
 
@@ -49,7 +59,7 @@ Important columns include `user_id`, `category_id`, `title`, `description`, `lat
 
 `status` tracks the request lifecycle: `New`, `UnderReview`, `Assigned` or `Resolved`.
 
-`quantity_needed` specifies how many units of a resource are required. It defaults to `1`.
+`quantity_needed` specifies how many units of a resource are required. It defaults to `1`, and the check constraint `CK_Needs_QuantityNeeded_Positive` rejects values below `1`.
 
 `version` is an optimistic concurrency token used to detect conflicting updates. It prevents concurrent operations from silently overwriting changes made by another request.
 
@@ -64,7 +74,7 @@ The `status` field uses:
 - `Available`: The resource can be proposed for a need.
 - `Busy`: The resource is currently unavailable.
 
-`quantity_offered` specifies how many units of a resource the provider can offer. It defaults to `1`.
+`quantity_offered` specifies how many units of a resource the provider can offer. It defaults to `1`, and the check constraint `CK_Resources_QuantityOffered_Positive` rejects values below `1`.
 
 `version` is an optimistic concurrency token used to detect conflicting updates.
 
@@ -74,6 +84,8 @@ Stores metadata for resource photos. The image itself is stored in object storag
 
 The public URL is constructed from the storage key when the image is displayed, so the complete URL does not need to be stored in the database.
 
+Attachment rows are deleted automatically when their resource is deleted (cascade). The database cannot remove the objects in storage, so `ResourceService` collects the storage keys before the delete and removes the objects after the transaction has committed.
+
 ### `matches`
 
 Stores explicit pairings between needs and resources.
@@ -82,7 +94,7 @@ Each record contains `need_id`, `resource_id`, `status`, `matched_by_user_id`, `
 
 The creator is required, so a match records which user initiated the pairing.
 
-`quantity` specifies how many units of the resource are allocated to the need through that particular match. It defaults to `1`.
+`quantity` specifies how many units of the resource are allocated to the need through that particular match. It defaults to `1`, and the check constraint `CK_Matches_Quantity_Positive` rejects values below `1`.
 
 `status` tracks the lifecycle of the pairing:
 
@@ -90,7 +102,7 @@ The creator is required, so a match records which user initiated the pairing.
 - `Assigned`: The Resource Provider accepted the proposal and the match quantity has been allocated.
 - `Resolved`: The associated need was marked as resolved. All assigned matches for that need become resolved.
 - `Rejected`: The Resource Provider rejected the proposal.
-- `Cancelled`: The proposal is no longer needed because the need was deleted or fully allocated.
+- `Cancelled`: The proposal is no longer relevant because another accepted match fully allocated the need or the resource.
 
 `version` is an optimistic concurrency token used to detect conflicting updates.
 
@@ -111,15 +123,17 @@ Each record contains:
 - `details`: Optional additional information about the action.
 - `trace_id`: Optional identifier used to correlate the audit entry with application logs and distributed traces.
 
-`actor_user_id` references `users.id`.
+`action` covers sign-in and account events (`LoginSucceeded`, `LoginFailed`, `TwoFactorEnabled`, `TwoFactorDisabled`, `PasswordChanged`, `ProfileUpdated`), need events (`NeedCreated`, `NeedEdited`, `NeedDeleted`, `NeedResolved`), resource events (`ResourceCreated`, `ResourceEdited`, `ResourceDeleted`), attachment events (`AttachmentUploaded`, `AttachmentDeleted`) and match events (`MatchProposed`, `MatchAccepted`, `MatchRejected`, `MatchResolved`).
 
-The combination of `entity_type` and `entity_id` identifies the affected entity without requiring a direct foreign key. This allows audit records to reference different entity types using the same table.
+`actor_user_id` references `users.id`. Deleting a user sets it to null, so the audit history is kept.
+
+The combination of `entity_type` and `entity_id` identifies the affected entity without requiring a direct foreign key. This allows audit records to reference different entity types using the same table. An index on `(entity_type, entity_id)` supports looking up the history of one entity, and an index on `occurred_at` supports listing entries by time.
 
 `actor_name` is stored separately from `actor_user_id` so historical records retain the actor's name even if their account is subsequently modified or deleted.
 
 ### `outbox_messages`
 
-Queue of messages for the background worker (see [Email notifications](./features/notifications.md)). Messages are saved in the same database transaction as the change that creates them (transactional outbox). EF Core creates the table as `OutboxMessages`.
+Queue of messages for the background worker (see [Email notifications](./features/notifications.md)). Messages are saved in the same database transaction as the change that creates them (transactional outbox).
 
 | Column              | Type                       | Notes                                                    |
 | ------------------- | -------------------------- | -------------------------------------------------------- |
@@ -169,86 +183,163 @@ The outbox gives at-least-once delivery. A worker may send an email and stop bef
 - Audit entries identify affected entities through `entity_type` and `entity_id` rather than direct foreign keys.
 - An outbox message can reference its recipient through `recipient_user_id`. Needs and resources are referenced by id inside the JSON payload, not by foreign key.
 - A unique index on `(need_id, resource_id)` prevents the same pairing from being stored twice.
-- Foreign keys for `Match.MatchedByUser` and `Attachment.UploadedByUser` use restricted deletion.
+- Quantity columns have check constraints that require a value of at least `1`.
 - Enum properties are converted to strings in the database for readability.
+
+### Column lengths
+
+String column lengths are not written as numbers in `AppDbContext`. They come from the constants in `FieldLimits` (`Heimevernet/Models/FieldLimits.cs`), which the validation attributes on the view models also use. The form validation and the database column therefore cannot drift apart.
+
+| Constant          | Length | Used by                                          |
+| ----------------- | ------ | ------------------------------------------------ |
+| `Username`        | 50     | `users.username`                                 |
+| `Email`           | 254    | `users.email`                                    |
+| `PasswordHash`    | 256    | `users.password_hash`                            |
+| `ActorType`       | 100    | `users.actor_type`                               |
+| `TwoFactorSecret` | 128    | `users.two_factor_secret`                        |
+| `Title`           | 150    | `needs.title`, `resources.title`                 |
+| `Description`     | 1000   | `needs.description`, `resources.description`     |
+| `Region`          | 100    | `needs.region`, `resources.region`               |
+| `ContactPoint`    | 200    | `needs.contact_point`, `resources.contact_point` |
+| `CategoryName`    | 100    | `categories.name`                                |
+| `StorageKey`      | 512    | `attachments.storage_key`                        |
+| `EnumText`        | 32     | All enum columns and `outbox_messages.type`      |
+| `AuditActorName`  | 100    | `audit_logs.actor_name`                          |
+| `AuditEntityType` | 100    | `audit_logs.entity_type`                         |
+| `AuditDetails`    | 500    | `audit_logs.details`                             |
+| `AuditTraceId`    | 200    | `audit_logs.trace_id`                            |
+| `DedupKey`        | 128    | `outbox_messages.dedup_key`                      |
+| `OutboxPayload`   | 2000   | `outbox_messages.payload`                        |
+| `OutboxError`     | 1000   | `outbox_messages.last_error`                     |
+
+`FieldLimits.MaxQuantity` (10 000) is the upper bound for quantities. It is enforced by the view models and `MatchService`, not by the database, whose check constraints only enforce the lower bound.
 
 ### Enum conversion
 
-`AppDbContext` configures EF Core to store enum values as strings rather than their underlying integer values.
+`AppDbContext` configures EF Core to store enum values as strings rather than their underlying integer values, in a column limited to `FieldLimits.EnumText` characters.
 
 For example:
 
 ```csharp
-modelBuilder.Entity<Need>()
-    .Property(n => n.Priority)
-    .HasConversion<string>();
-
-modelBuilder.Entity<Need>()
-    .Property(n => n.Status)
-    .HasConversion<string>();
-
-modelBuilder.Entity<Resource>()
-    .Property(r => r.Status)
-    .HasConversion<string>();
-
-modelBuilder.Entity<Match>()
-    .Property(m => m.Status)
-    .HasConversion<string>();
+b.Property(n => n.Priority).HasConversion<string>().HasMaxLength(FieldLimits.EnumText);
+b.Property(n => n.Status).HasConversion<string>().HasMaxLength(FieldLimits.EnumText);
 ```
 
-For example, a need with `Priority = NeedPriority.Critical` is stored as `Critical` instead of its numeric enum value.
+For example, a need with `Priority = NeedPriority.Critical` is stored as `Critical` instead of its numeric enum value. Because values are stored by name, new enum members can be added anywhere in the enum without changing existing rows, but renaming a member requires a data migration.
 
-The same conversion is configured for `User.Role`, `Category.AppliesTo`, `AuditLog.Action`, `OutboxMessage.Status` and other enum properties.
+The same conversion is configured for `User.Role`, `Category.AppliesTo`, `Resource.Status`, `Match.Status`, `AuditLog.Action` and `OutboxMessage.Status`.
 
 ### Unique constraints
 
-The model defines unique indexes for usernames, email addresses, need-resource pairings and outbox dedup keys.
+The model defines unique indexes for usernames, email addresses, category names, need-resource pairings and outbox dedup keys.
 
 ```csharp
-modelBuilder.Entity<User>()
-    .HasIndex(u => u.Username)
-    .IsUnique();
+// ConfigureUser
+b.HasIndex(u => u.Username).IsUnique();
+b.HasIndex(u => u.Email).IsUnique();
 
-modelBuilder.Entity<User>()
-    .HasIndex(u => u.Email)
-    .IsUnique();
+// ConfigureCategory
+b.HasIndex(c => c.Name).IsUnique();
 
-modelBuilder.Entity<Match>()
-    .HasIndex(m => new { m.NeedId, m.ResourceId })
-    .IsUnique();
+// ConfigureMatch
+b.HasIndex(m => new { m.NeedId, m.ResourceId }).IsUnique();
+
+// ConfigureOutboxMessage
+b.HasIndex(m => m.DedupKey).IsUnique();
 ```
 
 These constraints provide database-level protection against duplicate values, even if multiple requests attempt to create the same record concurrently.
 
+### Check constraints
+
+Quantities must be at least `1`. The rule is checked by the application, and the database rejects invalid values as well:
+
+| Constraint                              | Table       | Rule                   |
+| --------------------------------------- | ----------- | ---------------------- |
+| `CK_Needs_QuantityNeeded_Positive`      | `needs`     | `QuantityNeeded >= 1`  |
+| `CK_Resources_QuantityOffered_Positive` | `resources` | `QuantityOffered >= 1` |
+| `CK_Matches_Quantity_Positive`          | `matches`   | `Quantity >= 1`        |
+
+```csharp
+b.ToTable(t => t.HasCheckConstraint("CK_Needs_QuantityNeeded_Positive", "QuantityNeeded >= 1"));
+```
+
+### Indexes
+
+Besides the unique indexes above and the indexes EF Core creates for foreign keys, the following indexes support the most frequent queries:
+
+| Table             | Columns                                      | Supports                                                                                                  |
+| ----------------- | -------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `needs`           | `(status, latitude, longitude)`              | The map. Equality on `status` first, then a range on `latitude`; `longitude` is filtered inside the index |
+| `needs`           | `region`                                     | The region dropdown (`DISTINCT`) and the region filter                                                    |
+| `resources`       | `(status, latitude, longitude)`              | The map for public actors (`Available` inside a bounding box) and available lists                         |
+| `resources`       | `(category_id, status, latitude, longitude)` | Nearby search and candidate matching. Also replaces the separate foreign-key index on `category_id`       |
+| `resources`       | `region`                                     | The region dropdown and the region filter                                                                 |
+| `audit_logs`      | `(entity_type, entity_id)`                   | The history of one entity                                                                                 |
+| `audit_logs`      | `occurred_at`                                | Listing entries by time                                                                                   |
+| `outbox_messages` | `(status, next_attempt_at)`                  | The worker's query for due messages                                                                       |
+
+All are B-tree indexes. Only one column of a composite index can be used as a range, which is why the status (equality) column comes first.
+
 ### Optimistic concurrency
 
-`Need`, `Resource` and `Match` implement the `IVersioned` interface and contain a `Version` property.
+`Need`, `Resource` and `Match` implement the `IVersioned` interface and contain a `Version` property, which is configured as a concurrency token with `IsConcurrencyToken()`.
 
-The version is used to detect concurrent modifications. When an entity is updated, EF Core checks that its version has not changed since it was loaded. If another operation has modified the entity in the meantime, the update results in a concurrency conflict instead of silently overwriting the newer data.
+`AppDbContext` overrides `SaveChangesAsync` and increments `Version` on every modified `IVersioned` entity before saving:
+
+```csharp
+public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+{
+    foreach (var entry in ChangeTracker.Entries<IVersioned>()
+                 .Where(e => e.State == EntityState.Modified))
+    {
+        entry.Entity.Version++;
+    }
+
+    return base.SaveChangesAsync(cancellationToken);
+}
+```
+
+EF Core adds `WHERE Version = <loaded value>` to the `UPDATE`. If another operation has modified the entity in the meantime, no row matches, and EF Core throws a `DbUpdateConcurrencyException` instead of silently overwriting the newer data. Services do not set `Version` themselves.
+
+Only `SaveChangesAsync` increments the version. The synchronous `SaveChanges` and bulk operations such as `ExecuteUpdateAsync` bypass the change tracker and must not be used on versioned entities.
 
 `OutboxMessage` has no version. Workers claim a message with one atomic `UPDATE ... WHERE` that only matches rows that are still due, so two workers can never claim the same row. See [Email notifications](./features/notifications.md#step-2-the-worker-claims-due-rows).
 
 ### Delete behaviour
 
-The creator relationship on `Match` and the uploader relationship on `Attachment` explicitly restrict deletion.
+Every relationship has an explicit delete behaviour:
+
+| Relationship                                  | On delete of parent | Effect                                                            |
+| --------------------------------------------- | ------------------- | ----------------------------------------------------------------- |
+| `needs.user_id` → `users`                     | Restrict            | A user who has created needs cannot be deleted                    |
+| `needs.category_id` → `categories`            | Restrict            | A category in use by needs cannot be deleted                      |
+| `resources.user_id` → `users`                 | Restrict            | A user who has created resources cannot be deleted                |
+| `resources.category_id` → `categories`        | Restrict            | A category in use by resources cannot be deleted                  |
+| `attachments.resource_id` → `resources`       | Cascade             | Deleting a resource deletes its attachment rows                   |
+| `attachments.uploaded_by_user_id` → `users`   | Restrict            | A user who has uploaded attachments cannot be deleted             |
+| `matches.need_id` → `needs`                   | Restrict            | A need with matches cannot be deleted                             |
+| `matches.resource_id` → `resources`           | Restrict            | A resource with matches cannot be deleted                         |
+| `matches.matched_by_user_id` → `users`        | Restrict            | A user who has created matches cannot be deleted                  |
+| `audit_logs.actor_user_id` → `users`          | Set null            | The audit entry is kept and the actor reference is cleared        |
+| `outbox_messages.recipient_user_id` → `users` | Set null            | The queued message is kept and the recipient reference is cleared |
 
 ```csharp
-modelBuilder.Entity<Match>()
-    .HasOne(m => m.MatchedByUser)
-    .WithMany(u => u.MatchesCreated)
+// Prevent deleting a need if it has associated matches.
+b.HasOne(m => m.Need)
+    .WithMany(n => n.Matches)
     .OnDelete(DeleteBehavior.Restrict);
 
-modelBuilder.Entity<Attachment>()
-    .HasOne(a => a.UploadedByUser)
-    .WithMany(u => u.UploadedAttachments)
-    .OnDelete(DeleteBehavior.Restrict);
+// Preserve audit logs when the associated user is deleted.
+b.HasOne(a => a.ActorUser)
+    .WithMany(u => u.AuditLogs)
+    .HasForeignKey(a => a.ActorUserId)
+    .OnDelete(DeleteBehavior.SetNull);
 ```
 
-This prevents deleting a user while records still reference that user through these relationships.
+Restrict protects the history of matches and the records that reference them. The application applies the same rule first: `OwnedRecordPolicy.CanDeleteNeed` and `CanDeleteResource` refuse to delete a need or resource that has any match, so users get a clear message instead of a database error. The database constraint is the last line of defence if the application check is bypassed.
 
-The audit log actor relationship should use `DeleteBehavior.SetNull` if audit entries must be preserved when a user is deleted. Its foreign key is nullable, allowing the actor reference to be cleared while retaining the historical `actor_name`.
-
-The delete behaviour of other relationships is determined by their configuration and EF Core conventions.
+`audit_logs.actor_user_id` and `outbox_messages.recipient_user_id` are nullable, so they can be cleared while the audit entry keeps its `actor_name` and the queued message is still processed.
 
 ## Why `Match` is a separate table
 
@@ -283,7 +374,7 @@ These statuses are separate because they describe different aspects of the appli
 
 A match does not start as `New`, because a match record is created only after a user initiates a pairing.
 
-A rejected match does not allocate resource quantity. A cancelled match is no longer active and does not reserve quantity. An assigned match represents an accepted allocation. When its need is resolved, the assigned matches become resolved as part of the resolution workflow.
+A rejected match does not allocate resource quantity. A cancelled match is no longer active and does not reserve quantity. An assigned match represents an accepted allocation. When accepting a match fully allocates the need, the need becomes `Assigned`; when it fully allocates the resource, the resource becomes `Busy`. In both cases the other pending proposals for that need or resource are cancelled. When a need is resolved, its assigned matches become resolved as part of the resolution workflow.
 
 See [Matching](./features/matching.md) for details of how the statuses change together.
 
@@ -299,7 +390,7 @@ For example, when a public actor registers a critical need:
 
 1. The need is saved.
 2. An audit log entry records `NeedCreated`.
-3. A `CriticalNeedRegistered` outbox message is created, which later becomes emails to nearby resource providers.
+3. A `CriticalNeedRegistered` outbox message is created, which later becomes `CriticalNeedEmail` messages to nearby resource providers.
 
 These database operations are performed within the same transaction. This ensures that the business operation, audit entry and notification request are persisted together.
 
