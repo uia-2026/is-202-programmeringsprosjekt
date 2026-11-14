@@ -1,3 +1,7 @@
+// Entry point for the web app: registers services (database, authentication, storage, email
+// and application services), sets up the HTTP pipeline, and maps the MVC routes.
+// Registration helpers live in Extensions/. Top-level statements cannot have XML docs.
+
 using Heimevernet.Data;
 using Heimevernet.Extensions;
 using Microsoft.EntityFrameworkCore;

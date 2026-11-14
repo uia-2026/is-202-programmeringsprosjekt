@@ -23,6 +23,16 @@ public class MatchService : IMatchService
     private readonly IMatchListMapper _matchListMapper;
     private readonly IAuditLogger _auditLogger;
 
+    /// <summary>
+    /// Creates the service with its dependencies (injected by DI).
+    /// </summary>
+    /// <param name="needRepository">Repository for needs.</param>
+    /// <param name="resourceRepository">Repository for resources.</param>
+    /// <param name="matchRepository">Repository for matches.</param>
+    /// <param name="unitOfWork">Saves changes in a transaction.</param>
+    /// <param name="matchCandidateMapper">Maps resources to candidate view models.</param>
+    /// <param name="matchListMapper">Maps matches to list items.</param>
+    /// <param name="auditLogger">Logs match events.</param>
     public MatchService(
         INeedRepository needRepository,
         IResourceRepository resourceRepository,
@@ -41,6 +51,7 @@ public class MatchService : IMatchService
         _auditLogger = auditLogger;
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<MatchCandidateViewModel>> GetCandidateResourcesAsync(
         int needId,
         CancellationToken cancellationToken = default)
@@ -63,6 +74,7 @@ public class MatchService : IMatchService
             .ToList();
     }
 
+    /// <inheritdoc />
     public async Task<bool> CanProposeAsync(int needId, int userId, CancellationToken cancellationToken = default)
     {
         var need = await _needRepository.GetByIdAsync(needId, cancellationToken);
@@ -73,6 +85,7 @@ public class MatchService : IMatchService
             && need.Status is NeedStatus.New or NeedStatus.UnderReview;
     }
 
+    /// <inheritdoc />
     public async Task<(ProposeMatchResult Result, int? MatchId, int? MaxAllowedQuantity)> ProposeAsync(
         int needId,
         int resourceId,
@@ -180,6 +193,7 @@ public class MatchService : IMatchService
         return (ProposeMatchResult.Success, match.Id, null);
     }
 
+    /// <inheritdoc />
     public async Task<MatchIndexViewModel> GetMyMatchesAsync(
         int userId,
         CancellationToken cancellationToken = default)
@@ -196,6 +210,7 @@ public class MatchService : IMatchService
         };
     }
 
+    /// <inheritdoc />
     public async Task<MatchDecisionResult> AcceptAsync(
         int matchId,
         int userId,
@@ -330,6 +345,7 @@ public class MatchService : IMatchService
         return MatchDecisionResult.Success;
     }
 
+    /// <inheritdoc />
     public async Task<MatchDecisionResult> RejectAsync(
         int matchId,
         int userId,

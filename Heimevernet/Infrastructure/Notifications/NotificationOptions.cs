@@ -3,6 +3,7 @@ namespace Heimevernet.Infrastructure.Notifications;
 /// <summary>Who gets notification emails, and how many. Tuned for free email plans with a daily cap.</summary>
 public sealed class NotificationOptions
 {
+    /// <summary>Name of the configuration section the options are read from.</summary>
     public const string SectionName = "Notifications";
 
     /// <summary>How far from a new critical need a provider's resource can be and still trigger an email.</summary>

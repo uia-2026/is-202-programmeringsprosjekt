@@ -17,6 +17,12 @@ public interface IResourceMapper
     /// <returns>A mapped <see cref="Resource"/> entity.</returns>
     Resource ToEntity(ResourceCreateViewModel model, int userId);
 
+    /// <summary>
+    /// Copies the editable fields from a submitted form onto an existing resource. Text is trimmed.
+    /// Owner, status and creation time are not changed.
+    /// </summary>
+    /// <param name="target">The tracked resource to update.</param>
+    /// <param name="model">The submitted form.</param>
     void ApplyEditableFields(Resource target, ResourceCreateViewModel model);
 
     /// <summary>

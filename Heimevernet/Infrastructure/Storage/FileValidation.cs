@@ -1,8 +1,13 @@
 namespace Heimevernet.Infrastructure.Storage;
 
+/// <summary>
+/// Checks uploaded files by their content instead of trusting the file name.
+/// </summary>
 public static class FileValidation
 {
     /// <summary>Validates uploaded images by checking their file signatures (magic bytes).</summary>
+    /// <param name="stream">The file content. Must be seekable; the position is reset to 0 afterwards.</param>
+    /// <returns><see langword="true"/> when the file starts like a JPEG, PNG or WebP image.</returns>
     public static bool IsValidImage(Stream stream)
     {
         Span<byte> header = stackalloc byte[12];
@@ -13,17 +18,17 @@ public static class FileValidation
         stream.Position = 0;
 
         var isJpeg = read >= 3
-            && header[0] == 0xFF
-            && header[1] == 0xD8
-            && header[2] == 0xFF;
+                     && header[0] == 0xFF
+                     && header[1] == 0xD8
+                     && header[2] == 0xFF;
 
         var isPng = read >= 8
-            && header[..8].SequenceEqual(
-                new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A });
+                    && header[..8].SequenceEqual(
+                        new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A });
 
         var isWebp = read >= 12
-            && header[..4].SequenceEqual("RIFF"u8)
-            && header[8..12].SequenceEqual("WEBP"u8);
+                     && header[..4].SequenceEqual("RIFF"u8)
+                     && header[8..12].SequenceEqual("WEBP"u8);
 
         return isJpeg || isPng || isWebp;
     }

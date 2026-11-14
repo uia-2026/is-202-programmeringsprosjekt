@@ -1,5 +1,8 @@
 namespace Heimevernet.Infrastructure.Outbox;
 
+/// <summary>
+/// Queues messages for later delivery using the transactional outbox pattern.
+/// </summary>
 public interface IOutbox
 {
     /// <summary>
@@ -10,5 +13,7 @@ public interface IOutbox
     /// <param name="payload">Small object with ids only, serialised to JSON. Never contact details.</param>
     /// <param name="dedupKey">Unique per event and recipient. Queuing the same key twice fails on commit.</param>
     /// <param name="recipientUserId">The recipient, if any. The address is looked up when the mail is sent.</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="type"/> or <paramref name="dedupKey"/> is empty, <paramref name="dedupKey"/> is too long, or the payload is too large.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="payload"/> is <see langword="null"/>.</exception>
     void Enqueue(string type, object payload, string dedupKey, int? recipientUserId = null);
 }

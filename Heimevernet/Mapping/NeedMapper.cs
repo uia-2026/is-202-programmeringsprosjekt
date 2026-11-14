@@ -34,6 +34,7 @@ public class NeedMapper : INeedMapper
         };
     }
 
+    /// <inheritdoc />
     public void ApplyEditableFields(Need target, NeedCreateViewModel model)
     {
         target.CategoryId = model.CategoryId!.Value;

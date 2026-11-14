@@ -1,5 +1,8 @@
 namespace Heimevernet.Infrastructure.Outbox;
 
+/// <summary>
+/// Names of the outbox message types. Each type has exactly one <see cref="IOutboxHandler"/>.
+/// </summary>
 public static class OutboxTypes
 {
     /// <summary>Fan-out event: a critical need was registered. The worker turns it into one email per recipient.</summary>

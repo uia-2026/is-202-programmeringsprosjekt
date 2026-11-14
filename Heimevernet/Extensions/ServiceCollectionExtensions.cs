@@ -11,8 +11,17 @@ using Microsoft.Extensions.Options;
 
 namespace Heimevernet.Extensions;
 
+/// <summary>
+/// Startup registration for repositories, file storage and application services.
+/// Called from <c>Program.cs</c>.
+/// </summary>
 public static class ServiceCollectionExtensions
 {
+    /// <summary>
+    /// Registers the unit of work and all repositories as scoped services.
+    /// </summary>
+    /// <param name="services">The service collection to add to.</param>
+    /// <returns>The same <paramref name="services"/>, so calls can be chained.</returns>
     public static IServiceCollection AddPersistence(this IServiceCollection services)
     {
         services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -29,6 +38,11 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
+    /// <summary>
+    /// Registers S3-compatible file storage. The <c>Storage</c> settings are validated at startup.
+    /// </summary>
+    /// <param name="services">The service collection to add to.</param>
+    /// <returns>The same <paramref name="services"/>, so calls can be chained.</returns>
     public static IServiceCollection AddFileStorage(this IServiceCollection services)
     {
         services.AddOptions<StorageOptions>()
@@ -59,6 +73,12 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
+    /// <summary>
+    /// Registers the application services, mappers, the current-user accessor and the Nominatim HTTP client
+    /// used for reverse-geocoding.
+    /// </summary>
+    /// <param name="services">The service collection to add to.</param>
+    /// <returns>The same <paramref name="services"/>, so calls can be chained.</returns>
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
         services.AddHttpContextAccessor();

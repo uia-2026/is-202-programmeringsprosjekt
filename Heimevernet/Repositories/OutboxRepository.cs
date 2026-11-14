@@ -6,17 +6,28 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Heimevernet.Repositories;
 
+/// <summary>
+/// EF Core implementation of <see cref="IOutboxRepository"/>. Claims and status changes use
+/// <c>ExecuteUpdateAsync</c> so they are single atomic SQL statements.
+/// </summary>
 public sealed class OutboxRepository : IOutboxRepository
 {
     private readonly AppDbContext _context;
 
+    /// <summary>
+    /// Creates the repository.
+    /// </summary>
+    /// <param name="context">The database context.</param>
     public OutboxRepository(AppDbContext context) => _context = context;
 
+    /// <inheritdoc />
     public void Add(OutboxMessage message) => _context.OutboxMessages.Add(message);
 
+    /// <inheritdoc />
     public Task<OutboxMessage?> GetAsync(long id, CancellationToken ct = default) =>
         _context.OutboxMessages.AsNoTracking().FirstOrDefaultAsync(m => m.Id == id, ct);
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<long>> GetDueIdsAsync(DateTime now, int take, CancellationToken ct = default)
     {
         // Two simple queries instead of one with OR, so each can use the (Status, NextAttemptAt) index
@@ -39,6 +50,7 @@ public sealed class OutboxRepository : IOutboxRepository
         return pending.Concat(abandoned).Distinct().Take(take).ToList();
     }
 
+    /// <inheritdoc />
     public async Task<bool> TryClaimAsync(long id, DateTime now, TimeSpan lease, CancellationToken ct = default)
     {
         var lockedUntil = now.Add(lease);
@@ -56,6 +68,7 @@ public sealed class OutboxRepository : IOutboxRepository
         return rows == 1;
     }
 
+    /// <inheritdoc />
     public Task MarkDoneAsync(long id, DateTime now, CancellationToken ct = default) =>
         _context.OutboxMessages
             .Where(m => m.Id == id)
@@ -65,6 +78,7 @@ public sealed class OutboxRepository : IOutboxRepository
                 .SetProperty(m => m.LockedUntil, (DateTime?)null)
                 .SetProperty(m => m.LastError, (string?)null), ct);
 
+    /// <inheritdoc />
     public Task MarkFailedOrRetryAsync(long id, int attempts, string error, DateTime now, CancellationToken ct = default)
     {
         var exhausted = OutboxPolicy.IsExhausted(attempts);
@@ -83,6 +97,7 @@ public sealed class OutboxRepository : IOutboxRepository
                 .SetProperty(m => m.ProcessedAt, processedAt), ct);
     }
 
+    /// <inheritdoc />
     public Task<int> CountProcessedSinceAsync(int recipientUserId, string type, DateTime since, CancellationToken ct = default) =>
         _context.OutboxMessages
             .AsNoTracking()

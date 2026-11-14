@@ -31,6 +31,18 @@ public class ResourceService : IResourceService
     private readonly IOutbox _outbox;
     private readonly IAuditLogger _auditLogger;
 
+    /// <summary>
+    /// Creates the service with its dependencies (injected by DI).
+    /// </summary>
+    /// <param name="resourceRepository">Repository for resources.</param>
+    /// <param name="categoryRepository">Used to check that the chosen category exists.</param>
+    /// <param name="attachmentService">Used to delete stored images when a resource is deleted.</param>
+    /// <param name="resourceMapper">Maps between resources and view models.</param>
+    /// <param name="mapMarkerMapper">Maps marker DTOs to view models.</param>
+    /// <param name="nearbyResourceMapper">Maps nearby-resource DTOs to view models.</param>
+    /// <param name="outbox">Queues the "resource registered" notification.</param>
+    /// <param name="unitOfWork">Saves changes in a transaction.</param>
+    /// <param name="auditLogger">Logs resource events.</param>
     public ResourceService(
         IResourceRepository resourceRepository,
         ICategoryRepository categoryRepository,
@@ -53,6 +65,7 @@ public class ResourceService : IResourceService
         _auditLogger = auditLogger;
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<ResourceViewModel>> GetAllAsync(
         CancellationToken cancellationToken = default)
     {
@@ -64,6 +77,7 @@ public class ResourceService : IResourceService
             .ToList();
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<ResourceViewModel>> GetFilteredAsync(
     ResourceFilterDto filter,
     CancellationToken cancellationToken = default)
@@ -76,9 +90,11 @@ public class ResourceService : IResourceService
             .ToList();
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<string>> GetDistinctRegionsAsync(CancellationToken cancellationToken = default) =>
     await _resourceRepository.GetDistinctRegionsAsync(cancellationToken);
 
+    /// <inheritdoc />
     public async Task<ResourceViewModel?> GetByIdAsync(
         int id,
         CancellationToken cancellationToken = default)
@@ -93,6 +109,7 @@ public class ResourceService : IResourceService
             : _resourceMapper.ToViewModel(resource);
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<ResourceViewModel>> GetAvailableAsync(
     CancellationToken cancellationToken = default)
     {
@@ -104,6 +121,7 @@ public class ResourceService : IResourceService
             .ToList();
     }
 
+    /// <inheritdoc />
     public async Task<int> CreateAsync(
         ResourceCreateViewModel model,
         int userId,
@@ -129,6 +147,7 @@ public class ResourceService : IResourceService
         return resource.Id;
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<MapMarkerViewModel>> GetMapMarkersAsync(
         GeoBox box, int? ownerUserId, bool availableOnly, int limit,
         CancellationToken cancellationToken = default)
@@ -137,6 +156,7 @@ public class ResourceService : IResourceService
         return _mapMarkerMapper.ToViewModels(dtos);
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<ResourceViewModel>> GetByUserIdAsync(
         int userId,
         CancellationToken cancellationToken = default)
@@ -149,6 +169,7 @@ public class ResourceService : IResourceService
             .ToList();
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<ResourceOwnerOptionViewModel>> GetOwnersAsync(
         CancellationToken cancellationToken = default)
     {
@@ -159,6 +180,7 @@ public class ResourceService : IResourceService
             .ToList();
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<NearbyResourceViewModel>>
      GetCompatibleNearbyAsync(
          NeedViewModel needViewModel,
@@ -180,6 +202,7 @@ public class ResourceService : IResourceService
             .ToList();
     }
 
+    /// <inheritdoc />
     public async Task<(OwnedRecordMutationResult Result, string Message)> UpdateAsync(
         int id,
         ResourceCreateViewModel model,
@@ -232,6 +255,7 @@ public class ResourceService : IResourceService
         return (OwnedRecordMutationResult.Success, "Resource updated.");
     }
 
+    /// <inheritdoc />
     public async Task<(OwnedRecordMutationResult Result, string Message)> DeleteAsync(
         int id,
         int userId,

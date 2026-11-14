@@ -36,6 +36,7 @@ public class ResourceMapper : IResourceMapper
         };
     }
 
+    /// <inheritdoc />
     public void ApplyEditableFields(Resource target, ResourceCreateViewModel model)
     {
         target.CategoryId = model.CategoryId!.Value;

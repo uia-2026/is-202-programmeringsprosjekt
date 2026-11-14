@@ -9,6 +9,8 @@ namespace Heimevernet.ViewModels.Home;
 /// </summary>
 public sealed class HomeIndexViewModel
 {
+    /// <summary>Needs to show on the page.</summary>
     public IEnumerable<NeedSummaryViewModel> Needs { get; set; } = Enumerable.Empty<NeedSummaryViewModel>();
+    /// <summary>Resources to show on the page.</summary>
     public IEnumerable<ResourceViewModel> Resources { get; set; } = Enumerable.Empty<ResourceViewModel>();
 }

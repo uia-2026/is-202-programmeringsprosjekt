@@ -4,8 +4,12 @@ using Heimevernet.ViewModels.Need;
 
 namespace Heimevernet.Mappers;
 
+/// <summary>
+/// Default <see cref="INearbyResourceMapper"/> that copies each field one to one.
+/// </summary>
 public class NearbyResourceMapper : INearbyResourceMapper
 {
+    /// <inheritdoc />
     public NearbyResourceViewModel ToViewModel(NearbyResourceDto dto)
     {
         return new NearbyResourceViewModel(
