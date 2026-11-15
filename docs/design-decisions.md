@@ -51,7 +51,7 @@ Each entry names the decision, the alternatives we rejected and the main trade-o
 ## Matches are created by a person, suggestions are computed
 
 - **Alternatives:** Store automatically generated matches.
-- **Why:** A match locks a resource and changes the status of a need, so it must be a deliberate, traceable act. That is why `matched_by_user_id` is required. Suggestions (same category, within 3 km, available, and the availability window fits the deadline) are a live query that is always up to date and needs no table.
+- **Why:** A match locks a resource and changes the status of a need, so it must be a deliberate, traceable act. That is why `MatchedByUserId` is required. Suggestions (same category, within 3 km, available, and the availability window fits the deadline) are a live query that is always up to date and needs no table.
 - **Trade-off:** Suggestions cost a query each time they are shown, which is cheap at our data size.
 
 ## Three separate status fields

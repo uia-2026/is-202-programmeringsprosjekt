@@ -188,7 +188,7 @@ The Migrator and Web application can share persistence and storage registration 
 ## Known simplifications and limitations
 
 - **Local database account:** Local development uses the MariaDB `root` user. The database is not intended to be exposed directly to external clients.
-- **TOTP secret storage:** The TOTP secret is stored unencrypted in the `users` table. Encrypting secrets at rest or using a dedicated secret-management mechanism would reduce the impact of a database compromise.
+- **TOTP secret storage:** The TOTP secret is stored unencrypted in the `Users` table. Encrypting secrets at rest or using a dedicated secret-management mechanism would reduce the impact of a database compromise.
 - **Administration:** There is no admin role or category-management interface. Categories are maintained through migrations or seed code.
 - **Region resolution:** Region lookup depends on an external geocoding service. A lookup failure prevents the submitted form from being accepted when coordinates are supplied, so the application depends on that service for region resolution.
 - **File storage consistency:** Database transactions do not automatically include S3-compatible storage operations. Uploads and deletions need appropriate failure handling to avoid orphaned files or missing objects.

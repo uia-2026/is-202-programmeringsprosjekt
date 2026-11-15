@@ -13,13 +13,13 @@ Each person gets at most one email per event. For a critical need, the email nam
 
 Emails are not sent while the user's request is running. The application uses a **transactional outbox**:
 
-1. When a need or resource is created, an _event_ message (`CriticalNeedRegistered` or `ResourceRegistered`) is saved in the table `outbox_messages`, **in the same database transaction** as the need or resource. Either both are saved or neither.
+1. When a need or resource is created, an _event_ message (`CriticalNeedRegistered` or `ResourceRegistered`) is saved in the table `OutboxMessages`, **in the same database transaction** as the need or resource. Either both are saved or neither.
 2. A background worker (`OutboxWorker`) polls the table, claims due rows and calls the handler that matches each row's `type`.
 3. The event handler finds the recipients and saves one _email_ message per recipient (`CriticalNeedEmail` or `SuitableResourceEmail`), again in one transaction.
 4. The email handler checks that the message is still relevant, sends the email through SMTP, and the row is marked `Done`.
 
 ```
-create need/resource ──► outbox_messages (event) ──► event handler ──► outbox_messages (one email per recipient) ──► email handler ──► SMTP
+create need/resource ──► OutboxMessages (event) ──► event handler ──► OutboxMessages (one email per recipient) ──► email handler ──► SMTP
         └── one transaction ──┘
 ```
 
@@ -70,7 +70,7 @@ await _unitOfWork.ExecuteInTransactionAsync(async ct =>
 
 ### Step 2: the worker claims due rows
 
-`OutboxWorker` is a `BackgroundService`. Every `OutboxPolicy.PollInterval` (10 seconds) it asks for up to `OutboxPolicy.BatchSize` (20) due ids. A row is due when it is `Pending` and its `next_attempt_at` has passed, or when it is `Processing` but its lease has expired. Each message is then handled in its own DI scope, so a broken `DbContext` cannot affect the next message.
+`OutboxWorker` is a `BackgroundService`. Every `OutboxPolicy.PollInterval` (10 seconds) it asks for up to `OutboxPolicy.BatchSize` (20) due ids. A row is due when it is `Pending` and its `NextAttemptAt` has passed, or when it is `Processing` but its lease has expired. Each message is then handled in its own DI scope, so a broken `DbContext` cannot affect the next message.
 
 Before handling a row, `OutboxProcessor` claims it with one atomic `UPDATE`. The update only changes the row if it is still due, so when two workers try to claim the same row, only one of them gets `rows == 1`:
 
@@ -87,7 +87,7 @@ var rows = await _context.OutboxMessages
 return rows == 1;
 ```
 
-The processor then calls the handler whose `Type` matches the row. If the handler returns, the row is marked `Done`. If it throws, the row goes back to `Pending` with a later `next_attempt_at`, or to `Failed` after the last attempt:
+The processor then calls the handler whose `Type` matches the row. If the handler returns, the row is marked `Done`. If it throws, the row goes back to `Pending` with a later `NextAttemptAt`, or to `Failed` after the last attempt:
 
 ```csharp
 try
@@ -143,7 +143,7 @@ catch (DuplicateRecordException)
 `NeedsResourcesEmailHandler` and `SuitableResourceEmailHandler` check everything again at send time, because the message may have waited in the queue. A handler **returns** when the message should be dropped and **throws** when it should be retried:
 
 ```csharp
-// A missing setting must fail visibly, so the reason shows up in last_error
+// A missing setting must fail visibly, so the reason shows up in LastError
 if (!Uri.TryCreate(_options.PublicBaseUrl, UriKind.Absolute, out var baseUri)
     || baseUri.Scheme is not ("http" or "https"))
 {
@@ -176,7 +176,7 @@ The email address is looked up here, not stored in the payload. A user who chang
 
 Delivery is **at least once**. A message can be handled twice, for example if the application stops after sending but before marking the row `Done`. This is acceptable because an email only states a fact and links to the application.
 
-Duplicates caused by the same event being handled twice are prevented with a unique `dedup_key`, for example `suitable-resource-email:{resourceId}:{userId}`. A second attempt to queue the same key fails on commit with `DuplicateRecordException`, and the handler treats that as "already queued".
+Duplicates caused by the same event being handled twice are prevented with a unique `DedupKey`, for example `suitable-resource-email:{resourceId}:{userId}`. A second attempt to queue the same key fails on commit with `DuplicateRecordException`, and the handler treats that as "already queued".
 
 | Message                  | Dedup key                                     |
 | ------------------------ | --------------------------------------------- |
@@ -192,7 +192,7 @@ Duplicates caused by the same event being handled twice are prevented with a uni
 | `Pending`    | Waiting to be processed, or waiting for the next retry                                                     |
 | `Processing` | Claimed by a worker. The claim expires after a lease period, so a crashed worker does not block the message |
 | `Done`       | Handled (sent or deliberately skipped)                                                                      |
-| `Failed`     | Gave up after the maximum number of attempts. The reason is in `last_error`                                |
+| `Failed`     | Gave up after the maximum number of attempts. The reason is in `LastError`                                |
 
 ### Retries
 
@@ -224,7 +224,7 @@ The email handler skips a message (and marks it `Done`) when:
 - the resource is busy, deleted or expired (`SuitableResourceEmail`),
 - the recipient has already received the **daily limit** of emails of that type.
 
-It throws, so that the message is retried and the reason appears in `last_error`, when:
+It throws, so that the message is retried and the reason appears in `LastError`, when:
 
 - `Notifications:PublicBaseUrl` is missing or not an absolute http(s) address,
 - the SMTP server cannot be reached or rejects the message,
@@ -359,7 +359,7 @@ The outbox timing (lease, retry delays, polling interval, batch size, maximum at
 
 ## User control
 
-Every user can turn emails off on the account page (**Email notifications**). The form posts to `AccountController.UpdateNotifications`. The setting is stored in `users.email_notifications` (default `true`) and is checked both when choosing recipients and again when the email is sent, so an opt-out made after a message was queued still counts.
+Every user can turn emails off on the account page (**Email notifications**). The form posts to `AccountController.UpdateNotifications`. The setting is stored in `Users.EmailNotifications` (default `true`) and is checked both when choosing recipients and again when the email is sent, so an opt-out made after a message was queued still counts.
 
 ## Running it
 
