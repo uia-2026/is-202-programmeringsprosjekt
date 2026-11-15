@@ -101,7 +101,10 @@ namespace Heimevernet.Migrations
 
                     b.HasIndex("EntityType", "EntityId");
 
-                    b.ToTable("AuditLogs");
+                    b.ToTable("AuditLogs", t =>
+                        {
+                            t.HasCheckConstraint("CK_AuditLogs_Action_Valid", "Action IN ('LoginSucceeded', 'LoginFailed', 'TwoFactorEnabled', 'NeedCreated', 'NeedEdited', 'NeedDeleted', 'NeedResolved', 'ResourceCreated', 'ResourceEdited', 'ResourceDeleted', 'AttachmentUploaded', 'AttachmentDeleted', 'MatchProposed', 'MatchAccepted', 'MatchRejected', 'MatchResolved', 'PasswordChanged', 'ProfileUpdated', 'TwoFactorDisabled')");
+                        });
                 });
 
             modelBuilder.Entity("Heimevernet.Models.Category", b =>
@@ -127,7 +130,10 @@ namespace Heimevernet.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Categories");
+                    b.ToTable("Categories", t =>
+                        {
+                            t.HasCheckConstraint("CK_Categories_AppliesTo_Valid", "AppliesTo IN ('Need', 'Resource', 'Both')");
+                        });
                 });
 
             modelBuilder.Entity("Heimevernet.Models.Match", b =>
@@ -176,6 +182,8 @@ namespace Heimevernet.Migrations
                     b.ToTable("Matches", t =>
                         {
                             t.HasCheckConstraint("CK_Matches_Quantity_Positive", "Quantity >= 1");
+
+                            t.HasCheckConstraint("CK_Matches_Status_Valid", "Status IN ('UnderReview', 'Assigned', 'Resolved', 'Rejected', 'Cancelled')");
                         });
                 });
 
@@ -255,7 +263,11 @@ namespace Heimevernet.Migrations
 
                     b.ToTable("Needs", t =>
                         {
+                            t.HasCheckConstraint("CK_Needs_Priority_Valid", "Priority IN ('Low', 'Medium', 'Critical')");
+
                             t.HasCheckConstraint("CK_Needs_QuantityNeeded_Positive", "QuantityNeeded >= 1");
+
+                            t.HasCheckConstraint("CK_Needs_Status_Valid", "Status IN ('New', 'UnderReview', 'Assigned', 'Resolved')");
                         });
                 });
 
@@ -318,7 +330,10 @@ namespace Heimevernet.Migrations
 
                     b.HasIndex("Status", "NextAttemptAt");
 
-                    b.ToTable("OutboxMessages");
+                    b.ToTable("OutboxMessages", t =>
+                        {
+                            t.HasCheckConstraint("CK_OutboxMessages_Status_Valid", "Status IN ('Pending', 'Processing', 'Done', 'Failed')");
+                        });
                 });
 
             modelBuilder.Entity("Heimevernet.Models.Resource", b =>
@@ -396,6 +411,8 @@ namespace Heimevernet.Migrations
                     b.ToTable("Resources", t =>
                         {
                             t.HasCheckConstraint("CK_Resources_QuantityOffered_Positive", "QuantityOffered >= 1");
+
+                            t.HasCheckConstraint("CK_Resources_Status_Valid", "Status IN ('Available', 'Busy')");
                         });
                 });
 
@@ -457,7 +474,10 @@ namespace Heimevernet.Migrations
                     b.HasIndex("Username")
                         .IsUnique();
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", t =>
+                        {
+                            t.HasCheckConstraint("CK_Users_Role_Valid", "Role IN ('PublicActor', 'ResourceProvider')");
+                        });
                 });
 
             modelBuilder.Entity("Heimevernet.Models.Attachment", b =>
