@@ -11,7 +11,7 @@ namespace Heimevernet.Data;
 /// </summary>
 /// <remarks>
 /// Conventions used throughout:
-/// - Enums are stored as strings for readability in the DB.
+/// - Enums are stored as strings for readability in the DB, guarded by a CHECK constraint (see <see cref="EnumCheck{TEnum}"/>).
 /// - String max lengths come from <see cref="FieldLimits"/> so validation attributes and DB columns stay in sync.
 /// - Relationships are configured on the dependent (FK-owning) entity.
 /// </remarks>
@@ -63,6 +63,9 @@ public class AppDbContext : DbContext
     {
         modelBuilder.Entity<User>(b =>
         {
+            // Table constraints
+            b.ToTable(t => t.HasCheckConstraint("CK_Users_Role_Valid", EnumCheck<UserRole>("Role")));
+
             // Properties
             b.Property(u => u.Username).HasMaxLength(FieldLimits.Username);
             b.Property(u => u.Email).HasMaxLength(FieldLimits.Email);
@@ -81,6 +84,9 @@ public class AppDbContext : DbContext
     {
         modelBuilder.Entity<Category>(b =>
         {
+            // Table constraints
+            b.ToTable(t => t.HasCheckConstraint("CK_Categories_AppliesTo_Valid", EnumCheck<CategoryAppliesTo>("AppliesTo")));
+
             // Properties
             b.Property(c => c.Name).HasMaxLength(FieldLimits.CategoryName);
             b.Property(c => c.AppliesTo).HasConversion<string>().HasMaxLength(FieldLimits.EnumText);
@@ -95,7 +101,12 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Need>(b =>
         {
             // Table constraints
-            b.ToTable(t => t.HasCheckConstraint("CK_Needs_QuantityNeeded_Positive", "QuantityNeeded >= 1"));
+            b.ToTable(t =>
+            {
+                t.HasCheckConstraint("CK_Needs_QuantityNeeded_Positive", "QuantityNeeded >= 1");
+                t.HasCheckConstraint("CK_Needs_Priority_Valid", EnumCheck<NeedPriority>("Priority"));
+                t.HasCheckConstraint("CK_Needs_Status_Valid", EnumCheck<NeedStatus>("Status"));
+            });
 
             // Properties
             b.Property(n => n.Title).HasMaxLength(FieldLimits.Title);
@@ -133,7 +144,11 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Resource>(b =>
         {
             // Table constraints
-            b.ToTable(t => t.HasCheckConstraint("CK_Resources_QuantityOffered_Positive", "QuantityOffered >= 1"));
+            b.ToTable(t =>
+            {
+                t.HasCheckConstraint("CK_Resources_QuantityOffered_Positive", "QuantityOffered >= 1");
+                t.HasCheckConstraint("CK_Resources_Status_Valid", EnumCheck<ResourceStatus>("Status"));
+            });
 
             // Properties
             b.Property(r => r.Title).HasMaxLength(FieldLimits.Title);
@@ -192,7 +207,11 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Match>(b =>
         {
             // Table constraints
-            b.ToTable(t => t.HasCheckConstraint("CK_Matches_Quantity_Positive", "Quantity >= 1"));
+            b.ToTable(t =>
+            {
+                t.HasCheckConstraint("CK_Matches_Quantity_Positive", "Quantity >= 1");
+                t.HasCheckConstraint("CK_Matches_Status_Valid", EnumCheck<MatchStatus>("Status"));
+            });
 
             // Properties
             b.Property(m => m.Status).HasConversion<string>().HasMaxLength(FieldLimits.EnumText);
@@ -226,6 +245,9 @@ public class AppDbContext : DbContext
     {
         modelBuilder.Entity<AuditLog>(b =>
         {
+            // Table constraints
+            b.ToTable(t => t.HasCheckConstraint("CK_AuditLogs_Action_Valid", EnumCheck<AuditAction>("Action")));
+
             // Properties
             b.Property(a => a.ActorName).HasMaxLength(FieldLimits.AuditActorName);
             b.Property(a => a.Action).HasConversion<string>().HasMaxLength(FieldLimits.EnumText);
@@ -250,6 +272,8 @@ public class AppDbContext : DbContext
     {
         modelBuilder.Entity<OutboxMessage>(b =>
         {
+            b.ToTable(t => t.HasCheckConstraint("CK_OutboxMessages_Status_Valid", EnumCheck<OutboxStatus>("Status")));
+
             b.Property(m => m.Type).HasMaxLength(FieldLimits.EnumText);
             b.Property(m => m.DedupKey).HasMaxLength(FieldLimits.DedupKey);
             b.Property(m => m.Payload).HasMaxLength(FieldLimits.OutboxPayload);
@@ -262,6 +286,17 @@ public class AppDbContext : DbContext
             // Removing a user must not delete or block their queued messages
             b.HasOne<User>().WithMany().HasForeignKey(m => m.RecipientUserId).OnDelete(DeleteBehavior.SetNull);
         });
+    }
+
+    /// <summary>
+    /// Builds a CHECK expression such as <c>Status IN ('Available', 'Busy')</c> from an enum,
+    /// so the database only accepts values the enum defines. The list follows the enum:
+    /// adding a value makes EF Core generate a migration that updates the constraint.
+    /// </summary>
+    private static string EnumCheck<TEnum>(string column) where TEnum : struct, Enum
+    {
+        var values = string.Join(", ", Enum.GetNames<TEnum>().Select(name => $"'{name}'"));
+        return $"{column} IN ({values})";
     }
 
     // ─────────────────────────────────────────────────────────────
